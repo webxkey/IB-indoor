@@ -1211,7 +1211,7 @@
             numberOfCourts = currentGameObject.maximum_court;
         }
         
-        const courts = Array.from({ length: numberOfCourts }, (_, i) => `Court ${i + 1}`);
+        const courts = Array.from({ length: numberOfCourts }, (_, i) => `${i + 1}`);
         
         for (const timerId in activeTimers) {
             if (activeTimers[timerId].intervalId) {
