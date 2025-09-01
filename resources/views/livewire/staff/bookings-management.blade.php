@@ -1222,7 +1222,7 @@
         
         let headerHtml = '<th class="time-column">Time</th>';
         courts.forEach(court => {
-            headerHtml += `<th>${court}</th>`;
+            headerHtml += `<th>Court ${court}</th>`;
         });
         document.getElementById('calendarHeader').innerHTML = headerHtml;
         
