@@ -250,11 +250,11 @@
         <div class="card mb-3">
             <div class="card-body">
                 <div class="row align-items-center">
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <img src="{{ $venue->cover_image ? Storage::url($venue->cover_image) : 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg' }}"
-                            class="list-view-img rounded" alt="Indoor Ground" width="150" height="120">
+                            class="list-view-img rounded" alt="Indoor Ground" width="280" height="140">
                     </div>
-                    <div class="col-md-7">
+                    <div class="col-md-5">
                         <h5>{{ $venue->name }}</h5>
                         <div class="d-flex flex-wrap gap-2 mb-2">
                             <span
@@ -285,36 +285,36 @@
                             @endif
                         </div>
                     </div>
-                  <div class="col-md-3 d-flex flex-column align-items-center mt-3 mt-md-0">
-    <button class="btn btn-sm btn-outline-primary mb-2 w-100" title="Edit"
-        wire:click="showEditModal({{ $venue->id }})">
-        <i class="fas fa-edit"></i> Edit
-    </button>
+                    <div class="col-md-3 text-justify-center text-md-end mt-3 mt-md-0">
+                        <button class="btn btn-sm btn-outline-primary me-1" title="Edit"
+                            wire:click="showEditModal({{ $venue->id }})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        {{-- In indoors.blade.php, add delete button to list view (inside the col-md-3 text-end div,
+                        after the activate/deactivate button and before the view details button) --}}
 
-    <button class="btn btn-sm btn-outline-danger mb-2 w-100" title="Delete"
-        wire:click="deleteVenue({{ $venue->id }})"
-        wire:confirm="Are you sure you want to delete this venue?">
-        <i class="fas fa-trash"></i> Delete
-    </button>
-
-    @if($venue->status == 'active')
-    <button class="btn btn-sm btn-outline-danger mb-2 w-100" title="Deactivate"
-        wire:click="updateStatus({{ $venue->id }}, 'inactive')">
-        <i class="fas fa-ban"></i> Deactivate
-    </button>
-    @else
-    <button class="btn btn-sm btn-outline-success mb-2 w-100" title="Activate"
-        wire:click="updateStatus({{ $venue->id }}, 'active')">
-        <i class="fas fa-check"></i> Activate
-    </button>
-    @endif
-
-    <button class="btn btn-sm btn-outline-info w-100" title="View Details"
-        wire:click="showViewModal({{ $venue->id }})">
-        <i class="fas fa-eye"></i> View Details
-    </button>
-</div>
-
+                        <button class="btn btn-sm btn-outline-danger me-1" title="Delete"
+                            wire:click="deleteVenue({{ $venue->id }})"
+                            wire:confirm="Are you sure you want to delete this venue?">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        @if($venue->status == 'active')
+                        <button class="btn btn-sm btn-outline-danger" title="Deactivate"
+                            wire:click="updateStatus({{ $venue->id }}, 'inactive')">
+                            <i class="fas fa-ban"></i> Deactivate
+                        </button>
+                        @else
+                        <button class="btn btn-sm btn-outline-success" title="Activate"
+                            wire:click="updateStatus({{ $venue->id }}, 'active')">
+                            <i class="fas fa-check"></i> Activate
+                        </button>
+                        @endif
+                        <button class="btn btn-sm btn-outline-info mt-2 mr-2 px-5 w-90" title="View Details" style="
+    margin-right: 21px;
+" wire:click="showViewModal({{ $venue->id }})">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -574,7 +574,7 @@
                     @if($viewVenue)
                     <div class="row">
                         <div class="col-md-6">
-                            <img src="{{ $viewVenue->cover_image ? Storage::url($viewVenue->cover_image) : 'https://via.placeholder.com/500x300?text=No+Image' }}"
+                            <img src="{{ $viewVenue->cover_image ? Storage::url($viewVenue->cover_image) : 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg' }}"
                                 class="img-fluid rounded mb-3" alt="Facility Image">
                         </div>
                         <div class="col-md-6">
@@ -675,14 +675,16 @@
 
     <!-- Edit Indoor Modal -->
 
-    <div class="modal fade" id="editIndoorModal" tabindex="-1" aria-labelledby="editIndoorModalLabel" aria-hidden="true" wire:ignore.self>
+    <div class="modal fade" id="editIndoorModal" tabindex="-1" aria-labelledby="editIndoorModalLabel" aria-hidden="true"
+        wire:ignore.self>
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editIndoorModalLabel">
                         <i class="fas fa-edit me-2"></i>Edit Indoor Facility
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" wire:click="closeModals"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                        wire:click="closeModals"></button>
                 </div>
                 <form wire:submit="saveVenue">
                     <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
@@ -690,23 +692,29 @@
                             <!-- Basic Information -->
                             <div class="col-md-6">
                                 <h6 class="section-divider">Basic Information</h6>
-                                
+
                                 <div class="mb-3">
                                     <label for="editName" class="form-label required-field">Facility Name</label>
-                                    <input type="text" class="form-control" id="editName" wire:model="name" value="{{ $venue->name }}" required>
-                                    @error('name') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    <input type="text" class="form-control" id="editName" wire:model="name"
+                                        value="{{ $venue->name }}" required>
+                                    @error('name') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="editLocation" class="form-label required-field">Location</label>
-                                    <input type="text" class="form-control" id="editLocation" wire:model="location" required>
-                                    @error('location') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    <input type="text" class="form-control" id="editLocation" wire:model="location"
+                                        required>
+                                    @error('location') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="editAddress" class="form-label required-field">Full Address</label>
-                                    <textarea class="form-control" id="editAddress" wire:model="address" rows="2" required></textarea>
-                                    @error('address') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    <textarea class="form-control" id="editAddress" wire:model="address" rows="2"
+                                        required></textarea>
+                                    @error('address') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
                                 </div>
 
                                 <div class="row">
@@ -718,36 +726,44 @@
                                             <option value="{{ $countyOption }}">{{ $countyOption }}</option>
                                             @endforeach
                                         </select>
-                                        @error('county') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                        @error('county') <span class="text-danger error-message">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label for="editPostalCode" class="form-label">Postal Code</label>
-                                        <input type="text" class="form-control" id="editPostalCode" wire:model="postal_code">
-                                        @error('postal_code') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                        <input type="text" class="form-control" id="editPostalCode"
+                                            wire:model="postal_code">
+                                        @error('postal_code') <span class="text-danger error-message">{{ $message
+                                            }}</span> @enderror
                                     </div>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="editWebsite" class="form-label">Website</label>
                                     <input type="url" class="form-control" id="editWebsite" wire:model="website">
-                                    @error('website') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    @error('website') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             </div>
 
                             <!-- Contact & Status -->
                             <div class="col-md-6">
                                 <h6 class="section-divider">Contact & Status</h6>
-                                
+
                                 <div class="mb-3">
-                                    <label for="editContactNumber" class="form-label required-field">Contact Number</label>
-                                    <input type="tel" class="form-control" id="editContactNumber" wire:model="contact_number" required>
-                                    @error('contact_number') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    <label for="editContactNumber" class="form-label required-field">Contact
+                                        Number</label>
+                                    <input type="tel" class="form-control" id="editContactNumber"
+                                        wire:model="contact_number" required>
+                                    @error('contact_number') <span class="text-danger error-message">{{ $message
+                                        }}</span> @enderror
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="editEmail" class="form-label">Email Address</label>
                                     <input type="email" class="form-control" id="editEmail" wire:model="email_address">
-                                    @error('email_address') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    @error('email_address') <span class="text-danger error-message">{{ $message
+                                        }}</span> @enderror
                                 </div>
 
                                 <div class="mb-3">
@@ -758,17 +774,18 @@
                                         <option value="maintenance">Under Maintenance</option>
                                         <option value="new">New</option>
                                     </select>
-                                    @error('status') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    @error('status') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
                                 </div>
 
                                 <!-- Improved Opening Hours -->
                                 <div class="mb-3">
                                     <label class="form-label required-field">Opening Hours</label>
-                                    
+
                                     <span class="hours-toggle" wire:click="setAllHours">
                                         <i class="fas fa-copy me-1"></i> Set same hours for all days
                                     </span>
-                                    
+
                                     <div class="table-responsive">
                                         <table class="table table-bordered opening-hours-table">
                                             <thead>
@@ -780,7 +797,8 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @foreach(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as $day)
+                                                @foreach(['monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+                                                'saturday', 'sunday'] as $day)
                                                 <tr>
                                                     <td class="text-capitalize">{{ $day }}</td>
                                                     <td>
@@ -800,7 +818,8 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                    @error('opening_hours') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    @error('opening_hours') <span class="text-danger error-message">{{ $message
+                                        }}</span> @enderror
                                 </div>
                             </div>
 
@@ -811,44 +830,56 @@
 
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="editSportType" class="form-label required-field">Primary Sport Type</label>
+                                    <label for="editSportType" class="form-label required-field">Primary Sport
+                                        Type</label>
                                     <select class="form-select" id="editSportType" wire:model="sport_type" required>
                                         <option value="">Select sport</option>
                                         @foreach($availableSportTypes as $sport)
                                         <option value="{{ $sport }}">{{ ucfirst($sport) }}</option>
                                         @endforeach
                                     </select>
-                                    @error('sport_type') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    @error('sport_type') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             </div>
 
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="editCapacity" class="form-label required-field">Capacity</label>
-                                    <input type="number" class="form-control" id="editCapacity" wire:model="capacity" min="1" required>
-                                    @error('capacity') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    <input type="number" class="form-control" id="editCapacity" wire:model="capacity"
+                                        min="1" required>
+                                    @error('capacity') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             </div>
 
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="editHourlyRate" class="form-label required-field">Hourly Rate ($)</label>
-                                    <input type="number" step="0.01" class="form-control" id="editHourlyRate" wire:model="hourly_rate" min="0" required>
-                                    @error('hourly_rate') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    <label for="editHourlyRate" class="form-label required-field">Hourly Rate
+                                        ($)</label>
+                                    <input type="number" step="0.01" class="form-control" id="editHourlyRate"
+                                        wire:model="hourly_rate" min="0" required>
+                                    @error('hourly_rate') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="editDimensions" class="form-label required-field">Dimensions (L x W in meters)</label>
+                                    <label for="editDimensions" class="form-label required-field">Dimensions (L x W in
+                                        meters)</label>
                                     <div class="row g-2">
                                         <div class="col-md-6">
-                                            <input type="number" class="form-control" id="editLength" wire:model="length" placeholder="Length" step="0.01" required>
-                                            @error('length') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                            <input type="number" class="form-control" id="editLength"
+                                                wire:model="length" placeholder="Length" step="0.01" required>
+                                            @error('length') <span class="text-danger error-message">{{ $message
+                                                }}</span> @enderror
                                         </div>
                                         <div class="col-md-6">
-                                            <input type="number" class="form-control" id="editWidth" wire:model="width" placeholder="Width" step="0.01" required>
-                                            @error('width') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                            <input type="number" class="form-control" id="editWidth" wire:model="width"
+                                                placeholder="Width" step="0.01" required>
+                                            @error('width') <span class="text-danger error-message">{{ $message
+                                                }}</span> @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -857,13 +888,16 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editAmenities" class="form-label">Amenities</label>
-                                    <select class="form-select" id="editAmenities" wire:model="amenities" multiple size="4">
+                                    <select class="form-select" id="editAmenities" wire:model="amenities" multiple
+                                        size="4">
                                         @foreach($availableAmenities as $amenity)
-                                        <option value="{{ $amenity }}">{{ ucfirst(str_replace('_', ' ', $amenity)) }}</option>
+                                        <option value="{{ $amenity }}">{{ ucfirst(str_replace('_', ' ', $amenity)) }}
+                                        </option>
                                         @endforeach
                                     </select>
                                     <small class="text-muted">Hold Ctrl/Cmd to select multiple amenities</small>
-                                    @error('amenities') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    @error('amenities') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             </div>
 
@@ -875,13 +909,17 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editCoverImage" class="form-label">Cover Image</label>
-                                    <input type="file" class="form-control" id="editCoverImage" wire:model="cover_image" accept="image/*">
-                                    <small class="text-muted">Main display image for the facility (upload to replace)</small>
-                                    @error('cover_image') <span class="text-danger error-message">{{ $message }}</span> @enderror
-                                    
+                                    <input type="file" class="form-control" id="editCoverImage" wire:model="cover_image"
+                                        accept="image/*">
+                                    <small class="text-muted">Main display image for the facility (upload to
+                                        replace)</small>
+                                    @error('cover_image') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
+
                                     <div class="mt-2">
                                         @if($editingVenue && $editingVenue->cover_image)
-                                        <img src="{{ Storage::url($editingVenue->cover_image) }}" alt="Current Cover" class="image-preview">
+                                        <img src="{{ Storage::url($editingVenue->cover_image)  }}" alt="Current Cover"
+                                            class="image-preview">
                                         @endif
                                         <div wire:loading wire:target="cover_image" class="text-primary mt-2">
                                             <i class="fas fa-spinner fa-spin"></i> Uploading...
@@ -893,14 +931,18 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editGalleryImages" class="form-label">Gallery Images</label>
-                                    <input type="file" class="form-control" id="editGalleryImages" wire:model="gallery_images" multiple accept="image/*">
-                                    <small class="text-muted">Upload multiple images (max 5; upload to add/replace)</small>
-                                    @error('gallery_images') <span class="text-danger error-message">{{ $message }}</span> @enderror
-                                    
+                                    <input type="file" class="form-control" id="editGalleryImages"
+                                        wire:model="gallery_images" multiple accept="image/*">
+                                    <small class="text-muted">Upload multiple images (max 5; upload to
+                                        add/replace)</small>
+                                    @error('gallery_images') <span class="text-danger error-message">{{ $message
+                                        }}</span> @enderror
+
                                     <div class="d-flex flex-wrap mt-2">
                                         @if($editingVenue && $editingVenue->gallery->count() > 0)
                                         @foreach($editingVenue->gallery as $image)
-                                        <img src="{{ Storage::url($image->image_url) }}" alt="Gallery Image" class="image-preview">
+                                        <img src="{{ Storage::url($image->image_url) }}" alt="Gallery Image"
+                                            class="image-preview">
                                         @endforeach
                                         @endif
                                         <div wire:loading wire:target="gallery_images" class="text-primary mt-2">
@@ -914,14 +956,17 @@
                             <div class="col-12">
                                 <div class="mb-3">
                                     <label for="editDescription" class="form-label required-field">Description</label>
-                                    <textarea class="form-control" id="editDescription" wire:model="description" rows="3" required></textarea>
-                                    @error('description') <span class="text-danger error-message">{{ $message }}</span> @enderror
+                                    <textarea class="form-control" id="editDescription" wire:model="description"
+                                        rows="3" required></textarea>
+                                    @error('description') <span class="text-danger error-message">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" wire:click="closeModals">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                            wire:click="closeModals">
                             <i class="fas fa-times me-1"></i> Cancel
                         </button>
                         <button type="submit" class="btn btn-success">
