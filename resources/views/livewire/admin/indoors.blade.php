@@ -251,7 +251,7 @@
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col-md-2">
-                        <img src="{{ $venue->cover_image ? Storage::url($venue->cover_image) : 'https://via.placeholder.com/300x180?text=No+Image' }}"
+                        <img src="{{ $venue->cover_image ? Storage::url($venue->cover_image) : 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg' }}"
                             class="list-view-img rounded" alt="Indoor Ground">
                     </div>
                     <div class="col-md-7">
