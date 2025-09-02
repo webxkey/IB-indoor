@@ -746,7 +746,7 @@
                     };
                     @endphp
                     <div class="game-tab" data-game="{{ strtolower($game['name']) }}">
-                        <i class="{{ $icon }} me-2"></i>{{ ucfirst($game['name']) }}
+                        <i class="{{ $icon }} me-2"></i>{{ $game['name'] }}
                     </div>
                     @empty
                     <div class="alert alert-info m-3">
