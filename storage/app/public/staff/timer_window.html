@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Timer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+        
+        .timer-container {
+            background-color: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            
+        }
+        .modal-timer {
+            font-size: 3.5rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        .timer-running {
+            color: #dc3545;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .alert-info {
+            background-color: #e0f7fa;
+            border-color: #b2ebf2;
+            color: #00796b;
+        }
+    </style>
+</head>
+<body>
+    <div class="timer-container">
+        <h5 class="mb-3 text-primary"><i class="fas fa-stopwatch me-2"></i>Game Timer</h5>
+        <div class="alert alert-info mb-3">
+            <p class="mb-1"><strong>Player:</strong> <span id="windowTimerPlayerName"></span></p>
+            <p class="mb-0"><strong>Game Start:</strong> <span id="windowTimerGameStartTime"></span></p>
+        </div>
+        <div class="modal-timer" id="windowModalTimer">00:00:00</div>
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <button id="windowStartButton" class="btn btn-success btn-lg">
+                <i class="fas fa-play me-2"></i>Start
+            </button>
+            <button id="windowPauseButton" class="btn btn-warning btn-lg" disabled>
+                <i class="fas fa-pause me-2"></i>Pause
+            </button>
+            <button id="windowResetButton" class="btn btn-danger btn-lg">
+                <i class="fas fa-redo me-2"></i>Reset
+            </button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let timerIntervalId = null;
+        let timerRemaining = 0;
+        let timerTotalDuration = 0;
+        let isTimerRunning = false;
+        let timerPlayerName = '';
+        let timerGameStartTime = '';
+
+        function formatTime(seconds) {
+            const hrs = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const mins = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            return `${hrs}:${mins}:${secs}`;
+        }
+
+        function updateTimerDisplay() {
+            $('#windowModalTimer').text(formatTime(timerRemaining));
+            if (isTimerRunning) {
+                $('#windowModalTimer').addClass('timer-running');
+            } else {
+                $('#windowModalTimer').removeClass('timer-running');
+            }
+        }
+
+        function startWindowTimer() {
+            if (timerIntervalId || timerRemaining <= 0) return;
+            isTimerRunning = true;
+            $('#windowStartButton').prop('disabled', true);
+            $('#windowPauseButton').prop('disabled', false);
+            timerIntervalId = setInterval(() => {
+                if (timerRemaining > 0) {
+                    timerRemaining--;
+                    updateTimerDisplay();
+                    // Send update back to opener (main window)
+                    if (window.opener && window.opener.updateMainTimerDisplay) {
+                        window.opener.updateMainTimerDisplay(timerRemaining, window.name, isTimerRunning);
+                    }
+                } else {
+                    clearInterval(timerIntervalId);
+                    timerIntervalId = null;
+                    isTimerRunning = false;
+                    $('#windowStartButton').prop('disabled', false);
+                    $('#windowPauseButton').prop('disabled', true);
+                    updateTimerDisplay();
+                    if (window.opener && window.opener.updateMainTimerDisplay) {
+                        window.opener.updateMainTimerDisplay(timerRemaining, window.name, isTimerRunning);
+                    }
+                }
+            }, 1000);
+        }
+
+        function pauseWindowTimer() {
+            if (!timerIntervalId) return;
+            clearInterval(timerIntervalId);
+            timerIntervalId = null;
+            isTimerRunning = false;
+            $('#windowStartButton').prop('disabled', false);
+            $('#windowPauseButton').prop('disabled', true);
+            updateTimerDisplay();
+            // Send update back to opener (main window)
+            if (window.opener && window.opener.updateMainTimerDisplay) {
+                window.opener.updateMainTimerDisplay(timerRemaining, window.name, isTimerRunning);
+            }
+        }
+
+        function resetWindowTimer() {
+            pauseWindowTimer();
+            timerRemaining = timerTotalDuration;
+            isTimerRunning = false;
+            $('#windowStartButton').prop('disabled', false);
+            $('#windowPauseButton').prop('disabled', true);
+            updateTimerDisplay();
+            // Send update back to opener (main window)
+            if (window.opener && window.opener.updateMainTimerDisplay) {
+                window.opener.updateMainTimerDisplay(timerRemaining, window.name, isTimerRunning);
+            }
+        }
+
+        // Event listeners for buttons
+        $('#windowStartButton').on('click', startWindowTimer);
+        $('#windowPauseButton').on('click', pauseWindowTimer);
+        $('#windowResetButton').on('click', resetWindowTimer);
+
+        // Function to receive data from opener
+        window.receiveTimerData = function(data) {
+            timerRemaining = data.remaining;
+            timerTotalDuration = data.totalDuration;
+            isTimerRunning = data.isRunning;
+            timerPlayerName = data.player;
+            timerGameStartTime = data.startTimeDisplay;
+
+            $('#windowTimerPlayerName').text(timerPlayerName);
+            $('#windowTimerGameStartTime').text(timerGameStartTime);
+            updateTimerDisplay();
+
+            if (isTimerRunning) {
+                startWindowTimer();
+            } else {
+                $('#windowStartButton').prop('disabled', false);
+                $('#windowPauseButton').prop('disabled', true);
+            }
+        };
+
+        $(document).ready(function() {
+            // Check if there's data passed via window.name (for initial load)
+            // Or if opener directly calls receiveTimerData
+            if (window.name) {
+                try {
+                    const data = JSON.parse(decodeURIComponent(window.name));
+                    if (data && data.timerId && data.remaining !== undefined) {
+                        window.receiveTimerData(data);
+                    }
+                } catch (e) {
+                    console.error("Error parsing window.name data:", e);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
