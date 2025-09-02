@@ -72,28 +72,45 @@ class BookingsManagement extends Component
 
         // dd($this->games);
 
-        // dd($this->games);
-
         $this->bookingdetails = [];
-        foreach ($this->bookings as $booking) {            
+        foreach ($this->bookings as $booking) {
             $game = strtolower($booking->game_name);
             $date = Carbon::parse($booking->booking_date)->format('Y-m-d');
             $court = $booking->court_number;
             $start = $booking->start_time;
+            $end = $booking->end_time;
 
-            $this->bookingdetails[$game][$date][$court][$start] = [
-                'end' => $booking->end_time,
-                'player' => $booking->user_name,
-                'phone' => $booking->user_number,
-                'status' => $booking->status,
-                'permanent' => (bool) $booking->permanent,
-            ];
+            // Parse start and end times using Carbon
+            $startTime = Carbon::parse($start);
+            $endTime = Carbon::parse($end);
+
+            // Calculate the number of hours the booking spans
+            $hours = $startTime->diffInHours($endTime);
+
+            // Iterate through each hour and create a separate booking entry
+            for ($i = 0; $i < $hours; $i++) {
+                // Calculate the start time for the current hour
+                $currentStartTime = $startTime->copy()->addHours($i)->format('H:i:s');
+
+                // Calculate the end time for the current hour
+                $currentEndTime = $startTime->copy()->addHours($i + 1)->format('H:i:s');
+
+                // Create a unique key for the booking slot
+                $slotKey = $currentStartTime;
+
+                // Populate booking details for the current hour
+                $this->bookingdetails[$game][$date][$court][$slotKey] = [
+                    'player' => $booking->user_name,
+                    'phone' => $booking->user_number,
+                    'status' => $booking->status,
+                    'permanent' => $booking->permanent,
+                    'end' => $currentEndTime, // Set the end time for the hourly slot
+                    'avatar' => '/storage/staff/user.png', // Assuming a default avatar
+                ];
+            }
         }
 
         Log::info('loadSports executed', [
-            'complex_id' => $this->complex_id,
-            'sports_count' => $this->sports->count(),
-            'bookings_count' => $this->bookings->count(),
             'games' => $this->games,
         ]);
     }

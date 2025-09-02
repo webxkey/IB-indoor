@@ -1234,8 +1234,8 @@
             
             courts.forEach(court => {
                 const bookings = gameData[court] || {};                
-                const bookingInfo = bookings[slot.time24];
-                
+                const bookingInfo = bookings[slot.time24.substring(0, 5) + ':00'];
+                 
                 if (bookingInfo) {
                     const timerId = `${currentGame}-${dateKey}-${court.replace(/\s/g, '')}-${slot.time24.replace(/:/g, '-')}`;
                     const totalDuration = calculateDurationInSeconds(slot.time24, bookingInfo.end);
