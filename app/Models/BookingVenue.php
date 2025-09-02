@@ -39,4 +39,8 @@ class BookingVenue extends Model
     {
         return $this->hasMany(BookingVenueReview::class, 'venue_id');
     }
+    public function bookings()
+    {
+        return $this->hasMany(BookingBooking::class, 'complex_id_id');
+    }
 }
