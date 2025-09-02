@@ -175,7 +175,7 @@
         <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
             <div class="card h-100 card-clickable" wire:click="showViewModal({{ $venue->id }})">
                 <div class="position-relative">
-                    <img src="{{ $venue->cover_image ? Storage::url($venue->cover_image) : 'https://via.placeholder.com/300x180?text=No+Image' }}"
+                    <img src="{{ $venue->cover_image ? Storage::url($venue->cover_image) : 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg' }}"
                         class="card-img-top" alt="Indoor Ground">
                     <span
                         class="badge bg-{{ $venue->status == 'active' ? 'success' : ($venue->status == 'maintenance' ? 'warning' : 'danger') }} position-absolute top-0 end-0 m-2">
@@ -931,7 +931,7 @@
             </div>
         </div>
     </div>
-    
+
     @push('scripts')
     <script>
         document.addEventListener('livewire:initialized', () => {
