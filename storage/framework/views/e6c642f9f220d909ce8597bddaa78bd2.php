@@ -203,7 +203,7 @@
 
             <!-- Pagination -->
             <nav aria-label="Page navigation" class="mt-4">
-                <?php echo e($users->links()); ?>
+                <?php echo e($users->links('vendor.livewire.bootstrap')); ?>
 
             </nav>
         </div>
@@ -242,6 +242,7 @@
                                 <option value="1" selected>Active</option>
                                 <option value="0">Inactive</option>
                             </select>
+
                         </div>
                         <div class="mb-3">
                             <label for="userPassword" class="form-label">Password*</label>
@@ -250,7 +251,7 @@
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="sendWelcomeEmail">
                             <label class="form-check-label" for="sendWelcomeEmail">
-                                Send welcome email
+                                Send welcome email 
                             </label>
                         </div>
                     </form>

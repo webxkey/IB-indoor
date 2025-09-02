@@ -262,7 +262,8 @@
             </div>
 
             <!-- Pagination -->
-            <?php echo e($recentBookings->links()); ?>
+         <?php echo e($recentBookings->links('vendor.livewire.bootstrap')); ?>
+
 
         </div>
     </div>

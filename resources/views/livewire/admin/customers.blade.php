@@ -203,7 +203,7 @@
 
             <!-- Pagination -->
             <nav aria-label="Page navigation" class="mt-4">
-                {{ $users->links() }}
+                {{ $users->links('vendor.livewire.bootstrap') }}
             </nav>
         </div>
     </div>

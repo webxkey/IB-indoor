@@ -261,7 +261,8 @@
             </div>
 
             <!-- Pagination -->
-            {{ $recentBookings->links() }}
+         {{ $recentBookings->links('vendor.livewire.bootstrap') }}
+
         </div>
     </div>
 
