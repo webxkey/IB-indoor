@@ -252,7 +252,7 @@
                 <div class="row align-items-center">
                     <div class="col-md-2">
                         <img src="{{ $venue->cover_image ? Storage::url($venue->cover_image) : 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg' }}"
-                            class="list-view-img rounded" alt="Indoor Ground">
+                            class="list-view-img rounded" alt="Indoor Ground" width="150" height="120">
                     </div>
                     <div class="col-md-7">
                         <h5>{{ $venue->name }}</h5>
@@ -285,35 +285,36 @@
                             @endif
                         </div>
                     </div>
-                    <div class="col-md-3 text-end">
-                        <button class="btn btn-sm btn-outline-primary me-1" title="Edit"
-                            wire:click="showEditModal({{ $venue->id }})">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                        {{-- In indoors.blade.php, add delete button to list view (inside the col-md-3 text-end div,
-                        after the activate/deactivate button and before the view details button) --}}
+                  <div class="col-md-3 d-flex flex-column align-items-center mt-3 mt-md-0">
+    <button class="btn btn-sm btn-outline-primary mb-2 w-100" title="Edit"
+        wire:click="showEditModal({{ $venue->id }})">
+        <i class="fas fa-edit"></i> Edit
+    </button>
 
-                        <button class="btn btn-sm btn-outline-danger me-1" title="Delete"
-                            wire:click="deleteVenue({{ $venue->id }})"
-                            wire:confirm="Are you sure you want to delete this venue?">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                        @if($venue->status == 'active')
-                        <button class="btn btn-sm btn-outline-danger" title="Deactivate"
-                            wire:click="updateStatus({{ $venue->id }}, 'inactive')">
-                            <i class="fas fa-ban"></i> Deactivate
-                        </button>
-                        @else
-                        <button class="btn btn-sm btn-outline-success" title="Activate"
-                            wire:click="updateStatus({{ $venue->id }}, 'active')">
-                            <i class="fas fa-check"></i> Activate
-                        </button>
-                        @endif
-                        <button class="btn btn-sm btn-outline-info mt-2 w-100" title="View Details"
-                            wire:click="showViewModal({{ $venue->id }})">
-                            <i class="fas fa-eye"></i> View Details
-                        </button>
-                    </div>
+    <button class="btn btn-sm btn-outline-danger mb-2 w-100" title="Delete"
+        wire:click="deleteVenue({{ $venue->id }})"
+        wire:confirm="Are you sure you want to delete this venue?">
+        <i class="fas fa-trash"></i> Delete
+    </button>
+
+    @if($venue->status == 'active')
+    <button class="btn btn-sm btn-outline-danger mb-2 w-100" title="Deactivate"
+        wire:click="updateStatus({{ $venue->id }}, 'inactive')">
+        <i class="fas fa-ban"></i> Deactivate
+    </button>
+    @else
+    <button class="btn btn-sm btn-outline-success mb-2 w-100" title="Activate"
+        wire:click="updateStatus({{ $venue->id }}, 'active')">
+        <i class="fas fa-check"></i> Activate
+    </button>
+    @endif
+
+    <button class="btn btn-sm btn-outline-info w-100" title="View Details"
+        wire:click="showViewModal({{ $venue->id }})">
+        <i class="fas fa-eye"></i> View Details
+    </button>
+</div>
+
                 </div>
             </div>
         </div>
