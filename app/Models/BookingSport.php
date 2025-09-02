@@ -18,6 +18,7 @@ class BookingSport extends Model
         'available' => true,
         'status' => 'active',
         'average_rating' => 0,
+        'advance_required' => false,
     ];
     protected $casts = [
         'available' => 'boolean',
