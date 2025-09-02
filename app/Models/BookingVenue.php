@@ -13,9 +13,11 @@ class BookingVenue extends Model
         'county','location','postal_code','contact_number','email_address',
         'website','status','opening_hours','amenities','cover_image',
         'gallery_images_json','video_tour_url','description','terms',
-        'social_links'
+        'social_links','capacity', 'hourly_rate', 'dimensions', 'primary_sport_type'
     ];
-
+   protected $attributes = [
+        'image_url' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
+    ];
     protected $casts = [
         'opening_hours' => 'array',
         'amenities' => 'array',

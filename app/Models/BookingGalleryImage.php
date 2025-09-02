@@ -7,8 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class BookingGalleryImage extends Model
 {
     protected $table = 'booking_galleryimage';
+    public $timestamps = false;
 
-    protected $fillable = ['image_url','venue_id'];
+    protected $fillable = ['image_url', 'venue_id'];
 
     public function venue()
     {

@@ -13,7 +13,12 @@ class BookingSport extends Model
         'maximum_court','status','description','additional_charges',
         'advance_required','venue_id','average_rating'
     ];
-
+   protected $attributes = [
+        'image' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
+        'available' => true,
+        'status' => 'active',
+        'average_rating' => 0,
+    ];
     protected $casts = [
         'available' => 'boolean',
         'advance_required' => 'boolean',

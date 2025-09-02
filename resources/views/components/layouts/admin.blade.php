@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Page Title' }}</title>
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+  
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -12,7 +17,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
     @livewireStyles
- <style>
+    <style>
         :root {
             --primary-color: #198754;
             --secondary-color: #6c757d;
@@ -364,7 +369,7 @@
                 gap: 1rem;
             }
 
-            .d-flex.justify-content-between.align-items-center > div:last-child {
+            .d-flex.justify-content-between.align-items-center>div:last-child {
                 text-align: center;
             }
         }
@@ -412,13 +417,14 @@
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
 
-        .dashboard-content > * {
+        .dashboard-content>* {
             animation: fadeInUp 0.5s ease-out;
         }
 
@@ -526,6 +532,7 @@
 
         /* Print Styles */
         @media print {
+
             .sidebar,
             .btn,
             .dropdown {
@@ -542,71 +549,72 @@
             }
         }
     </style>
-    
+
 </head>
+
 <body>
 
-<div class="container-fluid">
+    <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
                 <div class="position-sticky pt-1">
                     <div class="sidebar-brand mb-2">
                         <div class="d-flex align-items-center gap-0" style="font-size: 1.8rem;">
-                        <span class="fw-bold">IndoorB</span>
-                        <i class="fas fa-futbol text-success"></i>
-                    </div>
+                            <span class="fw-bold">IndoorB</span>
+                            <i class="fas fa-futbol text-success"></i>
+                        </div>
 
                     </div>
-                    
+
                     <div class="sidebar-section">
                         <h6 class="sidebar-heading text-muted text-uppercase">Super Admin</h6>
                         <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
-                            href="{{ route('admin.dashboard') }}" data-section="dashboard">
-                                <i class="fas fa-th-large me-2"></i>
-                                Dashboard
-                            </a>
-                        </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
+                                    href="{{ route('admin.dashboard') }}" data-section="dashboard">
+                                    <i class="fas fa-th-large me-2"></i>
+                                    Dashboard
+                                </a>
+                            </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.indoors') ? 'active' : '' }}"
-                            href="{{ route('admin.indoors') }}" data-section="grounds">
-                                <i class="fas fa-map-marked-alt me-2"></i>
-                                Indoors
-                            </a>
-                        </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.indoors') ? 'active' : '' }}"
+                                    href="{{ route('admin.indoors') }}" data-section="grounds">
+                                    <i class="fas fa-map-marked-alt me-2"></i>
+                                    Indoors
+                                </a>
+                            </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.bookings') ? 'active' : '' }}"
-                            href="{{ route('admin.bookings') }}" data-section="bookings">
-                                <i class="fas fa-calendar-check me-2"></i>
-                                Bookings
-                                <span class="badge bg-success ms-auto">12</span>
-                            </a>
-                        </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.bookings') ? 'active' : '' }}"
+                                    href="{{ route('admin.bookings') }}" data-section="bookings">
+                                    <i class="fas fa-calendar-check me-2"></i>
+                                    Bookings
+                                    <span class="badge bg-success ms-auto">12</span>
+                                </a>
+                            </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.customers') ? 'active' : '' }}"
-                            href="{{ route('admin.customers') }}" data-section="customers">
-                                <i class="fas fa-users me-2"></i>
-                                App Users
-                            </a>
-                        </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.customers') ? 'active' : '' }}"
+                                    href="{{ route('admin.customers') }}" data-section="customers">
+                                    <i class="fas fa-users me-2"></i>
+                                    App Users
+                                </a>
+                            </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.indoor-admins') ? 'active' : '' }}"
-                            href="{{ route('admin.indoor-admins') }}" data-section="indoor-admins">
-                                <i class="fas fa-chart-bar me-2"></i>
-                                Indoor Admins
-                            </a>
-                        </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.indoor-admins') ? 'active' : '' }}"
+                                    href="{{ route('admin.indoor-admins') }}" data-section="indoor-admins">
+                                    <i class="fas fa-chart-bar me-2"></i>
+                                    Indoor Admins
+                                </a>
+                            </li>
 
                             <li class="nav-item">
                                 <a class="nav-link" href="#" data-section="analytics">
                                     <i class="fas fa-chart-bar me-2"></i>
-                                    
+
                                 </a>
                             </li>
                         </ul>
@@ -655,7 +663,8 @@
                 <!-- Header -->
                 <header class="d-flex justify-content-between align-items-center py-3 mb-4">
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-outline-secondary d-md-none me-2" type="button" data-bs-toggle="collapse" data-bs-target=".sidebar">
+                        <button class="btn btn-outline-secondary d-md-none me-2" type="button" data-bs-toggle="collapse"
+                            data-bs-target=".sidebar">
                             <i class="fas fa-bars"></i>
                         </button>
                         <div class="search-box">
@@ -663,7 +672,8 @@
                                 <span class="input-group-text bg-transparent border-end-0">
                                     <i class="fas fa-search text-muted"></i>
                                 </span>
-                                <input type="text" class="form-control border-start-0" placeholder="Search..." style="background: transparent;">
+                                <input type="text" class="form-control border-start-0" placeholder="Search..."
+                                    style="background: transparent;">
                                 <span class="input-group-text bg-transparent border-start-0">
                                     <kbd>⌘F</kbd>
                                 </span>
@@ -678,8 +688,10 @@
                             <i class="fas fa-bell"></i>
                         </button>
                         <div class="dropdown">
-                            <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Profile" class="rounded-circle me-2" width="40" height="40">
+                            <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#"
+                                role="button" data-bs-toggle="dropdown">
+                                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
+                                    alt="Profile" class="rounded-circle me-2" width="40" height="40">
                                 <div class="text-start">
                                     <div class="fw-semibold">John Manager</div>
                                     <div class="small text-muted">admin@bookingpro.com</div>
@@ -688,7 +700,9 @@
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="#">Profile</a></li>
                                 <li><a class="dropdown-item" href="#">Settings</a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button type="submit" class="dropdown-item text-danger">
@@ -704,21 +718,24 @@
         </div>
 
 
-   <!-- Main Content -->
-            <main class="main-content">
-                {{ $slot ?? '' }}
-            </main>
-</div>
+        <!-- Main Content -->
+        <main class="main-content">
+            {{ $slot ?? '' }}
+        </main>
+    </div>
 </body>
 
 
 
-           
 
-    @livewireScripts
+
+@livewireScripts
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -765,4 +782,5 @@
 @stack('scripts')
 
 </body>
+
 </html>

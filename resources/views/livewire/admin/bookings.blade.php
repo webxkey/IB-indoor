@@ -392,4 +392,75 @@
             </nav>
         </div>
     </div>
+    <!-- Add this modal at the bottom of your page -->
+<div class="modal fade" id="viewFacilityModal" tabindex="-1" aria-labelledby="viewFacilityLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewFacilityLabel">Facility Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-5">
+            <img id="facilityImage" src="" alt="Facility Image" class="img-fluid rounded">
+          </div>
+          <div class="col-md-7">
+            <h5 id="facilityName">Facility Name</h5>
+            <p id="facilityLocation" class="text-muted">Location</p>
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item"><strong>Total Bookings:</strong> <span id="totalBookings"></span></li>
+              <li class="list-group-item"><strong>Confirmed:</strong> <span id="confirmedBookings"></span></li>
+              <li class="list-group-item"><strong>Pending:</strong> <span id="pendingBookings"></span></li>
+              <li class="list-group-item"><strong>Canceled:</strong> <span id="canceledBookings"></span></li>
+              <li class="list-group-item"><strong>Total Revenue:</strong> <span id="totalRevenue"></span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add this JS after Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Select all View buttons
+  const viewButtons = document.querySelectorAll('.btn-outline-primary');
+
+  viewButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      // Get the row of the clicked button
+      const row = this.closest('tr');
+
+      // Extract info from the row
+      const imgSrc = row.querySelector('td img')?.src;
+      const name = row.querySelector('td h6')?.innerText;
+      const location = row.querySelector('td small')?.innerText;
+      const total = row.cells[1].innerText;
+      const confirmed = row.cells[2].innerText;
+      const pending = row.cells[3].innerText;
+      const canceled = row.cells[4].innerText;
+      const revenue = row.cells[5].innerText;
+
+      // Fill modal
+      document.getElementById('facilityImage').src = imgSrc || '';
+      document.getElementById('facilityName').innerText = name || '';
+      document.getElementById('facilityLocation').innerText = location || '';
+      document.getElementById('totalBookings').innerText = total;
+      document.getElementById('confirmedBookings').innerText = confirmed;
+      document.getElementById('pendingBookings').innerText = pending;
+      document.getElementById('canceledBookings').innerText = canceled;
+      document.getElementById('totalRevenue').innerText = revenue;
+
+      // Show modal
+      const modal = new bootstrap.Modal(document.getElementById('viewFacilityModal'));
+      modal.show();
+    });
+  });
+</script>
+
 </div>
