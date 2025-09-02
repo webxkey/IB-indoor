@@ -241,6 +241,7 @@
                                 <option value="1" selected>Active</option>
                                 <option value="0">Inactive</option>
                             </select>
+                            
                         </div>
                         <div class="mb-3">
                             <label for="userPassword" class="form-label">Password*</label>
