@@ -75,8 +75,8 @@ class BookingsManagement extends Component
         // dd($this->games);
 
         $this->bookingdetails = [];
-        foreach ($this->bookings as $booking) {
-            $game = $booking->game_name;
+        foreach ($this->bookings as $booking) {            
+            $game = strtolower($booking->game_name);
             $date = Carbon::parse($booking->booking_date)->format('Y-m-d');
             $court = $booking->court_number;
             $start = $booking->start_time;

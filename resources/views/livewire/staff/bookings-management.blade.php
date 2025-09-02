@@ -1223,17 +1223,17 @@
         let headerHtml = '<th class="time-column">Time</th>';
         courts.forEach(court => {
             headerHtml += `<th>Court ${court}</th>`;
-        });
-        document.getElementById('calendarHeader').innerHTML = headerHtml;
-        
-        let bodyHtml = '';
+        });        
+         document.getElementById('calendarHeader').innerHTML = headerHtml;
+         
+         let bodyHtml = '';
         const timeSlots = generateTimeSlots();
         
         timeSlots.forEach(slot => {
             bodyHtml += `<tr><td class="time-column">${slot.display}</td>`;
             
             courts.forEach(court => {
-                const bookings = gameData[court] || {};
+                const bookings = gameData[court] || {};                
                 const bookingInfo = bookings[slot.time24];
                 
                 if (bookingInfo) {
