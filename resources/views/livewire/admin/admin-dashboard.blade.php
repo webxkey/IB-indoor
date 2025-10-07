@@ -1,34 +1,3 @@
-
-<style>
-    .stat-card {
-        transition: transform 0.3s ease;
-    }
-    .stat-card:hover {
-        transform: translateY(-5px);
-    }
-    .stat-icon {
-        font-size: 2.5rem;
-        opacity: 0.3;
-    }
-    .card-img-top {
-        height: 180px;
-        object-fit: cover;
-    }
-    .list-view-img {
-        width: 100%;
-        height: 120px;
-        object-fit: cover;
-    }
-    .active-view {
-        background-color: #0d6efd;
-        color: white !important;
-    }
-    .badge-icon {
-        font-size: 0.8em;
-        margin-right: 3px;
-    }
-</style>
-
 <div class="container-fluid">
     <!-- Dashboard Content (Default) -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -158,10 +127,11 @@
                                 <i class="fas fa-futbol text-success"></i>
                             </div>
                             <div class="flex-grow-1">
-                                <h6 class="mb-1">{{ $booking->game_name }} - {{ $booking->venue->name ?? 'Unknown Venue' }}</h6>
+                                <h6 class="mb-1">{{ $booking->game_name }} - {{ $booking->venue->name ?? 'Unknown Venue'
+                                    }}</h6>
                                 <small class="text-muted">
-                                    {{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}, 
-                                    {{ \Carbon\Carbon::parse($booking->start_time)->format('g:i A') }} - 
+                                    {{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }},
+                                    {{ \Carbon\Carbon::parse($booking->start_time)->format('g:i A') }} -
                                     {{ \Carbon\Carbon::parse($booking->end_time)->format('g:i A') }}
                                 </small>
                             </div>
@@ -181,7 +151,8 @@
         </div>
     </div>
 </div>
-
+@push('scripts')
+` <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize booking analytics chart
@@ -211,3 +182,4 @@
         });
     });
 </script>
+@endpush

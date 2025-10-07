@@ -1,4 +1,23 @@
 <div class="container-fluid">
+    <!-- Flash Messages -->
+    <!--[if BLOCK]><![endif]--><?php if(session('success')): ?>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <?php echo e(session('success')); ?>
+
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
+
+    <!--[if BLOCK]><![endif]--><?php if(session('error')): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <?php echo e(session('error')); ?>
+
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
+
     <!-- Stats Cards Row -->
     <div class="row mb-4">
         <!-- Total Users -->
@@ -130,7 +149,7 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">App Users</h5>
             <div>
-                <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <button class="btn btn-success me-2" wire:click="openAddUserModal">
                     <i class="fas fa-plus me-1"></i> Add User
                 </button>
                 <button class="btn btn-outline-primary">
@@ -156,7 +175,7 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <img src="<?php echo e($user->profile_picture ? asset('storage/'.$user->profile_picture) : 'https://randomuser.me/api/portraits/men/'.rand(1, 99).'.jpg'); ?>"
+                                    <img src="<?php echo e($user->profile_picture ? asset('storage/'.$user->profile_picture) : 'https://ui-avatars.com/api/?name='.urlencode($user->first_name.'+'.$user->last_name).'&background=random'); ?>"
                                         class="rounded-circle me-3" width="40" height="40"
                                         alt="<?php echo e($user->first_name); ?> <?php echo e($user->last_name); ?>">
                                     <div>
@@ -203,89 +222,174 @@
 
             <!-- Pagination -->
             <nav aria-label="Page navigation" class="mt-4">
-                <?php echo e($users->links('vendor.livewire.bootstrap')); ?>
+                <?php echo e($users->links()); ?>
 
             </nav>
         </div>
     </div>
 
-    <!-- Add User Modal (hidden by default) -->
-    <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true" wire:ignore.self>
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true" wire:ignore.self <?php if($showModal): ?>
+        style="display: block; background: rgba(0,0,0,0.5);" <?php endif; ?>>
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title">Add New User</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    <button type="button" class="btn-close btn-close-white" wire:click="closeAddUserModal"
                         aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addUserForm">
+                    <form wire:submit.prevent="addUser">
                         <div class="mb-3">
-                            <label for="userFirstName" class="form-label">First Name*</label>
-                            <input type="text" class="form-control" id="userFirstName" required>
+                            <label for="firstName" class="form-label">First Name*</label>
+                            <input type="text" class="form-control <?php $__errorArgs = ['firstName'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                id="firstName" wire:model="firstName" required>
+                            <!--[if BLOCK]><![endif]--><?php $__errorArgs = ['firstName'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <div class="invalid-feedback"><?php echo e($message); ?></div> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
                         </div>
                         <div class="mb-3">
-                            <label for="userLastName" class="form-label">Last Name*</label>
-                            <input type="text" class="form-control" id="userLastName" required>
+                            <label for="lastName" class="form-label">Last Name*</label>
+                            <input type="text" class="form-control <?php $__errorArgs = ['lastName'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                id="lastName" wire:model="lastName" required>
+                            <!--[if BLOCK]><![endif]--><?php $__errorArgs = ['lastName'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <div class="invalid-feedback"><?php echo e($message); ?></div> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
                         </div>
                         <div class="mb-3">
-                            <label for="userEmail" class="form-label">Email*</label>
-                            <input type="email" class="form-control" id="userEmail" required>
+                            <label for="email" class="form-label">Email*</label>
+                            <input type="email" class="form-control <?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" id="email"
+                                wire:model="email" required>
+                            <!--[if BLOCK]><![endif]--><?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <div class="invalid-feedback"><?php echo e($message); ?></div> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
                         </div>
                         <div class="mb-3">
-                            <label for="userPhone" class="form-label">Phone</label>
-                            <input type="tel" class="form-control" id="userPhone">
+                            <label for="phoneNumber" class="form-label">Phone</label>
+                            <input type="tel" class="form-control <?php $__errorArgs = ['phoneNumber'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                id="phoneNumber" wire:model="phoneNumber">
+                            <!--[if BLOCK]><![endif]--><?php $__errorArgs = ['phoneNumber'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <div class="invalid-feedback"><?php echo e($message); ?></div> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
                         </div>
                         <div class="mb-3">
-                            <label for="userStatus" class="form-label">Status*</label>
-                            <select class="form-select" id="userStatus" required>
-                                <option value="1" selected>Active</option>
-                                <option value="0">Inactive</option>
-                            </select>
-
+                            <label for="password" class="form-label">Password*</label>
+                            <input type="password" class="form-control <?php $__errorArgs = ['password'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                id="password" wire:model="password" required>
+                            <!--[if BLOCK]><![endif]--><?php $__errorArgs = ['password'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <div class="invalid-feedback"><?php echo e($message); ?></div> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><!--[if ENDBLOCK]><![endif]-->
                         </div>
                         <div class="mb-3">
-                            <label for="userPassword" class="form-label">Password*</label>
-                            <input type="password" class="form-control" id="userPassword" required>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="isActive" wire:model="isActive">
+                                <label class="form-check-label" for="isActive">Active User</label>
+                            </div>
                         </div>
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="sendWelcomeEmail">
+                            <input class="form-check-input" type="checkbox" id="sendWelcomeEmail"
+                                wire:model="sendWelcomeEmail">
                             <label class="form-check-label" for="sendWelcomeEmail">
-                                Send welcome email 
+                                Send welcome email
                             </label>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-success" id="saveUserBtn">Save User</button>
+                    <button type="button" class="btn btn-secondary" wire:click="closeAddUserModal">Cancel</button>
+                    <button type="button" class="btn btn-success" wire:click="addUser">Save User</button>
                 </div>
             </div>
         </div>
     </div>
-    <?php $__env->startPush('scripts'); ?>
-    <script>
 
-    document.addEventListener('livewire:init', function() {
+    <!-- Backdrop for modal -->
+    <!--[if BLOCK]><![endif]--><?php if($showModal): ?>
+    <div class="modal-backdrop fade show" wire:click="closeAddUserModal"></div>
+    <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
 
-    const addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'));
-    // Handle Add User button click
-    document.querySelector('.btn-success[data-bs-target="#addUserModal"]').addEventListener('click', function() {
-        addUserModal.show();
-    });
 
-    // Handle Save User button click
-    document.getElementById('saveUserBtn').addEventListener('click', function() {
-        const form = document.getElementById('addUserForm');
-        if (form.checkValidity()) {
-            alert('User added successfully! (This is a frontend demo)');
-            addUserModal.hide();
-            form.reset();
-        } else {
-            form.reportValidity();
-        }
-    });
-    });
+</div>
+<?php $__env->startPush('scripts'); ?>
+        <script>
+        // Handle modal show/hide with Livewire
+        document.addEventListener('livewire:init', function() {
+            // Check if the modal element exists before trying to use it
+            const modalElement = document.getElementById('addUserModal');
+            
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                
+                // Show modal when Livewire triggers it
+                Livewire.on('showModal', () => {
+                    modal.show();
+                });
+                
+                // Hide modal when Livewire triggers it
+                Livewire.on('closeModal', () => {
+                    modal.hide();
+                });
+            }
+        });
     </script>
-    <?php $__env->stopPush(); ?>
-</div><?php /**PATH C:\Users\MY\Desktop\indoor\resources\views/livewire/admin/customers.blade.php ENDPATH**/ ?>
+<?php $__env->stopPush(); ?><?php /**PATH C:\Users\MY\Desktop\indoor\resources\views/livewire/admin/customers.blade.php ENDPATH**/ ?>
