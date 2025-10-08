@@ -343,9 +343,9 @@
                 <!-- Form -->
                 <form wire:submit.prevent="saveVenue">
                     <div class="modal-body">
-                     <h6 class="mb-3" style="color: rgb(25, 107, 84);">
+                     <h5 class="mb-3" style="color: rgb(25, 107, 84);">
                      <i class="fas fa-info-circle me-2"></i>Indoor Information
-                    </h6>
+                    </h5>
 
                         <div class="row g-3">
 
