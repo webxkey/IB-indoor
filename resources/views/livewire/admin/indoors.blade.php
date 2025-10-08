@@ -332,7 +332,7 @@
         wire:ignore.self>
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header" style="background-color: rgb(25 107 84); color: white;">
                     <h5 class="modal-title" id="addIndoorModalLabel">Add New Indoor Facility</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
                         wire:click="closeModals"></button>
@@ -343,20 +343,20 @@
                             <!-- Basic Information -->
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="name" class="form-label">Facility Name*</label>
+                                    <label for="name" class="form-label">Facility Name</label>
                                     <input type="text" class="form-control" id="name" wire:model="name" required>
                                     @error('name') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="location" class="form-label">Location*</label>
+                                    <label for="location" class="form-label">Location</label>
                                     <input type="text" class="form-control" id="location" wire:model="location"
                                         required>
                                     @error('location') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="address" class="form-label">Full Address*</label>
+                                    <label for="address" class="form-label">Full Address</label>
                                     <textarea class="form-control" id="address" wire:model="address" rows="2"
                                         required></textarea>
                                     @error('address') <span class="text-danger">{{ $message }}</span> @enderror
@@ -364,7 +364,7 @@
 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label for="county" class="form-label">County*</label>
+                                        <label for="county" class="form-label">County</label>
                                         <select class="form-select" id="county" wire:model="county" required>
                                             <option value="">Select County</option>
                                             @foreach($availableCounties as $countyOption)
@@ -385,7 +385,7 @@
                             <!-- Contact & Status -->
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="contact_number" class="form-label">Contact Number*</label>
+                                    <label for="contact_number" class="form-label">Contact Number</label>
                                     <input type="tel" class="form-control" id="contact_number"
                                         wire:model="contact_number" required>
                                     @error('contact_number') <span class="text-danger">{{ $message }}</span> @enderror
@@ -405,7 +405,7 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="status" class="form-label">Status*</label>
+                                    <label for="status" class="form-label">Status</label>
                                     <select class="form-select" id="status" wire:model="status" required>
                                         <option value="active" selected>Active</option>
                                         <option value="inactive">Inactive</option>
@@ -416,7 +416,7 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="opening_time" class="form-label">Opening Hours*</label>
+                                    <label for="opening_time" class="form-label">Opening Hours</label>
                                     <div class="row g-2">
                                         <div class="col-md-6">
                                             <input type="time" class="form-control" id="opening_time"
@@ -439,7 +439,7 @@
 
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="sport_type" class="form-label">Primary Sport Type*</label>
+                                    <label for="sport_type" class="form-label">Primary Sport Type</label>
                                     <select class="form-select" id="sport_type" wire:model="sport_type" required>
                                         <option value="">Select sport</option>
                                         @foreach($availableSportTypes as $sport)
@@ -452,7 +452,7 @@
 
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="capacity" class="form-label">Capacity*</label>
+                                    <label for="capacity" class="form-label">Capacity</label>
                                     <input type="number" class="form-control" id="capacity" wire:model="capacity"
                                         min="1" required>
                                     @error('capacity') <span class="text-danger">{{ $message }}</span> @enderror
@@ -461,7 +461,7 @@
 
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="hourly_rate" class="form-label">Hourly Rate ($)*</label>
+                                    <label for="hourly_rate" class="form-label">Hourly Rate ($)</label>
                                     <input type="number" step="0.01" class="form-control" id="hourly_rate"
                                         wire:model="hourly_rate" min="0" required>
                                     @error('hourly_rate') <span class="text-danger">{{ $message }}</span> @enderror
@@ -470,7 +470,7 @@
 
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="dimensions" class="form-label">Dimensions (L x W in meters)*</label>
+                                    <label for="dimensions" class="form-label">Dimensions (L x W in meters)</label>
                                     <div class="row g-2">
                                         <div class="col-md-6">
                                             <input type="number" class="form-control" id="length" wire:model="length"
@@ -507,7 +507,7 @@
 
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="cover_image" class="form-label">Cover Image*</label>
+                                    <label for="cover_image" class="form-label">Cover Image</label>
                                     <input type="file" class="form-control" id="cover_image" wire:model="cover_image"
                                         accept="image/*">
                                     <small class="text-muted">Main display image for the facility</small>
@@ -528,7 +528,7 @@
                             <!-- Description -->
                             <div class="col-12">
                                 <div class="mb-3">
-                                    <label for="description" class="form-label">Description*</label>
+                                    <label for="description" class="form-label">Description</label>
                                     <textarea class="form-control" id="description" wire:model="description" rows="3"
                                         required></textarea>
                                     @error('description') <span class="text-danger">{{ $message }}</span> @enderror
