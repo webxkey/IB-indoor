@@ -29,7 +29,6 @@ class User extends Authenticatable
         'password',
         'role',
         'contact',
-        'complex_id', // Added complex_id to fillable attributes
     ];
 
     /**

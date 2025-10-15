@@ -9,44 +9,31 @@ class Complex extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'id';
     protected $table = 'complexes';
 
+    // Update fillable to match your database columns
     protected $fillable = [
-        'complex_name',
-        'complex_type',
-        'county',
-        'location',
-        'address',
-        'postal_code',
-        'contact_number',
-        'email_address',
-        'website',
-        'status',
-        'opening_hours',
-        'amenities',
-        'cover_image',
-        'gallery_images',
-        'video_tour_url',
-        'description',
-        'terms',
-        'social_links'
+        'complex_name', 'complex_type', 'address', 'county', 'location', 'postal_code',
+        'contact_number', 'email_address', 'website', 'status', 'description'
     ];
 
-    protected $casts = [
-        'opening_hours' => 'array',
-        'amenities' => 'array',
-        'gallery_images' => 'array',
-        'social_links' => 'array'
+    // Add this to ensure status can be stored properly
+    protected $attributes = [
+        'status' => 'Active',
     ];
+
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function venues()
+    {
+        return $this->hasMany(BookingVenue::class);
+    }
 
     public function sports()
     {
-        return $this->hasMany(Sport::class, 'complex_id');
-    }
-
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class, 'complex_id');
+        return $this->hasMany(Sport::class);
     }
 }

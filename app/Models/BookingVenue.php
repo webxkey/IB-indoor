@@ -13,17 +13,24 @@ class BookingVenue extends Model
         'county','location','postal_code','contact_number','email_address',
         'website','status','opening_hours','amenities','cover_image',
         'gallery_images_json','video_tour_url','description','terms',
-        'social_links','capacity', 'hourly_rate', 'dimensions', 'primary_sport_type'
+        'social_links','complex_id' // Make sure complex_id is here
     ];
-   protected $attributes = [
+
+    protected $attributes = [
         'image_url' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
     ];
+
     protected $casts = [
         'opening_hours' => 'array',
         'amenities' => 'array',
         'gallery_images_json' => 'array',
         'social_links' => 'array',
     ];
+
+    public function complex()
+    {
+        return $this->belongsTo(Complex::class, 'complex_id');
+    }
 
     public function sports()
     {
@@ -39,6 +46,7 @@ class BookingVenue extends Model
     {
         return $this->hasMany(BookingVenueReview::class, 'venue_id');
     }
+
     public function bookings()
     {
         return $this->hasMany(BookingBooking::class, 'complex_id_id');

@@ -64,5 +64,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/setting', StaffSetting::class)->name('setting');
         Route::get('/help', StaffHelp::class)->name('help');
     });
+    
 
 });
