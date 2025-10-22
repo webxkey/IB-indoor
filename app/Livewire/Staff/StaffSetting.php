@@ -10,6 +10,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use App\Models\BookingVenue;
 
 #[Title("Staff Dashboard")]
 #[Layout("components.layouts.staff")]
@@ -61,7 +62,7 @@ class StaffSetting extends Component
     public function mount()
     {
         $this->complex_id = Auth::user()->complex_id;
-        $this->complexes = Complex::find($this->complex_id);
+        $this->complexes = BookingVenue::find($this->complex_id);
 
         $this->complex_name = $this->complexes->complex_name;
         $this->complex_type = $this->complexes->complex_type;
@@ -203,7 +204,7 @@ class StaffSetting extends Component
             'terms' => 'nullable|string',
         ]);
 
-        $complex = Complex::find($this->complex_id);
+        $complex = BookingVenue::find($this->complex_id);
 
         // Handle image upload
         if ($this->cover_image) {

@@ -162,7 +162,7 @@
     <div class="feedback-header">
         <h2>Reviews</h2>
         <div class="d-flex align-items-center">
-            <span>March 21 - February 2022</span>
+            <span>{{ now()->format('F Y') }}</span>
         </div>
     </div>
 
@@ -173,7 +173,13 @@
             <p>Total Reviews</p>
         </div>
         <div class="col-md-4 stat-item">
-            <h3>{{ number_format($averageRating, 1) }} <span class="rating-stars">★★★★★</span></h3>
+            <h3>{{ number_format($averageRating, 1) }} 
+                <span class="rating-stars">
+                    @for ($i = 1; $i <= 5; $i++)
+                        <span class="{{ $i <= round($averageRating) ? 'text-warning' : 'text-muted' }}">★</span>
+                    @endfor
+                </span>
+            </h3>
             <p>Average Rating</p>
         </div>
         <div class="col-md-4 stat-item">
@@ -186,21 +192,32 @@
     <div class="row g-3">
         @foreach ($reviews as $review)
             <div class="col-12 col-md-6 col-lg-6">
-                <div class="review-card">
-                    <img src="{{ $review['user']['profile_image'] }}" alt="{{ $review['user']['name'] }}" class="review-image">
+                <div class="review-card d-flex">
+                    <img src="{{ $review->user->profile_image ?? 'https://via.placeholder.com/50' }}" 
+                         alt="{{ $review->user->name ?? 'User' }}" 
+                         class="review-image rounded-circle me-3">
                     <div class="review-content">
-                        <h4>{{ $review['user']['name'] }} <span class="rating-stars">★★★★★</span></h4>
-                        <p class="review-date">{{ \Carbon\Carbon::parse($review['created_at'])->format('d-m-Y') }} on Etsy</p>
-                        <p>{{ $review['comment'] }}</p>
-                        <div class="review-actions">
-                            <button class="btn btn-feedback">Public Comment</button>
-                            <button class="btn btn-message">Direct Message <i class="fas fa-heart"></i></button>
+                        <h4>
+                            {{ $review->user->name ?? 'Anonymous' }} 
+                            <span class="rating-stars">
+                                @for ($i = 1; $i <= 5; $i++)
+                                    <span class="{{ $i <= $review->rating ? 'text-warning' : 'text-muted' }}">★</span>
+                                @endfor
+                            </span>
+                        </h4>
+                        <p class="review-date">
+                            {{ \Carbon\Carbon::parse($review->created_at)->format('d-m-Y') }} 
+                            on {{ $review->venue->name ?? 'Venue' }}
+                        </p>
+                        <p>{{ $review->comment }}</p>
+                        <div class="review-actions mt-2">
+                            <button class="btn btn-feedback btn-sm">Public Comment</button>
+                            <button class="btn btn-message btn-sm">Direct Message <i class="fas fa-envelope"></i></button>
                         </div>
                     </div>
                 </div>
             </div>
         @endforeach
     </div>
-        
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

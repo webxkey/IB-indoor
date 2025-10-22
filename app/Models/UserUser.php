@@ -53,4 +53,9 @@ class UserUser extends Authenticatable
         'points' => 'integer',
         'last_login' => 'datetime',
     ];
+
+     public function reviews()
+    {
+        return $this->hasMany(BookingVenueReview::class, 'user_id', 'id');
+    }
 }

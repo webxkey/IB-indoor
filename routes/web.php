@@ -16,7 +16,22 @@ use App\Livewire\Staff\StaffFeedbacks;
 use App\Livewire\Staff\StaffHelp;
 use App\Livewire\Staff\StaffReport;
 use App\Livewire\Staff\StaffSetting;
+use App\Livewire\LandingPage\Home;
+use App\Livewire\LandingPage\About;
+use App\Livewire\LandingPage\Contact;
+use App\Livewire\LandingPage\Indoor;
+use App\Livewire\LandingPage\Register;
 
+
+
+
+
+
+Route::get('/', Home::class)->name('home');
+Route::get('/indoor', Indoor::class)->name('indoor');
+Route::get('/about', About::class)->name('about');
+Route::get('/contact', Contact::class)->name('contact');
+Route::get('/register', Register::class)->name('register');
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -29,7 +44,7 @@ use App\Livewire\Staff\StaffSetting;
 */
 
 // Public routes
-Route::get('/', CustomLogin::class)->name('welcome')->middleware('guest');
+Route::get('/login', CustomLogin::class)->name('login')->middleware('guest');
 
 // Custom logout route
 Route::post('/logout', function (Request $request) {
@@ -66,6 +81,16 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         
         
 
+    });
+
+    Route::middleware('role:facility_owner')->prefix('facility_owner')->name('staff.')->group(function () {
+        Route::get('/dashboard', StaffDashboard::class)->name('dashboard');
+        Route::get('/sports', SportsManagement::class)->name('sports');
+        Route::get('/bookings', BookingsManagement::class)->name('bookings');   
+        Route::get('/reports', StaffReport::class)->name('reports');
+        Route::get('/feedbacks', StaffFeedbacks::class)->name('feedbacks');
+        Route::get('/setting', StaffSetting::class)->name('setting');
+        Route::get('/help', StaffHelp::class)->name('help');
     });
 
 

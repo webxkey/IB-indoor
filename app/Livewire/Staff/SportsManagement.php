@@ -38,7 +38,7 @@ class SportsManagement extends Component
         $this->loadSports();
     }
 
- 
+
     public function loadSports()
     {
         $this->complex_id = auth()->user()->complex_id;
@@ -67,9 +67,9 @@ class SportsManagement extends Component
             'price' => 'required|numeric|min:0',
             'maximum_court' => 'required|integer|min:1',
             'status' => 'required|string|in:Active,Inactive,Maintenance',
-            'game_image' => 'nullable|image|max:1024',
+            'game_image' => 'required|image|max:1024', // <-- required now
             'description' => 'nullable|string',
-            'advance_required' => 'boolean'
+            'advance_required' => 'boolean',
         ]);
 
         if ($this->game_image) {
@@ -123,7 +123,6 @@ class SportsManagement extends Component
     public function render()
     {
         return view('livewire.staff.sports-management');
-        
     }
 
     public function editSport($id)
@@ -206,8 +205,8 @@ class SportsManagement extends Component
             if ($sport->image && Storage::exists('public/' . $sport->image)) {
                 Storage::delete('public/' . $sport->image);
             }
- 
-            
+
+
 
             $sport->delete();
 

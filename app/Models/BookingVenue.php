@@ -13,7 +13,7 @@ class BookingVenue extends Model
         'county','location','postal_code','contact_number','email_address',
         'website','status','opening_hours','amenities','cover_image',
         'gallery_images_json','video_tour_url','description','terms',
-        'social_links','capacity', 'hourly_rate', 'dimensions', 'primary_sport_type'
+        'social_links'
     ];
    protected $attributes = [
         'image_url' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
@@ -42,5 +42,9 @@ class BookingVenue extends Model
     public function bookings()
     {
         return $this->hasMany(BookingBooking::class, 'complex_id_id');
+    }
+        public function owner()
+    {
+        return $this->hasOne(User::class, 'complex_id');
     }
 }
