@@ -16,3 +16,15 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# --- CRITICAL LARAVEL IGNORES MISSING FROM YOUR FILE ---
+
+# Ignore the main log file
+/storage/*.log
+
+# Ignore all compiled Blade views (the source of most of your conflicts)
+/storage/framework/views/*
+
+# It's also good practice to ignore all cache and session files
+/storage/framework/cache/*
+/storage/framework/sessions/*
