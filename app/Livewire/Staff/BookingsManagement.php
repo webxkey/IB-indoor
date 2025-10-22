@@ -234,7 +234,7 @@ class BookingsManagement extends Component
     public function cancelBooking($bookingId)
     {
         $booking = BookingBooking::find($bookingId);
-        dd($booking);
+        // dd($booking);  
         // Find the booking based on the selected criteria
         $booking = BookingBooking::where('complex_id_id', $this->complex_id)
             ->where('game_name', $this->selectedGame)

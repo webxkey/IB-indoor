@@ -102,7 +102,7 @@ class StaffReport extends Component
         $this->reportData = $query->get();
 
         $this->bookingDetails = Booking::all();
-        dd(Booking::all());
+        // dd(Booking::all());
         $this->bookingDetailModel = $query->clone()->get();
         $this->upcomingBooked = $query->clone()->whereIn('status', ['Booked', 'Upcoming'])->get();
 

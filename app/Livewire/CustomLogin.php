@@ -32,8 +32,10 @@ class CustomLogin extends Component
                 return redirect()->route('admin.dashboard');
             } else if ($user && $user->role === 'staff') {
                 return redirect()->route('staff.dashboard');
+            } else if ($user && $user->role === 'facility_owner') {
+                return redirect()->route('staff.dashboard');
             } else {
-                return redirect()->route('dashboard');
+                return redirect()->route('staff.dashboard');
             }
         }
 

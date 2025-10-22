@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class BookingVenueReview extends Model
 {
@@ -23,8 +24,10 @@ class BookingVenueReview extends Model
         return $this->belongsTo(BookingVenue::class, 'venue_id');
     }
 
-    public function user()
+    
+     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(UserUser::class, 'user_id', 'id');
     }
+    
 }

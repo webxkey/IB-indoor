@@ -61,4 +61,9 @@ class User extends Authenticatable
     protected $appends = [
         'profile_photo_url',
     ];
+    public function complex()
+    {
+        // A user belongs to a booking venue (complex) via the user's complex_id
+        return $this->belongsTo(BookingVenue::class, 'complex_id');
+    }
 }

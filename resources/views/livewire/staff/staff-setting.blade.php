@@ -144,13 +144,9 @@
                                         @foreach($complexes->opening_hours as $day => $time)
                                         <tr>
                                             <td class="w-25 fw-medium text-muted">{{ ucfirst($day) }}</td>
-                                            <td>
-                                                @if($time)
-                                                <span class="badge bg-success bg-opacity-10 text-success">{{ $time }}</span>
-                                                @else
-                                                <span class="badge bg-danger bg-opacity-10 text-danger">Closed</span>
-                                                @endif
-                                            </td>
+                                            <span class="badge bg-success bg-opacity-10 text-success">
+                                                {{ implode(', ', $time) }}
+                                            </span>
                                         </tr>
                                         @endforeach
                                     </tbody>

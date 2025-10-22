@@ -1,10 +1,11 @@
 @push('styles')
-    <style>
-        container-fluid {
+<style>
+    container-fluid {
         background: var(--background-color);
         min-height: 100vh;
-        padding:0;
+        padding: 0;
     }
+
     .btn {
         border-radius: 8px;
         padding: 12px 24px;
@@ -13,6 +14,7 @@
         border: none;
         font-size: 0.95rem;
     }
+
     .form-check-input:checked {
         background-color: var(--primary-color);
         border-color: var(--primary-color);
@@ -22,7 +24,9 @@
         font-weight: 500;
         color: #374151;
     }
-        .form-control, .form-select {
+
+    .form-control,
+    .form-select {
         border-radius: 8px;
         border: 2px solid #e2e8f0;
         padding: 12px 16px;
@@ -30,11 +34,12 @@
         transition: all 0.3s ease;
     }
 
-    .form-control:focus, .form-select:focus {
+    .form-control:focus,
+    .form-select:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
-    </style>
+</style>
 @endpush
 <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -61,12 +66,12 @@
         <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
             <div class="card h-100">
                 <div class="position-relative">
-                    <img src="{{ $sport->image ? asset('storage/' . $sport->image) : asset('images/default-sport.jpg') }}" 
-                         alt="Sport Image" class="img-fluid rounded" style="max-height: 200px; object-fit: cover;">
-                   <span class="position-absolute top-0 start-0 text-white px-2 py-1 rounded-end 
+                    <img src="{{ $sport->image ? asset('storage/' . $sport->image) : asset('images/default-sport.jpg') }}"
+                        alt="Sport Image" class="img-fluid rounded" style="max-height: 200px; object-fit: cover;">
+                    <span class="position-absolute top-0 start-0 text-white px-2 py-1 rounded-end 
                     {{ $sport->status === 'Active' ? 'bg-success' : 'bg-danger' }}">
-                    {{ $sport->status }}
-                </span>
+                        {{ $sport->status }}
+                    </span>
 
                 </div>
 
@@ -74,7 +79,7 @@
                     <h5 class="card-title">{{ $sport->name }}</h5>
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Hourly Rate:</span>
-                        <span class="fw-bold">${{ number_format($sport->price / 100, 2) }}</span>
+                        <span class="fw-bold">{{ number_format($sport->price / 100, 2) }}</span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Available Courts:</span>
@@ -159,10 +164,14 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label for="game_image" class="form-label fw-semibold">Game Image</label>
+                                <label for="game_image" class="form-label fw-semibold">
+                                    Game Image <span class="text-danger">*</span>
+                                </label>
                                 <input type="file" class="form-control" id="game_image" wire:model="game_image"
-                                    accept="image/*">
-                                @error('game_image') <span class="text-danger small">{{ $message }}</span> @enderror
+                                    accept="image/*" required>
+                                @error('game_image')
+                                <span class="text-danger small">{{ $message }}</span>
+                                @enderror
 
                                 @if($game_image)
                                 <div class="mt-2">
@@ -268,8 +277,8 @@
                             <div class="mb-3">
                                 <label class="form-label">Current Sport Image</label>
                                 <div>
-                                    <img src="{{ $existingImage ? asset('storage/' . $existingImage) : asset('images/default-sport.jpg') }}" 
-                                         class="img-thumbnail" width="150">
+                                    <img src="{{ $existingImage ? asset('storage/' . $existingImage) : asset('images/default-sport.jpg') }}"
+                                        class="img-thumbnail" width="150">
                                 </div>
                             </div>
 
@@ -317,7 +326,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         // Initialize modals
         const addSportModalEl = document.getElementById('addSportModal');
         const editSportModalEl = document.getElementById('editSportModal');
@@ -373,7 +382,9 @@
                 buttonsStyling: false
             }).then((result) => {
                 if (result.isConfirmed) {
-                    Livewire.dispatch('deleteConfirmed', { id: event.detail.id });
+                    Livewire.dispatch('deleteConfirmed', {
+                        id: event.detail.id
+                    });
                 }
             });
         });
