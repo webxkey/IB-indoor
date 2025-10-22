@@ -1,6 +1,7 @@
 <div> <!-- ✅ Root wrapper required by Livewire -->
 
   <div class="container my-5">
+    
     <h2 class="text-center mb-4">Indoor Sports Venues</h2>
     <div class="row row-cols-1 row-cols-md-3 g-4">
       @foreach($VenuesDetails as $index => $venue)
