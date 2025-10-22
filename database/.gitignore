@@ -1,6 +1,1 @@
 *.sqlite*
-# Laravel generated files
-/storage/*.log
-/storage/framework/views/*
-/storage/framework/cache/*
-/storage/framework/sessions/*

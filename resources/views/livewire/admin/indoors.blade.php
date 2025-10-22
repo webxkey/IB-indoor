@@ -328,207 +328,237 @@
     </div>
 
     <!-- Add Indoor Modal -->
-<div>
-    <!-- Add Indoor Facility Modal -->
-    <div class="modal fade" id="addIndoorModal" tabindex="-1" aria-labelledby="addIndoorModalLabel" aria-hidden="true" wire:ignore.self>
+    <div class="modal fade" id="addIndoorModal" tabindex="-1" aria-labelledby="addIndoorModalLabel" aria-hidden="true"
+        wire:ignore.self>
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-
-                <!-- Header -->
-                <div class="modal-header" style="background-color: rgb(25, 107, 84); color: white;">
-                    <h5 class="modal-title" id="addIndoorModalLabel">Add New Indoor</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" wire:click="closeModals"></button>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addIndoorModalLabel">Add New Indoor Facility</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                        wire:click="closeModals"></button>
                 </div>
-
-                <!-- Form -->
-                <form wire:submit.prevent="saveVenue">
+                <form wire:submit="saveVenue">
                     <div class="modal-body">
-                     <h5 class="mb-3" style="color: rgb(25, 107, 84);">
-                     <i class="fas fa-info-circle me-2"></i>Indoor Information
-                    </h5>
-
                         <div class="row g-3">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Facility Name*</label>
+                                    <input type="text" class="form-control" id="name" wire:model="name" required>
+                                    @error('name') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
 
-                            <!-- Facility Name & Contact Number -->
-                            <div class="col-md-6 mb-3">
-                                <label for="name" class="form-label">Indoor Name</label>
-                                <input type="text" class="form-control" id="name" wire:model="name" required placeholder="Enter facility name">
-                                @error('name') <span class="text-danger">{{ $message }}</span> @enderror
+                                <div class="mb-3">
+                                    <label for="location" class="form-label">Location*</label>
+                                    <input type="text" class="form-control" id="location" wire:model="location"
+                                        required>
+                                    @error('location') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="address" class="form-label">Full Address*</label>
+                                    <textarea class="form-control" id="address" wire:model="address" rows="2"
+                                        required></textarea>
+                                    @error('address') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="county" class="form-label">County*</label>
+                                        <select class="form-select" id="county" wire:model="county" required>
+                                            <option value="">Select County</option>
+                                            @foreach($availableCounties as $countyOption)
+                                            <option value="{{ $countyOption }}">{{ $countyOption }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('county') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="postal_code" class="form-label">Postal Code</label>
+                                        <input type="text" class="form-control" id="postal_code"
+                                            wire:model="postal_code">
+                                        @error('postal_code') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label for="contact_number" class="form-label">Contact Number</label>
-                                <input type="tel" class="form-control" id="contact_number" wire:model="contact_number" required placeholder="Enter contact number">
-                                @error('contact_number') <span class="text-danger">{{ $message }}</span> @enderror
+                            <!-- Contact & Status -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="contact_number" class="form-label">Contact Number*</label>
+                                    <input type="tel" class="form-control" id="contact_number"
+                                        wire:model="contact_number" required>
+                                    @error('contact_number') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="email_address" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="email_address"
+                                        wire:model="email_address">
+                                    @error('email_address') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="website" class="form-label">Website</label>
+                                    <input type="url" class="form-control" id="website" wire:model="website">
+                                    @error('website') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Status*</label>
+                                    <select class="form-select" id="status" wire:model="status" required>
+                                        <option value="active" selected>Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="maintenance">Under Maintenance</option>
+                                        <option value="new">New</option>
+                                    </select>
+                                    @error('status') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="opening_time" class="form-label">Opening Hours*</label>
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <input type="time" class="form-control" id="opening_time"
+                                                wire:model="opening_hours.monday.open" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <input type="time" class="form-control" id="closing_time"
+                                                wire:model="opening_hours.monday.close" required>
+                                        </div>
+                                    </div>
+                                    @error('opening_hours') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
                             </div>
 
-                            <!-- Location & Email -->
-                            <div class="col-md-6 mb-3">
-                                <label for="location" class="form-label">Location</label>
-                                <input type="text" class="form-control" id="location" wire:model="location" required placeholder="Enter location">
-                                @error('location') <span class="text-danger">{{ $message }}</span> @enderror
+                            <!-- Facility Details -->
+                            <div class="col-12">
+                                <hr class="my-3">
+                                <h6 class="mb-3">Facility Details</h6>
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label for="email_address" class="form-label">Email Address</label>
-                                <input type="email" class="form-control" id="email_address" wire:model="email_address" placeholder="Enter email address">
-                                @error('email_address') <span class="text-danger">{{ $message }}</span> @enderror
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="sport_type" class="form-label">Primary Sport Type*</label>
+                                    <select class="form-select" id="sport_type" wire:model="sport_type" required>
+                                        <option value="">Select sport</option>
+                                        @foreach($availableSportTypes as $sport)
+                                        <option value="{{ $sport }}">{{ ucfirst($sport) }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('sport_type') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
                             </div>
 
-                            <!-- Status & Website -->
-                            <div class="col-md-6 mb-3">
-                                <label for="status" class="form-label">Status</label>
-                                <select class="form-select" id="status" wire:model="status" required>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                    <option value="maintenance">Under Maintenance</option>
-                                    <option value="new">New</option>
-                                </select>
-                                @error('status') <span class="text-danger">{{ $message }}</span> @enderror
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="capacity" class="form-label">Capacity*</label>
+                                    <input type="number" class="form-control" id="capacity" wire:model="capacity"
+                                        min="1" required>
+                                    @error('capacity') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label for="website" class="form-label">Website</label>
-                                <input type="url" class="form-control" id="website" wire:model="website" placeholder="https://example.com">
-                                @error('website') <span class="text-danger">{{ $message }}</span> @enderror
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="hourly_rate" class="form-label">Hourly Rate ($)*</label>
+                                    <input type="number" step="0.01" class="form-control" id="hourly_rate"
+                                        wire:model="hourly_rate" min="0" required>
+                                    @error('hourly_rate') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
                             </div>
 
-                            <!-- Country, Postal Code -->
-                            <div class="col-md-3 mb-3">
-                                <label for="country" class="form-label">Country</label>
-                                <input type="text" class="form-control" id="country" wire:model="country" required placeholder="Enter country">
-                                @error('country') <span class="text-danger">{{ $message }}</span> @enderror
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="dimensions" class="form-label">Dimensions (L x W in meters)*</label>
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <input type="number" class="form-control" id="length" wire:model="length"
+                                                placeholder="Length" step="0.01" required>
+                                            @error('length') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-6">
+                                            <input type="number" class="form-control" id="width" wire:model="width"
+                                                placeholder="Width" step="0.01" required>
+                                            @error('width') <span class="text-danger">{{ $message }}</span> @enderror
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="col-md-3 mb-3">
-                                <label for="postal_code" class="form-label">Postal Code</label>
-                                <input type="text" class="form-control" id="postal_code" wire:model="postal_code" placeholder="Enter postal code">
-                                @error('postal_code') <span class="text-danger">{{ $message }}</span> @enderror
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="amenities" class="form-label">Amenities</label>
+                                    <select class="form-select" id="amenities" wire:model="amenities" multiple>
+                                        @foreach($availableAmenities as $amenity)
+                                        <option value="{{ $amenity }}">{{ ucfirst(str_replace('_', ' ', $amenity)) }}
+                                        </option>
+                                        @endforeach
+                                    </select>
+                                    @error('amenities') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
                             </div>
 
-                            <!-- Opening & Closing Hours -->
-                            <div class="col-md-3 mb-3">
-                                <label for="opening_hours" class="form-label">Opening Hours</label>
-                                <input type="time" class="form-control" id="opening_hours" wire:model="opening_hours" required>
-                                @error('opening_hours') <span class="text-danger">{{ $message }}</span> @enderror
+                            <!-- Images -->
+                            <div class="col-12">
+                                <hr class="my-3">
+                                <h6 class="mb-3">Images</h6>
                             </div>
 
-                            <div class="col-md-3 mb-3">
-                                <label for="closing_hours" class="form-label">Closing Hours</label>
-                                <input type="time" class="form-control" id="closing_hours" wire:model="closing_hours" required>
-                                @error('closing_hours') <span class="text-danger">{{ $message }}</span> @enderror
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cover_image" class="form-label">Cover Image*</label>
+                                    <input type="file" class="form-control" id="cover_image" wire:model="cover_image"
+                                        accept="image/*">
+                                    <small class="text-muted">Main display image for the facility</small>
+                                    @error('cover_image') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
                             </div>
 
-                            <!-- Full Address -->
-                            <div class="col-12 mb-3">
-                                <label for="address" class="form-label">Full Address</label>
-                                <textarea class="form-control" id="address" wire:model="address" rows="2" required placeholder="Enter full address"></textarea>
-                                @error('address') <span class="text-danger">{{ $message }}</span> @enderror
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="gallery_images" class="form-label">Gallery Images</label>
+                                    <input type="file" class="form-control" id="gallery_images"
+                                        wire:model="gallery_images" multiple accept="image/*">
+                                    <small class="text-muted">Upload multiple images (max 5)</small>
+                                    @error('gallery_images') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
                             </div>
 
-         <h5 class="mb-3" style="color: rgb(25, 107, 84);">
-            <i class="fas fa-building me-2"></i>Facility Details
-         </h5>
+                            <!-- Description -->
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description*</label>
+                                    <textarea class="form-control" id="description" wire:model="description" rows="3"
+                                        required></textarea>
+                                    @error('description') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
 
-        <div class="row">
-    <!-- Row 1: Sport Type, Capacity, Hourly Rate -->
-        <div class="col-md-4 mb-3">
-                   <label for="sport_type" class="form-label">Primary Sport Type</label>
-                   <select class="form-select" id="sport_type" wire:model="sport_type" required>
-                   <option value="">Select sport</option>
-                      @foreach($availableSportTypes as $sport)
-                   <option value="{{ $sport }}">{{ ucfirst($sport) }}</option>
-                      @endforeach
-                   </select>
-                    @error('sport_type') <span class="text-danger">{{ $message }}</span> @enderror
-         </div>
-
-         <div class="col-md-4 mb-3">
-              <label for="capacity" class="form-label">Capacity</label>
-              <input type="number" class="form-control" id="capacity" wire:model="capacity" min="1" required placeholder="Enter capacity">
-               @error('capacity') <span class="text-danger">{{ $message }}</span> @enderror
-         </div>
-
-         <div class="col-md-4 mb-3">
-             <label for="hourly_rate" class="form-label">Hourly Rate ($)</label>
-             <input type="number" step="0.01" class="form-control" id="hourly_rate" wire:model="hourly_rate" min="0" required placeholder="0.00">
-                @error('hourly_rate') <span class="text-danger">{{ $message }}</span> @enderror
-         </div>
-
-    <!-- Row 2: Dimensions, Cover Image, Gallery Images -->
-    <div class="col-md-4 mb-3">
-        <label for="dimensions" class="form-label">Dimensions (L × W in meters)</label>
-        <div class="row g-2">
-            <div class="col-md-6">
-                <input type="number" class="form-control" id="length" wire:model="length" placeholder="Length" step="0.01" required>
-                @error('length') <span class="text-danger">{{ $message }}</span> @enderror
-            </div>
-            <div class="col-md-6">
-                <input type="number" class="form-control" id="width" wire:model="width" placeholder="Width" step="0.01" required>
-                @error('width') <span class="text-danger">{{ $message }}</span> @enderror
-            </div>
-        </div>
-    </div>
-
-        <div class="col-md-4 mb-3">
-             <label for="cover_image" class="form-label">Cover Image</label>
-             <input type="file" class="form-control" id="cover_image" wire:model="cover_image" accept="image/*">
-             <small class="text-muted">Main display image for the facility</small>
-                @error('cover_image') <span class="text-danger">{{ $message }}</span> @enderror
-        </div>
-
-             <div class="col-md-4 mb-3">
-                <label for="gallery_images" class="form-label">Gallery Images</label>
-                <input type="file" class="form-control" id="gallery_images" wire:model="gallery_images" multiple accept="image/*">
-                 <small class="text-muted">Upload multiple images (max 5)</small>
-                  @error('gallery_images') <span class="text-danger">{{ $message }}</span> @enderror
-             </div>
-
-    <!-- Row 3: Description, Amenities -->
-             <div class="col-md-6 mb-3">
-                <label for="description" class="form-label">Description</label>
-                  <textarea class="form-control" id="description" wire:model="description" rows="3" required placeholder="Enter description"></textarea>
-                    @error('description') <span class="text-danger">{{ $message }}</span> @enderror
-             </div>
-
-               <div class="col-md-6 mb-3">
-                   <label for="amenities" class="form-label">Amenities</label>
-                   <select class="form-select" id="amenities" wire:model="amenities" multiple>
-                        @foreach($availableAmenities as $amenity)
-                    <option value="{{ $amenity }}">{{ ucfirst(str_replace('_', ' ', $amenity)) }}</option>
-                     @endforeach
-                    </select>
-                      @error('amenities') <span class="text-danger">{{ $message }}</span> @enderror
-               </div>
-
-    <!-- Terms -->
-              <div class="col-12">
-                <div class="form-check">
-                   <input class="form-check-input" type="checkbox" id="terms" wire:model="terms" required>
-                   <label class="form-check-label" for="terms">
-                          I confirm that all information provided is accurate
-                   </label>
-                          @error('terms') <span class="text-danger">{{ $message }}</span> @enderror
+                            <!-- Terms -->
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="terms" wire:model="terms"
+                                        required>
+                                    <label class="form-check-label" for="terms">
+                                        I confirm that all information provided is accurate
+                                    </label>
+                                    @error('terms') <span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-              </div>
-
-
-                    <!-- Footer -->
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" wire:click="closeModals">
-                            Cancel
-                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                            wire:click="closeModals">Cancel</button>
                         <button type="submit" class="btn btn-success">
-                            Save 
+                            <i class="fas fa-save me-1"></i> Save Facility
                         </button>
                     </div>
                 </form>
-
             </div>
         </div>
     </div>
-</div>
 
     <!-- View Indoor Modal -->
     <div class="modal fade" id="viewIndoorModal" tabindex="-1" aria-labelledby="viewIndoorModalLabel" aria-hidden="true"

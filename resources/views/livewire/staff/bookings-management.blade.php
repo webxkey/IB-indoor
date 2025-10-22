@@ -1089,7 +1089,7 @@
 
     function refreshBookingData() {
         return new Promise((resolve, reject) => {
-            Livewire.find('{{ $_instance->id }}').call('getBookingDetails').then(response => {
+            @this.call('getBookingDetails').then(response => {
                 sportData = response || {};
                 console.log('Booking data refreshed:', sportData);
                 resolve();
@@ -1133,7 +1133,7 @@
         const timeParts = time.split(':');
         const formattedTime = `${timeParts[0]}:${timeParts[1]}:${timeParts[2]}`;
 
-        Livewire.find('{{ $_instance->id }}').call('setSelectedBookingData', { game: currentGame, dateKey, time: formattedTime, court }).then(() => {
+        @this.setSelectedBookingData({ game: currentGame, dateKey, time: formattedTime, court }).then(() => {
             console.log('setSelectedBookingData resolved');
             modal.show();
         }).catch(error => {

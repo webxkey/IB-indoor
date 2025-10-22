@@ -611,6 +611,12 @@
                                 </a>
                             </li>
 
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-section="analytics">
+                                    <i class="fas fa-chart-bar me-2"></i>
+
+                                </a>
+                            </li>
                         </ul>
                     </div>
 

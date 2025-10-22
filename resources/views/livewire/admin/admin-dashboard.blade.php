@@ -5,6 +5,16 @@
             <h1 class="h2 mb-1">Dashboard</h1>
             <p class="text-muted">Manage, track, and optimize your indoor ground bookings with ease.</p>
         </div>
+        <div>
+            <button class="btn btn-success me-2" onclick="showAddBookingModal()">
+                <i class="fas fa-plus me-1"></i>
+                Add Booking
+            </button>
+            <button class="btn btn-outline-secondary me-2">
+                <i class="fas fa-download me-1"></i>
+                Export Data
+            </button>
+        </div>
     </div>
 
     <!-- Stats Cards -->
