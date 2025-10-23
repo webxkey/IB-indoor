@@ -5,25 +5,19 @@ namespace App\Livewire\Staff;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ContactMessageMail;
 
 #[Title("Staff Dashboard")]
 #[Layout("components.layouts.staff")]
 class StaffHelp extends Component
 {
-
-    public $contact_name;
-    public $contact_email;
-    public $contact_phone;
     public $contact_subject;
     public $contact_message;
-    public $contact_newsletter = false;
-    
 
     protected $rules = [
-        'contact_name' => 'required|min:3',
-        'contact_email' => 'required|email',
-        'contact_phone' => 'nullable|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-        'contact_subject' => 'required',
+        'contact_subject' => 'required|min:3',
         'contact_message' => 'required|min:10',
     ];
 
@@ -31,27 +25,24 @@ class StaffHelp extends Component
     {
         $this->validate();
 
-        // Process form submission (save to database, send email, etc.)
-        // Example:
-        // Contact::create([...]);
-        // Mail::to('support@example.com')->send(new ContactFormSubmitted($this->contactData()));
+        $user = Auth::user();
 
-        session()->flash('contact_message', 'Thank you for your message! We will get back to you soon.');
+        $contactData = [
+            'name' => $user->name ?? ($user->first_name . ' ' . $user->last_name),
+            'email' => $user->email,
+            'phone' => $user->phone ?? 'N/A',
+            'subject' => $this->contact_subject,
+            'message' => $this->contact_message,
+        ];
 
-        $this->resetForm();
+        // Send email to admin
+        Mail::to('mohammedrifam2624@gmail.com')->send(new ContactMessageMail($contactData));
+
+        session()->flash('contact_message', '✅ Thank you! Your message has been sent successfully.');
+
+        $this->reset(['contact_subject', 'contact_message']);
     }
 
-    private function resetForm()
-    {
-        $this->reset([
-            'contact_name',
-            'contact_email',
-            'contact_phone',
-            'contact_subject',
-            'contact_message',
-            'contact_newsletter'
-        ]);
-    }
     public function render()
     {
         return view('livewire.staff.staff-help');

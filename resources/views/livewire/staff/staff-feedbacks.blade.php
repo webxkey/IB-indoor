@@ -193,12 +193,19 @@
         @foreach ($reviews as $review)
             <div class="col-12 col-md-6 col-lg-6">
                 <div class="review-card d-flex">
-                    <img src="{{ $review->user->profile_image ?? 'https://via.placeholder.com/50' }}" 
-                         alt="{{ $review->user->name ?? 'User' }}" 
-                         class="review-image rounded-circle me-3">
+                    <!-- Profile Image -->
+                    <img 
+                        src="{{ $review->user && $review->user->profile_picture 
+                                ? asset('storage/' . $review->user->profile_picture) 
+                                : 'https://via.placeholder.com/80' }}" 
+                        alt="{{ $review->user->first_name ?? 'User' }}" 
+                        class="review-image rounded-circle me-3" 
+                        width="70" height="70">
+
+                    <!-- Review Content -->
                     <div class="review-content">
                         <h4>
-                            {{ $review->user->name ?? 'Anonymous' }} 
+                            {{ $review->user->first_name ?? '' }} {{ $review->user->last_name ?? '' }}
                             <span class="rating-stars">
                                 @for ($i = 1; $i <= 5; $i++)
                                     <span class="{{ $i <= $review->rating ? 'text-warning' : 'text-muted' }}">★</span>
