@@ -8,11 +8,11 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('complex_id')
-                  ->nullable()
-                  ->after('profile_photo_path') // place it logically
-                  ->constrained('complexes')
-                  ->nullOnDelete();
+        $table->foreignId('complex_id')
+            ->nullable()
+            ->after('profile_photo_path') // place it logically
+            ->constrained('booking_venue')
+            ->nullOnDelete();
         });
     }
 

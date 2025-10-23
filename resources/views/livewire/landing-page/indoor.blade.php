@@ -55,7 +55,15 @@
 @push('scripts')
 <script>
   // Convert the gallery_images_json field into usable JS arrays
-  const venueImages = @json($VenuesDetails->map(function($v) { return json_decode($v->gallery_images_json, true) ?? []; }));
+    const venueImages = @json($VenuesDetails->map(function($v) {
+      if (is_string($v->gallery_images_json)) {
+        return json_decode($v->gallery_images_json, true) ?? [];
+      } elseif (is_array($v->gallery_images_json)) {
+        return $v->gallery_images_json;
+      } else {
+        return [];
+      }
+    }));
   function loadSlider(index) {
     const carouselInner = document.getElementById("carouselInner");
     carouselInner.innerHTML = "";

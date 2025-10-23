@@ -26,7 +26,7 @@ class About extends Component
         // Stats
         // $this->bookingCount = BookingBooking::count();
         // $this->reviewCount = BookingVenueReview::count();
-        // $this->venueCount = BookingVenue::count();
+        $this->venueCount = BookingVenue::count();
 
         // About content
         $this->landingPageSections = LandingPage::where('is_active', true)
