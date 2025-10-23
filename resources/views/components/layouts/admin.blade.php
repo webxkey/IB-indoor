@@ -617,6 +617,14 @@
 
                                 </a>
                             </li>
+                                                        <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.landing-page') ? 'active' : '' }}"
+                                    href="{{ route('admin.landing-page') }}" data-section="indoor-admins">
+                                    <i class="fas fa-chart-bar me-2"></i>
+                                    Landing Page 
+                                </a>
+                            </li>
+
                         </ul>
                     </div>
 

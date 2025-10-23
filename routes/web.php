@@ -21,6 +21,7 @@ use App\Livewire\LandingPage\About;
 use App\Livewire\LandingPage\Contact;
 use App\Livewire\LandingPage\Indoor;
 use App\Livewire\LandingPage\Register;
+use App\Livewire\Admin\LandingPage;
 
 
 
@@ -64,6 +65,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/bookings', Bookings::class)->name('bookings');
         Route::get('/customers', Customers::class)->name('customers');
         Route::get('/indoor-admins', IndoorAdmins::class)->name('indoor-admins');
+        Route::get('/landing-page', LandingPage::class)->name('landing-page');
        
 
     });

@@ -15,6 +15,8 @@ class StaffFeedbacks extends Component
     public $totalReviews = 0;
     public $averageRating = 0.0;
     public $reviews = [];
+    public $venue;
+    public $imageUrl;
 
     public function mount()
     {
