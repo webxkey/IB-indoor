@@ -13,7 +13,7 @@ class BookingBooking extends Model
         'booking_date','start_time','end_time','duration','price',
         'payment_status','payment_method','status','notes','qr_code',
         'admin_comments','date','time_slot',
-        'user_id_id','game_id_id','complex_id_id','sport_id'
+        'user_id_id','game_id_id','complex_id_id',
     ];
 
     protected $casts = [

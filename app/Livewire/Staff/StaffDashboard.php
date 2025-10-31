@@ -103,7 +103,7 @@ class StaffDashboard extends Component
                 $slotEnd = $slotStart->copy()->addHour();
 
                 // Check if a booking overlaps with this slot
-                $bookingExists = BookingBooking::where('sport_id', $game->game_id)
+                $bookingExists = BookingBooking::where('game_id_id', $game->game_id)
                     ->whereDate('booking_date', $date)
                     ->where(function ($query) use ($slotStart, $slotEnd) {
                         $query->where(function ($q) use ($slotStart, $slotEnd) {
