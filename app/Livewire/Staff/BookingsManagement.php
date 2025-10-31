@@ -99,11 +99,20 @@ class BookingsManagement extends Component
                 $slotKey = $currentStartTime;
 
                 // Populate booking details for the current hour
+                $permanentSourceId = null;
+                try {
+                    $permanentSourceId = $booking->permanent_source_id ?? null;
+                } catch (\Throwable $e) {
+                    Log::error('Error accessing permanent_source_id', [
+                        'booking_id' => $booking->id ?? null,
+                        'error' => $e->getMessage()
+                    ]);
+                }
                 $this->bookingdetails[$game][$date][$court][$slotKey] = [
                     'player' => $booking->user_name,
                     'phone' => $booking->user_number,
                     'status' => $booking->status,
-                    'permanent_source_id' => $booking->permanent_source_id ?? null,
+                    'permanent_source_id' => $permanentSourceId,
                     'end' => $currentEndTime, // Set the end time for the hourly slot
                     'avatar' => '/storage/staff/user.png', // Assuming a default avatar
                 ];
