@@ -16,7 +16,6 @@ use App\Models\BookingGalleryImage;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 
-#[Layout('components.layouts.main')]
 
 class Register extends Component
 {

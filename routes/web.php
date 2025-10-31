@@ -22,6 +22,24 @@ use App\Livewire\LandingPage\Contact;
 use App\Livewire\LandingPage\Indoor;
 use App\Livewire\LandingPage\Register;
 use App\Livewire\Admin\LandingPage;
+use App\Livewire\Admin\LandingPageCMS;
+use App\Livewire\LandingPage\Blog;
+use App\Livewire\LandingPage\Features;
+use App\Livewire\LandingPage\TermsOfService;
+use App\Livewire\LandingPage\Security;
+use App\Livewire\LandingPage\ForBusiness;
+use App\Livewire\LandingPage\Privacy;
+use App\Livewire\LandingPage\Careers;
+use App\Livewire\Admin\BlogsManagement;
+
+
+
+
+
+
+
+
+
 
 
 
@@ -33,6 +51,13 @@ Route::get('/indoor', Indoor::class)->name('indoor');
 Route::get('/about', About::class)->name('about');
 Route::get('/contact', Contact::class)->name('contact');
 Route::get('/register', Register::class)->name('register');
+Route::get('/terms-of-service', TermsOfService::class)->name('terms-of-service');
+Route::get('/features', Features::class)->name('features');
+Route::get('/blog', Blog::class)->name('blog');
+Route::get('/security', Security::class)->name('security');
+Route::get('/for-business', ForBusiness::class)->name('for-business');
+Route::get('/privacy', Privacy::class)->name('privacy');
+Route::get('/careers', Careers::class)->name('careers');
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -65,12 +90,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/bookings', Bookings::class)->name('bookings');
         Route::get('/customers', Customers::class)->name('customers');
         Route::get('/indoor-admins', IndoorAdmins::class)->name('indoor-admins');
-        Route::get('/landing-page', LandingPage::class)->name('landing-page');
-       
-
+        Route::get('/landing-page', LandingPageCMS::class)->name('landing-page');
+        Route::get('/blogs-management',BlogsManagement ::class)->name('blogs-management');
     });
 
-   
+
     //!! Staff routes
     Route::middleware('role:staff')->prefix('staff')->name('staff.')->group(function () {
         Route::get('/dashboard', StaffDashboard::class)->name('dashboard');
@@ -80,15 +104,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/feedbacks', StaffFeedbacks::class)->name('feedbacks');
         Route::get('/setting', StaffSetting::class)->name('setting');
         Route::get('/help', StaffHelp::class)->name('help');
-        
-        
-
     });
 
     Route::middleware('role:facility_owner')->prefix('facility_owner')->name('staff.')->group(function () {
         Route::get('/dashboard', StaffDashboard::class)->name('dashboard');
         Route::get('/sports', SportsManagement::class)->name('sports');
-        Route::get('/bookings', BookingsManagement::class)->name('bookings');   
+        Route::get('/bookings', BookingsManagement::class)->name('bookings');
         Route::get('/reports', StaffReport::class)->name('reports');
         Route::get('/feedbacks', StaffFeedbacks::class)->name('feedbacks');
         Route::get('/setting', StaffSetting::class)->name('setting');
@@ -98,5 +119,5 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
     // !! Export routes (accessible to authenticated users)
 
- 
+
 });

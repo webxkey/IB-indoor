@@ -11,110 +11,292 @@
         integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
         crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+        
+
 
 
     <style>
         /* Body full height flex layout */
         body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            --primary: #0A7C4D;
+            --primary-dark: #08663d;
+            --accent: #4CAF50;
+            --bg-light: #E8F5EB;
+            --text-dark: #1A1A1A;
+            --text-muted: #6c757d;
+            --white: #fff;
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
-        main {
-            flex: 1;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-dark);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            line-height: 1.6;
+        }
+
 
         /* Custom Navbar Styling */
-        .custom-navbar {
-            background-color: rgb(25, 135, 84);
-            /* Green background */
-            border-bottom: none;
+
+        .navbar {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            width: 90%;
+            max-width: 1200px;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 50px;
+            padding: 12px 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
-        .navbar-brand strong {
+        .navbar.scrolled {
+            top: 10px;
+            width: 95%;
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
             font-size: 1.5rem;
-            color: #fff;
-            /* White text */
+            color: #0A7C4D !important;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand i {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .navbar-brand:hover i {
+            transform: rotate(-15deg);
         }
 
         .nav-link {
+            color: #1A1A1A !important;
             font-weight: 500;
-            color: white !important;
-            transition: color 0.3s ease;
+            margin: 0 8px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
         }
 
-        .nav-link:hover {
-            color: #e2e2e2 !important;
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background-color: var(--primary);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transform: translateX(-50%);
         }
 
-        /* Register Button */
-        .btn-register {
-            background-color: #fff;
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            width: 80%;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: #0A7C4D !important;
+        }
+
+        /* Navbar Buttons - Themed */
+        .navbar .btn-primary {
+            background-color: rgb(25, 135, 84);
             border: none;
-            color: rgb(25, 135, 84);
-            padding: 10px 24px;
+            color: #ffffff;
+            padding: 8px 20px;
             border-radius: 50px;
             font-weight: 500;
             transition: all 0.3s ease;
         }
 
-        .btn-register:hover {
-            background-color: #f8f9fa;
+        .navbar .btn-primary:hover {
+            background-color: #ffffff;
+            color: rgb(25, 135, 84);
+            border: 1px solid rgb(25, 135, 84);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
+
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #E8F5EB 0%, #FFFFFF 100%);
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding-top: 100px;
+            overflow: hidden;
+        }
+
         /* Footer Styling - Green Theme */
-        /* Compact Footer Styling - Green Theme */
-        .footer-green {
-            background-color: rgb(25, 135, 84);
-            padding-top: 1.5rem;
-            /* Reduced from 4rem */
-            padding-bottom: 1.5rem;
-            /* Reduced from 4rem */
-            color: #ffffff;
-            font-size: 0.9rem;
-            /* Slightly smaller overall font */
+        /* 🌿 Indoor Booking Footer - Updated Professional Green Theme */
+
+        /* Primary Theme Color */
+        :root {
+            --indoor-b-primary: rgb(25, 135, 84);
+            /* Green */
+            --indoor-b-primary-dark: rgb(18, 97, 60);
+            /* Darker Green for hover */
+            --indoor-b-background: #f8f9fa;
+            /* Light Grey background for contrast */
+            --indoor-b-text-secondary: #6c757d;
+            /* Soft dark grey for secondary info */
         }
 
-        .footer-heading {
-            color: #e6e6e6;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            /* Smaller heading */
-            margin-bottom: 0.5rem;
+        /* IndoorB text next to the logo */
+        .indoorb-logo-text {
+            color: rgb(25, 135, 84);
+            /* Green color */
         }
 
-        .footer-links li {
-            margin-bottom: 0.4rem;
-            /* Tighter spacing */
+
+        /* 1. Footer Container - Added light background for contrast */
+        .indoor-booking-footer {
+            background-color: var(--indoor-b-background);
+            /* Light Grey background */
+            border-top: 1px solid #e0e0e0;
+            /* Primary green color is removed from the container for better contrast */
+            color: #212529;
+            /* Standard dark text color */
         }
 
-        .footer-links a {
-            color: #ffffff;
+        /* 2. All Text - Reset default text color, use a darker one for titles and links */
+        /* This rule is simplified to only target link/title-like elements for the green color */
+        .indoor-booking-footer h4,
+        .indoor-booking-footer h6 {
+            color: #212529 !important;
+            /* Make titles dark/black for contrast */
+            font-weight: 700 !important;
+            /* Make titles bolder */
+        }
+
+        /* 3. Primary Text (Logo/Titles) - Now dark for better contrast */
+        .indoor-booking-text-primary {
+            color: #212529 !important;
+        }
+
+        /* 4. Links - Use primary green color */
+        .indoor-booking-link {
+            color: var(--indoor-b-primary);
+            /* Green for links */
             text-decoration: none;
-            transition: opacity 0.3s ease, text-decoration 0.3s ease;
+            line-height: 2.2;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .indoor-booking-link:hover {
+            color: var(--indoor-b-primary-dark);
+            /* Darker green on hover */
+            text-decoration: underline;
+        }
+
+        /* 🌿 Register Now Button - Retained original look, ensure full pill shape on all devices */
+        .indoor-booking-btn {
+            background-color: var(--indoor-b-primary);
+            color: #ffffff;
+            border: none;
+            /* Reduced padding for slightly cleaner look */
+            padding: 8px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: none;
+            text-decoration: none;
+            /* Ensure no underline on anchor */
+        }
+
+        .indoor-booking-btn:hover {
+            background-color: var(--indoor-b-primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);
+            color: #ffffff;
+        }
+
+        /* 6. Divider */
+        .indoor-booking-hr {
+            border-top: 1px solid #dcdcdc;
+            /* Slightly lighter divider */
+            opacity: 1;
+            margin-top: 0;
+        }
+
+        /* 7. Secondary Text - Changed to a softer grey for a professional distinction */
+        .indoor-booking-secondary-text {
+            color: var(--indoor-b-text-secondary) !important;
+            /* Soft dark grey */
             font-size: 0.85rem;
         }
 
-        .footer-links a:hover {
-            text-decoration: underline;
-            opacity: 0.85;
-        }
-
-        .social-icons a {
+        /* 8. Social Media Icons - Filled circle for a bolder look */
+        .indoor-booking-social-icon {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 36px;
+            /* Slightly smaller */
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--indoor-b-primary);
+            /* Filled with green */
             color: #ffffff;
-            font-size: 1rem;
-            /* Smaller icons */
-            margin-right: 0.9rem;
-            transition: opacity 0.3s ease;
+            /* White icon */
+            border: 1px solid var(--indoor-b-primary);
+            /* Green border */
+            font-size: 1.1rem;
+            /* Slightly smaller icon */
+            transition: all 0.3s ease;
+            text-decoration: none;
+            /* Remove underline */
         }
 
-        .social-icons a:hover {
-            opacity: 0.8;
+        .indoor-booking-social-icon:hover {
+            background-color: var(--indoor-b-primary-dark);
+            /* Darken fill on hover */
+            border-color: var(--indoor-b-primary-dark);
+            transform: translateY(-2px);
+            /* Slight lift */
+        }
+
+        /* 9. Language Selector - Keep border but remove default background for a cleaner look */
+        .indoor-booking-select {
+            width: 150px;
+            border: 1px solid var(--indoor-b-text-secondary);
+            /* Grey border */
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            color: #212529;
+            /* Dark text */
+            background-color: #ffffff;
+            /* White background */
+            transition: all 0.3s ease;
+            /* Ensure no green border/box-shadow on focus for cleaner look */
+            box-shadow: none !important;
+        }
+
+        .indoor-booking-select:focus {
+            border-color: var(--indoor-b-primary);
+            /* Primary color on focus */
         }
 
         /*---------------------------------
@@ -625,7 +807,12 @@
         .sports-banner {
             background: linear-gradient(90deg, rgb(25, 135, 84), rgb(40, 167, 69));
             padding: 2rem;
-            border-radius: 1.5rem;
+            /* keeps top, right, bottom padding */
+            padding-left: 2rem;
+            /* increases left padding */
+            border-radius: 3rem;
+            margin-left: 5px;
+            margin-right: 5px;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
             display: flex;
             justify-content: center;
@@ -859,6 +1046,7 @@
         /* latest news */
         body {
             background-color: #f8f9fa;
+            padding-top: 50px;
         }
 
         .news-section {
@@ -1070,46 +1258,54 @@
         .btn-success:hover {
             background-color: #157347;
         }
+
+        /* Hover effect for social icons */
+        .social-icon {
+            color: #6c757d;
+            /* default gray */
+            transition: color 0.3s;
+        }
+
+        .social-icon:hover {
+            color: #0d6efd;
+            /* blue on hover */
+        }
     </style>
 </head>
 
 <body>
 
     <!-- Navbar / Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top py-3 custom-navbar">
-        <div class="container">
-            <a class="navbar-brand" href="#"><strong>IndoorB</strong></a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                data-bs-target="#navbarNav" aria-controls="navbarNav"
-                aria-expanded="false" aria-label="Toggle navigation">
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; width: auto; margin-right: 10px;"></i>IndoorB</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+            <div class="collapse navbar-collapse justify-content-end" id="nav">
+                <ul class="navbar-nav align-items-lg-center">
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('home') ? 'fw-bold text-white' : 'text-white-50' }}" href="{{ route('home') }}">Home</a>
+                        <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('indoor') ? 'fw-bold text-white' : 'text-white-50' }}" href="{{ route('indoor') }}">Indoor</a>
+                        <a class="nav-link {{ request()->routeIs('indoor') ? 'active' : '' }}" href="{{ route('indoor') }}">Indoor</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('about') ? 'fw-bold text-white' : 'text-white-50' }}" href="{{ route('about') }}">About</a>
+                        <a class="nav-link {{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('contact') ? 'fw-bold text-white' : 'text-white-50' }}" href="{{ route('contact') }}">Contact</a>
+                        <a class="nav-link {{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">Contact</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('Sign in') ? 'active' : '' }}" href="{{ route('login') }}">Sign in</a>
                     </li>
 
                 </ul>
+                <a href="{{ route('register') }}" class="btn btn-primary ms-lg-3 mt-3 mt-lg-0">Register</a>
 
-                <div class="d-flex align-items-center ms-3">
-                    <a class="nav-link text-white-50 me-3" href="{{ route('login') }}">Sign In</a>
-                    <a class="btn btn-register" href="{{ route('register') }}" role="button">Register &rarr;</a>
-                </div>
             </div>
         </div>
     </nav>
-
     <!-- Main Content -->
 
     <main>
@@ -1117,55 +1313,157 @@
     </main>
 
     <!-- Footer -->
-    <footer class="footer-green text-white mt-auto">
+    <footer class="indoor-booking-footer mt-5 pt-4 pb-4">
         <div class="container">
-            <div class="row">
+            <div class="row mb-5">
 
-                <div class="col-lg-2 col-md-4 col-6 mb-3">
-                    <h6 class="footer-heading mb-2">Solutions</h6>
-                    <ul class="list-unstyled footer-links">
-                        <li><a href="#">Business</a></li>
+                <div class="col-12 col-lg-3 mb-4 mb-lg-0 d-flex flex-column align-items-center align-items-lg-start">
+                    <h4 class="mb-3 indoor-booking-text-primary d-flex align-items-center">
+                        <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 60px; width: auto; margin-right: 10px;">
+                        <span class="indoorb-logo-text fw-bold">IndoorB</span>
+                    </h4>
+                    <a href="{{ route('register') }}" class="btn btn-lg indoor-booking-btn">
+                        Register Now
+                    </a>
+                </div>
+
+                <div class="col-6 col-md-3 col-lg-2 mb-3 mb-lg-0">
+                    <h6 class="text-uppercase indoor-booking-text-primary mb-3">What we do</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ route('features') }}" class="indoor-booking-link">Features</a></li>
+                        <li><a href="{{ route('blog') }}" class="indoor-booking-link">Blog</a></li>
+                        <li><a href="{{ route('security') }}" class="indoor-booking-link">Security</a></li>
+                        <li><a href="{{ route('for-business') }}" class="indoor-booking-link">For Business</a></li>
                     </ul>
                 </div>
 
-                <div class="col-lg-3 col-md-4 col-6 mb-3">
-                    <h6 class="footer-heading mb-2">Partners</h6>
-                    <ul class="list-unstyled footer-links">
-                        <li><a href="#">Partner affiliate program</a></li>
+                <div class="col-6 col-md-3 col-lg-2 mb-3 mb-lg-0">
+                    <h6 class="text-uppercase indoor-booking-text-primary mb-3">Who we are</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ route('about') }}" class="indoor-booking-link">About us</a></li>
+                        <li><a href="#" class="indoor-booking-link">Careers</a></li>
+                        <li><a href="#" class="indoor-booking-link">Brand Center</a></li>
+                        <li><a href="{{ route('privacy') }}" class="indoor-booking-link">Privacy</a></li>
                     </ul>
                 </div>
 
-                <div class="col-lg-3 col-md-4 col-6 mb-3">
-                    <h6 class="footer-heading mb-2">About</h6>
-                    <ul class="list-unstyled footer-links">
-                        <li><a href="#">Press Center</a></li>
+                <div class="col-6 col-md-3 col-lg-2 mb-3 mb-lg-0">
+                    <h6 class="text-uppercase indoor-booking-text-primary mb-3">Use IndoorB</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="indoor-booking-link">Web App</a></li>
+                        <li><a href="#" class="indoor-booking-link">iPhone</a></li>
+                        <li><a href="#" class="indoor-booking-link">Android</a></li>
+                        <li><a href="{{ route('login') }}" class="indoor-booking-link">Admin PC</a></li>
                     </ul>
                 </div>
 
-                <div class="col-lg-2 col-md-6 col-6 mb-3">
-                    <h6 class="footer-heading mb-2">Help</h6>
-                    <ul class="list-unstyled footer-links">
-                        <li><a href="#">Security Center</a></li>
+                <div class="col-6 col-md-3 col-lg-3">
+                    <h6 class="text-uppercase indoor-booking-text-primary mb-3">Need help?</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ route('contact') }}" class="indoor-booking-link">Contact Us</a></li>
+                        <li><a href="#" class="indoor-booking-link">Help Center</a></li>
+                        <li><a href="#" class="indoor-booking-link">Apps</a></li>
+                        <li><a href="#" class="indoor-booking-link">Security Advisories</a></li>
                     </ul>
                 </div>
+            </div>
 
-                <div class="col-lg-2 col-md-6 mb-3">
-                    <h6 class="footer-heading mb-2">Follow us</h6>
-                    <div class="d-flex social-icons">
-                        <a href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="#"><i class="fab fa-youtube"></i></a>
-                    </div>
+            <hr class="indoor-booking-hr">
+
+            <div class="row pt-3 align-items-center">
+
+                <div class="col-12 col-md-6 col-lg-4 mb-3 mb-lg-0 indoor-booking-secondary-text d-flex flex-wrap align-items-center">
+                    <span class="me-3">&copy; 2024 IndoorB LLC</span>
+                    <a href="{{ route('terms-of-service') }}" class="indoor-booking-link me-3">Terms of service</a>
                 </div>
 
+                <div class="col-12 col-md-6 col-lg-4 mb-3 mb-lg-0 d-flex justify-content-center">
+                    <a href="https://twitter.com/webxkey" class="indoor-booking-social-icon mx-2"><i class="bi bi-twitter"></i></a>
+                    <a href="https://linkedin.com/company/webxkey" class="indoor-booking-social-icon mx-2"><i class="bi bi-linkedin"></i></a>
+                    <a href="https://www.instagram.com/webxkey/#" class="indoor-booking-social-icon mx-2"><i class="bi bi-instagram"></i></a>
+                    <a href="https://facebook.com/webxkey" class="indoor-booking-social-icon mx-2"><i class="bi bi-facebook"></i></a>
+                </div>
+
+                <div class="col-12 col-lg-4 d-flex justify-content-lg-end justify-content-center">
+                    <select class="form-select indoor-booking-select" aria-label="Language selector">
+                        <option selected>English</option>
+                        <option value="1">Spanish</option>
+                        <option value="2">French</option>
+                    </select>
+                </div>
             </div>
         </div>
     </footer>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
         crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            navbar.classList.toggle('scrolled', window.scrollY > 50);
+
+            updateActiveNavLink();
+            checkScroll();
+        });
+
+        function updateActiveNavLink() {
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('.nav-link');
+            let currentSection = '';
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 120;
+                const sectionHeight = section.offsetHeight;
+                if (window.scrollY >= sectionTop && window.scrollY < sectionTop + sectionHeight) {
+                    currentSection = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                // compare the section id to the link href (strip # if needed)
+                if (link.getAttribute('href') === `#${currentSection}`) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        function animateCounter(id, end, duration) {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            let start = 0;
+            const increment = end / (duration / 16);
+            const timer = setInterval(() => {
+                start += increment;
+                if (start >= end) {
+                    el.textContent = end.toLocaleString();
+                    clearInterval(timer);
+                } else {
+                    el.textContent = Math.floor(start).toLocaleString();
+                }
+            }, 16);
+        }
+
+        function checkScroll() {
+            const elements = document.querySelectorAll('.fade-in');
+            elements.forEach(element => {
+                const elementTop = element.getBoundingClientRect().top;
+                const elementVisible = 150;
+                if (elementTop < window.innerHeight - elementVisible) {
+                    element.classList.add('visible');
+                }
+            });
+        }
+
+        // Run initial checks on page load
+        window.addEventListener('load', () => {
+            updateActiveNavLink();
+            checkScroll();
+        });
+    </script>
 </body>
+
 
 </html>

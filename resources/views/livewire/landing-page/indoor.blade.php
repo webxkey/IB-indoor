@@ -15,7 +15,7 @@
                 class="btn btn-success mt-auto" 
                 data-bs-toggle="modal" 
                 data-bs-target="#venueModal" 
-                onclick="loadSlider({{ $index }})"
+                onclick="showVenueDetails('{{ $venue->name }}', '{{ $venue->description }}', '{{ $venue->location }}', '{{ $venue->operating_hours }}', '{{ $venue->contact }}', '{{ $venue->image_url }}')"
               >
                 View More
               </button>
@@ -26,51 +26,55 @@
     </div>
   </div>
 
-  <!-- Modal with Carousel -->
+  <!-- Modal with Venue Details -->
   <div class="modal fade" id="venueModal" tabindex="-1" aria-labelledby="venueModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="venueModalLabel">Venue Gallery</h5>
+          <h5 class="modal-title" id="venueModalLabel">Venue Details</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div id="venueCarousel" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-inner" id="carouselInner"></div>
-            <button class="carousel-control-prev" type="button" data-bs-target="#venueCarousel" data-bs-slide="prev">
-              <span class="carousel-control-prev-icon"></span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#venueCarousel" data-bs-slide="next">
-              <span class="carousel-control-next-icon"></span>
-            </button>
+          <div class="row">
+            <!-- Left side: Venue Details -->
+            <div class="col-md-6">
+              <h4 id="venueName"></h4>
+              <p id="venueDescription" class="mt-3"></p>
+              <div class="mt-3">
+                <strong>Location:</strong>
+                <p id="venueLocation"></p>
+              </div>
+              <div class="mt-2">
+                <strong>Operating Hours:</strong>
+                <p id="venueHours"></p>
+              </div>
+              <div class="mt-2">
+                <strong>Contact:</strong>
+                <p id="venueContact"></p>
+              </div>
+            </div>
+            <!-- Right side: Venue Image -->
+            <div class="col-md-6">
+              <img id="venueImage" class="img-fluid rounded" alt="Venue Image">
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-</div> <!-- ✅ Close root wrapper -->
-
-
-@push('scripts')
+  <!-- JavaScript for handling venue details -->
 <script>
-  // Convert the gallery_images_json field into usable JS arrays
-  const venueImages = @json($VenuesDetails->map(function($v) { return json_decode($v->gallery_images_json, true) ?? []; }));
-  function loadSlider(index) {
-    const carouselInner = document.getElementById("carouselInner");
-    carouselInner.innerHTML = "";
-
-    if (!venueImages[index] || venueImages[index].length === 0) {
-      carouselInner.innerHTML = `<div class='text-center p-4'>No gallery images available.</div>`;
-      return;
-    }
-
-    venueImages[index].forEach((img, i) => {
-      const div = document.createElement("div");
-      div.className = `carousel-item ${i === 0 ? "active" : ""}`;
-      div.innerHTML = `<img src="${img.trim()}" class="d-block w-100 rounded" alt="Venue Image ${i + 1}">`;
-      carouselInner.appendChild(div);
-    });
+  function showVenueDetails(name, description, location, hours, contact, imageUrl) {
+    document.getElementById('venueName').textContent = name;
+    document.getElementById('venueDescription').textContent = description;
+    document.getElementById('venueLocation').textContent = location;
+    document.getElementById('venueImage').src = imageUrl;
+    
+    // Optional: clear out non-existing fields
+    document.getElementById('venueHours').textContent = '';
+    document.getElementById('venueContact').textContent = '';
   }
 </script>
-@endpush
+</div> <!-- ✅ Close root wrapper -->
+

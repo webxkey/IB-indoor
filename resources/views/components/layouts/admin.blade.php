@@ -9,14 +9,14 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
-  
+
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<!-- Tailwind CSS CDN -->
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
 
     @livewireStyles
     <style>
@@ -614,16 +614,17 @@
                             </li>
 
                             <li class="nav-item">
-                                <a class="nav-link" href="#" data-section="analytics">
+                                <a class="nav-link {{ request()->routeIs('admin.blogs-management') ? 'active' : '' }}"
+                                    href="{{ route('admin.blogs-management') }}" data-section="indoor-admins">
                                     <i class="fas fa-chart-bar me-2"></i>
-
+                                    Blogs Management
                                 </a>
                             </li>
-                                                        <li class="nav-item">
+                            <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('admin.landing-page') ? 'active' : '' }}"
                                     href="{{ route('admin.landing-page') }}" data-section="indoor-admins">
                                     <i class="fas fa-chart-bar me-2"></i>
-                                    Landing Page 
+                                    Landing Page
                                 </a>
                             </li>
 
@@ -753,7 +754,7 @@
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');
         const mainContent = document.getElementById('main-content');
-        
+
         sidebarToggle.addEventListener('click', function() {
             sidebar.classList.toggle('show');
         });
@@ -763,7 +764,7 @@
             if (window.innerWidth <= 991.98) {
                 const isClickInsideSidebar = sidebar.contains(event.target);
                 const isClickOnToggle = sidebarToggle.contains(event.target);
-                
+
                 if (!isClickInsideSidebar && !isClickOnToggle) {
                     sidebar.classList.remove('show');
                 }

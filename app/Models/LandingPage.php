@@ -2,18 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class LandingPage extends Model
 {
-    use HasFactory;
-
-    protected $table = 'landing_pages';
-
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'page_name',
         'section_title',
@@ -23,11 +15,9 @@ class LandingPage extends Model
         'is_active',
     ];
 
-    /**
-     * The attributes that should be cast to native types.
-     */
+    // This is key: cast images column to array
     protected $casts = [
-        'images' => 'array', // decode/encode JSON automatically
+        'images' => 'array',
         'is_active' => 'boolean',
     ];
 }
