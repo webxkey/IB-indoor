@@ -12,7 +12,7 @@ class BookingBooking extends Model
         'game_name','user_name','user_number','court_number','permanent',
         'booking_date','start_time','end_time','duration','price',
         'payment_status','payment_method','status','notes','qr_code',
-        'admin_comments','date','time_slot','total',
+        'admin_comments','date','time_slot',
         'user_id_id','game_id_id','complex_id_id','sport_id'
     ];
 

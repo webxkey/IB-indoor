@@ -89,7 +89,7 @@ class Bookings extends Component
             // Total revenue
             $this->totalRevenue = BookingBooking::where('status', 'confirmed')
                 ->whereBetween('booking_date', [$this->startDate, $this->endDate])
-                ->sum('total');
+                ->sum('price');
                 
         } catch (\Exception $e) {
             session()->flash('error', 'Error loading statistics: ' . $e->getMessage());
