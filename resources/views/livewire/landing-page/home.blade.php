@@ -14,8 +14,8 @@
 
                 <div class="col-lg-6 text-center text-lg-end">
                     <div class="hero-image-wrapper position-relative">
-                        <img src="{{$heroImageUrl}}"
-                            class="main-hero-image img-fluid rounded"
+                        <img src="{{ asset('images/home.png') }}"
+                            class="main-hero-image img-fluid "
                             alt="Indoor Sports Venue">
                         <div class="deco-circle circle-green position-absolute"></div>
                         <div class="deco-circle circle-blue position-absolute"></div>
