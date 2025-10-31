@@ -9,7 +9,7 @@
                 <div class="col-lg-6 col-md-10 text-center text-lg-start hero-content mb-5 mb-lg-0">
                     <h1 class="display-4 mb-4">{{$sectionTitle}}</h1>
                     <p class="lead mb-5">{{$sectionDescription}}</p>
-                    <a href="{{ route('indoor') }}" class="btn btn-gradient btn-lg">Explore Venues</a>
+                    <a href="{{ route('indoor') }}" class="btn btn-green mt-3">Explore Venues&rarr;</a>
                 </div>
 
                 <div class="col-lg-6 text-center text-lg-end">
@@ -136,7 +136,7 @@
 
             <!-- Right Column: Image -->
             <div class="col-lg-6">
-                <img src="{{$socialImageurl}}"
+                <img src="{{$socialImageUrl}}"
                     alt="Community member using a service"
                     class="img-fluid rounded-4">
             </div>
@@ -199,7 +199,7 @@
 
                         <div class="card-img-overlay">
                             <h5 class="card-title">
-                                {{ $venue->venue_name ?? 'Unnamed Venue' }}
+                                {{ $venue->name ?? 'Unnamed Venue' }}
                             </h5>
                         </div>
                     </div>
