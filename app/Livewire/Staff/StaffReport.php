@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Staff;
 
-use App\Models\Booking;
+use App\Models\BookingBooking;
 use App\Models\BookingVenue;
 use App\Models\BookingSport;
 
@@ -68,7 +68,7 @@ class StaffReport extends Component
     private function loadReportData()
     {
         if ($this->activeReport === 'booking') {
-            $this->bookingDetail = Booking::with('sport')
+            $this->bookingDetail = BookingBooking::with('sport')
                 ->where('user_id', $this->UserId)
                 ->whereBetween('booking_date', [$this->start_date, $this->end_date])
                 ->orderBy('booking_date', 'desc')
@@ -95,21 +95,21 @@ class StaffReport extends Component
         }
         $this->end_date = $end->toDateString();
 
-        $query = Booking::query()
+        $query = BookingBooking::query()
             ->where('user_id', $this->UserId)
             ->whereBetween('booking_date', [$this->start_date, $this->end_date]);
 
         $this->reportData = $query->get();
 
-        $this->bookingDetails = Booking::all();
+        $this->bookingDetails = BookingBooking::all();
         // dd(Booking::all());
         $this->bookingDetailModel = $query->clone()->get();
         $this->upcomingBooked = $query->clone()->whereIn('status', ['Booked', 'Upcoming'])->get();
 
         $this->totalUpcomingBookings = $this->upcomingBooked->count();
         $this->totalBookings = $this->bookingDetails->count();
-        $this->totalRevenue = Booking::where('status', 'Completed')->sum('price');
-        $this->cancelledBookings = Booking::where('status', 'Cancelled')->count();
+        $this->totalRevenue = BookingBooking::where('status', 'Completed')->sum('price');
+        $this->cancelledBookings = BookingBooking::where('status', 'Cancelled')->count();
 
         // Occupancy rate calculation
         $sports = BookingSport::all();
@@ -143,7 +143,7 @@ class StaffReport extends Component
         $revenueData = [];
         $bookingsData = [];
 
-        $query = Booking::query()
+        $query = BookingBooking::query()
             ->selectRaw("
                 CASE 
                     WHEN ? = 'day' THEN DATE(booking_date)
@@ -198,7 +198,7 @@ class StaffReport extends Component
         $startDate = \Carbon\Carbon::parse($this->start_date)->startOfDay()->toDateTimeString();
         $endDate = \Carbon\Carbon::parse($this->end_date)->endOfDay()->toDateTimeString();
 
-        $this->revenueReportData = Booking::where('user_id', $userId)
+        $this->revenueReportData = BookingBooking::where('user_id', $userId)
             ->whereBetween('booking_date', [$startDate, $endDate])
             ->with('sport')
             ->selectRaw("
