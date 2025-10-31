@@ -38,13 +38,13 @@ class SportsManagement extends Component
         $this->loadSports();
     }
 
-
     public function loadSports()
     {
         $this->complex_id = auth()->user()->complex_id;
         $this->sports = BookingSport::where('venue_id', $this->complex_id)->get();
         Log::info('Sports image paths: ' . $this->sports->pluck('game_image')->toJson());
     }
+
     public function openModal()
     {
         $this->resetForm();
@@ -67,16 +67,21 @@ class SportsManagement extends Component
             'price' => 'required|numeric|min:0',
             'maximum_court' => 'required|integer|min:1',
             'status' => 'required|string|in:Active,Inactive,Maintenance',
-            'game_image' => 'required|image|max:1024', // <-- required now
+            'game_image' => 'required|image|max:1024',
             'description' => 'nullable|string',
             'advance_required' => 'boolean',
         ]);
 
+        // Store the file and get the path
+        $imagePath = null;
         if ($this->game_image) {
-            $validated['game_image'] = $this->game_image->store('sports', 'public');
+            // Store file and get relative path (e.g., 'sports/filename.jpg')
+            $relativePath = $this->game_image->store('sports', 'public');
+            // Convert to full URL
+            $imagePath = asset('storage/' . $relativePath);
         }
 
-        bookingSport::create([
+        BookingSport::create([
             'venue_id' => $this->complex_id,
             'name' => $validated['game_name'],
             'game_type' => $validated['game_type'],
@@ -84,11 +89,11 @@ class SportsManagement extends Component
             'price' => $validated['price'],
             'maximum_court' => $validated['maximum_court'],
             'status' => $validated['status'],
-            'image' => $validated['game_image'] ?? null,
+            'image' => $imagePath, // Store full URL
             'description' => $validated['description'] ?? null,
             'additional_charges' => json_encode($this->additional_charges),
             'advance_required' => $validated['advance_required'],
-            'average_rating' => 0.0, // Default value
+            'average_rating' => 0.0,
         ]);
 
         session()->flash('message', 'Sport added successfully!');
@@ -161,13 +166,21 @@ class SportsManagement extends Component
 
         $sport = BookingSport::findOrFail($this->editSportId);
 
+        $imagePath = $this->existingImage; // Keep existing by default
+
         if ($this->game_image) {
-            if ($sport->image && Storage::exists('public/' . $sport->image)) {
-                Storage::delete('public/' . $sport->image);
+            // Delete old image if it exists
+            if ($sport->image) {
+                // Extract relative path from full URL
+                $oldPath = str_replace(asset('storage/'), '', $sport->image);
+                if (Storage::exists('public/' . $oldPath)) {
+                    Storage::delete('public/' . $oldPath);
+                }
             }
-            $validated['game_image'] = $this->game_image->store('sports', 'public');
-        } else {
-            $validated['game_image'] = $this->existingImage;
+            
+            // Store new image and convert to full URL
+            $relativePath = $this->game_image->store('sports', 'public');
+            $imagePath = asset('storage/' . $relativePath);
         }
 
         $sport->update([
@@ -178,7 +191,7 @@ class SportsManagement extends Component
             'price' => $validated['price'],
             'maximum_court' => $validated['maximum_court'],
             'status' => $validated['status'],
-            'image' => $validated['game_image'],
+            'image' => $imagePath, // Store full URL
             'description' => $validated['description'] ?? null,
             'additional_charges' => json_encode($this->additional_charges),
             'advance_required' => $validated['advance_required']
@@ -202,11 +215,13 @@ class SportsManagement extends Component
         try {
             $sport = BookingSport::findOrFail($id);
 
-            if ($sport->image && Storage::exists('public/' . $sport->image)) {
-                Storage::delete('public/' . $sport->image);
+            if ($sport->image) {
+                // Extract relative path from full URL
+                $relativePath = str_replace(asset('storage/'), '', $sport->image);
+                if (Storage::exists('public/' . $relativePath)) {
+                    Storage::delete('public/' . $relativePath);
+                }
             }
-
-
 
             $sport->delete();
 
@@ -226,6 +241,6 @@ class SportsManagement extends Component
 
     public function game_url()
     {
-        return asset('storage/' . $this->game_image);
+        return $this->game_image;
     }
 }
