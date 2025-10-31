@@ -745,9 +745,8 @@
                     default => 'fas fa-gamepad',
                     };
                     @endphp
-                    <div class="game-tab" data-game="{{ strtolower($game['name']) }}">
-                        <i class="{{ $icon }} me-2"></i>{{ $game['name'] }}
-                    </div>
+                  
+                  
                     @empty
                     <div class="alert alert-info m-3">
                         <i class="fas fa-info-circle me-2"></i>No games available. Please add sports to your complex.

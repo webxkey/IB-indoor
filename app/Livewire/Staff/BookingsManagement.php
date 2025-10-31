@@ -189,40 +189,53 @@ class BookingsManagement extends Component
             'status' => $this->status,
             'notes' => $this->notes ?: '',
             'admin_comments' => '',
-
-            
         ];
         // dd($bookingData);
 
-        if ($this->permanent) {
-            // Create 7 consecutive daily bookings
-            for ($i = 0; $i < 7; $i++) {
-                $bookingDate = Carbon::parse($this->selectedDate)->addDays($i)->format('Y-m-d');
+        try {
+            if ($this->permanent) {
+                // Create 7 consecutive daily bookings
+                for ($i = 0; $i < 7; $i++) {
+                    $bookingDate = Carbon::parse($this->selectedDate)->addDays($i)->format('Y-m-d');
 
+                    BookingBooking::create(array_merge($bookingData, [
+                        'booking_date' => $bookingDate,
+                        'permanent' => ($i === 0), // Only mark first booking as permanent
+                        'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
+                    ]));
+                }
+
+                Log::info('7 consecutive bookings created', [
+                    'start_date' => $this->selectedDate,
+                    'end_date' => Carbon::parse($this->selectedDate)->addDays(6)->format('Y-m-d')
+                ]);
+            } else {
+                // Create single booking
                 BookingBooking::create(array_merge($bookingData, [
-                    'booking_date' => $bookingDate,
-                    'permanent' => ($i === 0), // Only mark first booking as permanent
+                    'booking_date' => $this->selectedDate,
+                    'permanent' => false,
                     'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
                 ]));
             }
 
-            Log::info('7 consecutive bookings created', [
-                'start_date' => $this->selectedDate,
-                'end_date' => Carbon::parse($this->selectedDate)->addDays(6)->format('Y-m-d')
-            ]);
-        } else {
-            // Create single booking
-            BookingBooking::create(array_merge($bookingData, [
-                'booking_date' => $this->selectedDate,
-                'permanent' => false,
-                'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
-            ]));
+            $this->dispatch('bookingCreated');
+            $this->dispatch('closeModal');
+            $this->loadSports();
+            $this->resetFields();
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (str_contains($e->getMessage(), 'foreign key constraint fails')) {
+                $this->addError('general', 'Booking failed: Your user account is not valid for booking. Please contact support.');
+                Log::error('Booking failed due to foreign key constraint', [
+                    'user_id_id' => Auth::id(),
+                    'error' => $e->getMessage(),
+                ]);
+            } else {
+                $this->addError('general', 'Booking failed: ' . $e->getMessage());
+                Log::error('Booking failed', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
-
-        $this->dispatch('bookingCreated');
-        $this->dispatch('closeModal');
-        $this->loadSports();
-        $this->resetFields();
     }
 
     public function resetFields()
