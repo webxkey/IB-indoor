@@ -228,12 +228,14 @@ class StaffSetting extends Component
                 // Store new image
                 $coverImagePath = $this->cover_image->store('complex', 'public');
             }
+            $imagePath = asset('storage/' . $coverImagePath);
 
             // Prepare update array
             $updateArray = [
                 'name' => $validated['complex_name'], // <-- use 'name' for DB
                 'complex_type' => $validated['complex_type'],
                 'status' => $validated['status'],
+                'image_url' => $imagePath,
                 'cover_image' => $coverImagePath,
                 'email_address' => $validated['email_address'],
                 'contact_number' => $validated['contact_number'],
