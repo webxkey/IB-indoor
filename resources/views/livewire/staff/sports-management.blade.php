@@ -66,7 +66,7 @@
         <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
             <div class="card h-100">
                 <div class="position-relative">
-                    <img src="{{ $sport->image ? asset('storage/' . $sport->image) : asset('images/default-sport.jpg') }}"
+                    <img src="{{ $sport->image }}"
                         alt="Sport Image" class="img-fluid rounded" style="max-height: 200px; object-fit: cover;">
                     <span class="position-absolute top-0 start-0 text-white px-2 py-1 rounded-end 
                     {{ $sport->status === 'Active' ? 'bg-success' : 'bg-danger' }}">
