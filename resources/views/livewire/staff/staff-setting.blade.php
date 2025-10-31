@@ -6,6 +6,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     @endif
+    @if(session()->has('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
 
     <div class="container-fluid bg-light min-vh-100 p-4 d-flex gap-4">
 
@@ -145,7 +151,11 @@
                                         <tr>
                                             <td class="w-25 fw-medium text-muted">{{ ucfirst($day) }}</td>
                                             <span class="badge bg-success bg-opacity-10 text-success">
-                                                {{ implode(', ', $time) }}
+                                                {{-- Ensure $time is always an array for implode --}}
+                                                @php
+                                                    $timeArr = is_array($time) ? $time : (is_string($time) ? (json_decode($time, true) ?: [$time]) : [$time]);
+                                                @endphp
+                                                {{ implode(', ', $timeArr) }}
                                             </span>
                                         </tr>
                                         @endforeach
@@ -501,11 +511,7 @@
                             <div class="card border-0 shadow-sm h-100">
                                 <div class="card-body text-center">
                                     <div class="position-relative mb-3">
-                                        <img src="https://randomuser.me/api/portraits/women/44.jpg"
-                                            class="rounded-circle shadow"
-                                            width="100" height="100"
-                                            alt="Sarah Johnson">
-                                        <span class="badge bg-success position-absolute bottom-0 end-0 rounded-circle p-2">
+                                        <img src="https://randomuser.me/api/portraits/women
                                             <i class="fas fa-check"></i>
                                         </span>
                                     </div>
@@ -549,7 +555,7 @@
                             <div class="card border-0 shadow-sm h-100">
                                 <div class="card-body text-center">
                                     <div class="position-relative mb-3">
-                                        <img src="https://randomuser.me/api/portraits/men/32.jpg"
+                                        <img src="https://randomuser.me/api/portraits/men
                                             class="rounded-circle shadow"
                                             width="100" height="100"
                                             alt="Michael Chen">
@@ -1194,4 +1200,11 @@
             icon.classList.replace('fa-eye-slash', 'fa-eye');
         }
     }
+
+    // Livewire validation error event listener
+    document.addEventListener('livewire:initialized', function () {
+        window.Livewire.on('validationErrors', function (data) {
+            console.error('Validation Errors:', data.errors);
+        });
+    });
 </script>

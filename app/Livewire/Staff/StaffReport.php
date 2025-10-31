@@ -69,7 +69,7 @@ class StaffReport extends Component
     {
         if ($this->activeReport === 'booking') {
             $this->bookingDetail = BookingBooking::with('sport')
-                ->where('user_id', $this->UserId)
+                ->where('user_id_id', $this->UserId)
                 ->whereBetween('booking_date', [$this->start_date, $this->end_date])
                 ->orderBy('booking_date', 'desc')
                 ->get();
@@ -96,7 +96,7 @@ class StaffReport extends Component
         $this->end_date = $end->toDateString();
 
         $query = BookingBooking::query()
-            ->where('user_id', $this->UserId)
+            ->where('user_id_id', $this->UserId)
             ->whereBetween('booking_date', [$this->start_date, $this->end_date]);
 
         $this->reportData = $query->get();
@@ -153,7 +153,7 @@ class StaffReport extends Component
                 SUM(price) as total_revenue,
                 COUNT(*) as total_bookings
             ", [$aggregation, $aggregation])
-            ->where('user_id', $this->UserId)
+            ->where('user_id_id', $this->UserId)
             ->whereBetween('booking_date', [$start, $end])
             ->groupBy('period');
 
@@ -198,18 +198,18 @@ class StaffReport extends Component
         $startDate = \Carbon\Carbon::parse($this->start_date)->startOfDay()->toDateTimeString();
         $endDate = \Carbon\Carbon::parse($this->end_date)->endOfDay()->toDateTimeString();
 
-        $this->revenueReportData = BookingBooking::where('user_id', $userId)
+        $this->revenueReportData = BookingBooking::where('user_id_id', $userId)
             ->whereBetween('booking_date', [$startDate, $endDate])
             ->with('sport')
             ->selectRaw("
-                game_id,
+                game_id_id,
                 court_number,
                 COUNT(*) as total_bookings,
                 SUM(price) as total_revenue,
                 AVG(price) as average_revenue,
                 SUM((TIME_TO_SEC(end_time) - TIME_TO_SEC(start_time)) / 3600) as total_hours
             ")
-            ->groupBy('game_id', 'court_number')
+            ->groupBy('game_id_id', 'court_number')
             ->get()
             ->map(function ($revenue) {
                 return (object) [
