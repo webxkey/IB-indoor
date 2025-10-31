@@ -40,7 +40,6 @@ class BookingsManagement extends Component
         'playerName' => 'required|string|max:255',
         'phoneNumber' => 'required|string|max:20',
         'status' => 'required|in:Booked,Pending,Completed,Cancelled,No-Show',
-        'permanent_source_id' => 'nullable',
         'notes' => 'nullable|string|max:1000',
     ];
 
