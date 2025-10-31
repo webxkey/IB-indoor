@@ -735,22 +735,23 @@
             <div class="card-body p-0">
                 <div class="game-tabs">
                     @forelse ($games as $game)
-                    @php
-                    $icon = match(strtolower($game['name'])) {
-                    'cricket' => 'fas fa-baseball-ball',
-                    'badminton' => 'fas fa-table-tennis',
-                    'tennis' => 'fas fa-table-tennis',
-                    'squash' => 'fas fa-running',
-                    'basketball' => 'fas fa-basketball-ball',
-                    default => 'fas fa-gamepad',
-                    };
-                    @endphp
-                  
-                  
+                        @php
+                            $icon = match(strtolower($game['name'])) {
+                                'cricket' => 'fas fa-baseball-ball',
+                                'badminton' => 'fas fa-table-tennis',
+                                'tennis' => 'fas fa-table-tennis',
+                                'squash' => 'fas fa-running',
+                                'basketball' => 'fas fa-basketball-ball',
+                                default => 'fas fa-gamepad',
+                            };
+                        @endphp
+                        <div class="game-tab" data-game="{{ strtolower($game['name']) }}">
+                            <i class="{{ $icon }}"></i> {{ $game['name'] }}
+                        </div>
                     @empty
-                    <div class="alert alert-info m-3">
-                        <i class="fas fa-info-circle me-2"></i>No games available. Please add sports to your complex.
-                    </div>
+                        <div class="alert alert-info m-3">
+                            <i class="fas fa-info-circle me-2"></i>No games available. Please add sports to your complex.
+                        </div>
                     @endforelse
                 </div>
 
