@@ -16,6 +16,91 @@
     <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+        <!-- Custom Mobile Sidebar Menu CSS -->
+        <style>
+            /* Mobile Sidebar Menu Styles */
+            @media (max-width: 991.98px) {
+                .mobile-sidebar {
+                    position: fixed;
+                    top: 0;
+                    right: -100vw;
+                    width: 80vw;
+                    max-width: 350px;
+                    height: 100vh;
+                    background: #fff;
+                    box-shadow: -2px 0 32px 0 rgba(25,135,84,0.18), -2px 0 8px 0 rgba(0,0,0,0.10);
+                    z-index: 2000;
+                    transition: right 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+                    padding: 2rem 2.5rem 1.5rem 1.5rem; /* Increased right padding */
+                    overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
+                    border-top-left-radius: 32px;
+                    border-bottom-left-radius: 32px;
+                    -webkit-overflow-scrolling: touch;
+                    will-change: right;
+                }
+                .mobile-sidebar.open {
+                    right: 0;
+                }
+                .mobile-sidebar .close-btn {
+                    position: absolute;
+                    top: 18px;
+                    right: 18px;
+                    font-size: 2rem;
+                    color: #0A7C4D;
+                    background: none;
+                    border: none;
+                    z-index: 2100;
+                }
+                .mobile-sidebar .navbar-nav {
+                    flex-direction: column;
+                    gap: 1.2rem;
+                }
+                .mobile-sidebar .nav-link {
+                    font-size: 1.2rem;
+                    padding: 0.5rem 0;
+                }
+                .mobile-sidebar .btn-primary {
+                    margin-top: 1.5rem;
+                    width: 100%;
+                    background-color: rgb(25, 135, 84) !important;
+                    color: #fff !important;
+                    border: none;
+                    font-weight: 600;
+                    border-radius: 50px;
+                    box-shadow: none;
+                    transition: background 0.3s ease;
+                }
+                .mobile-sidebar .btn-primary:hover {
+                    background-color: #146c43 !important;
+                    color: #fff !important;
+                    transform: translateY(-2px);
+                }
+                .mobile-sidebar .navbar-brand {
+                    margin-bottom: 2rem;
+                }
+                .mobile-sidebar-backdrop {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    background: rgba(25,135,84,0.10);
+                    z-index: 1999;
+                    opacity: 0;
+                    pointer-events: none;
+                    transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+                }
+                .mobile-sidebar-backdrop.open {
+                    opacity: 1;
+                    pointer-events: auto;
+                }
+                .navbar-collapse {
+                    display: none !important;
+                }
+            }
+        </style>
         
 
 
@@ -62,7 +147,7 @@
             background-color: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(12px);
             border-radius: 50px;
-            padding: 12px 30px;
+            padding: 12px 30px 24px 30px; /* Added bottom padding */
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
@@ -1280,11 +1365,9 @@
     <!-- Navbar / Header -->
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#"><img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; width: auto; margin-right: 10px;"></i>IndoorB</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse justify-content-end" id="nav">
+            <a class="navbar-brand" href="#"><img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; width: auto; margin-right: 10px;">IndoorB</a>
+            <!-- Desktop Navbar (visible only on lg and up) -->
+            <div class="collapse navbar-collapse justify-content-end d-none d-lg-flex" id="nav">
                 <ul class="navbar-nav align-items-lg-center">
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a>
@@ -1301,16 +1384,43 @@
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('Sign in') ? 'active' : '' }}" href="{{ route('login') }}">Sign in</a>
                     </li>
-
                 </ul>
                 <a href="{{ route('register') }}" class="btn btn-primary ms-lg-3 mt-3 mt-lg-0">Register</a>
-
             </div>
+            <!-- Mobile Navbar Toggler (visible only on mobile) -->
+            <button class="navbar-toggler d-lg-none" type="button" id="mobileMenuBtn" aria-label="Open menu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
         </div>
     </nav>
+
+        <!-- Mobile Sidebar Menu (strictly hidden on desktop) -->
+        <div class="mobile-sidebar d-lg-none" id="mobileSidebar">
+            <button class="close-btn" id="closeSidebarBtn" aria-label="Close menu"><i class="bi bi-x-lg"></i></button>
+            <a class="navbar-brand" href="#"><img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; width: auto; margin-right: 10px;">IndoorB</a>
+            <ul class="navbar-nav align-items-lg-center">
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('indoor') ? 'active' : '' }}" href="{{ route('indoor') }}">Indoor</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">Contact</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('Sign in') ? 'active' : '' }}" href="{{ route('login') }}">Sign in</a>
+                </li>
+            </ul>
+            <a href="{{ route('register') }}" class="btn btn-primary">Register</a>
+        </div>
+        <div class="mobile-sidebar-backdrop d-lg-none" id="mobileSidebarBackdrop"></div>
     <!-- Main Content -->
 
-    <main>
+    <main style="margin-top: 100px;">
         {{ $slot }}
     </main>
 
@@ -1400,71 +1510,89 @@
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
         crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar');
-            navbar.classList.toggle('scrolled', window.scrollY > 50);
+        <script>
+            // Mobile Sidebar Menu JS
+            document.addEventListener('DOMContentLoaded', function() {
+                const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+                const mobileSidebar = document.getElementById('mobileSidebar');
+                const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+                const mobileSidebarBackdrop = document.getElementById('mobileSidebarBackdrop');
 
-            updateActiveNavLink();
-            checkScroll();
-        });
-
-        function updateActiveNavLink() {
-            const sections = document.querySelectorAll('section[id]');
-            const navLinks = document.querySelectorAll('.nav-link');
-            let currentSection = '';
-
-            sections.forEach(section => {
-                const sectionTop = section.offsetTop - 120;
-                const sectionHeight = section.offsetHeight;
-                if (window.scrollY >= sectionTop && window.scrollY < sectionTop + sectionHeight) {
-                    currentSection = section.getAttribute('id');
+                function openSidebar() {
+                    mobileSidebar.classList.add('open');
+                    mobileSidebarBackdrop.classList.add('open');
+                    document.body.style.overflow = 'hidden';
                 }
+                function closeSidebar() {
+                    mobileSidebar.classList.remove('open');
+                    mobileSidebarBackdrop.classList.remove('open');
+                    document.body.style.overflow = '';
+                }
+                mobileMenuBtn.addEventListener('click', openSidebar);
+                closeSidebarBtn.addEventListener('click', closeSidebar);
+                mobileSidebarBackdrop.addEventListener('click', closeSidebar);
+
+                // Close sidebar on ESC key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') closeSidebar();
+                });
             });
 
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                // compare the section id to the link href (strip # if needed)
-                if (link.getAttribute('href') === `#${currentSection}`) {
-                    link.classList.add('active');
-                }
+            // Existing scroll and nav logic
+            window.addEventListener('scroll', function() {
+                const navbar = document.querySelector('.navbar');
+                navbar.classList.toggle('scrolled', window.scrollY > 50);
+                updateActiveNavLink();
+                checkScroll();
             });
-        }
-
-        function animateCounter(id, end, duration) {
-            const el = document.getElementById(id);
-            if (!el) return;
-
-            let start = 0;
-            const increment = end / (duration / 16);
-            const timer = setInterval(() => {
-                start += increment;
-                if (start >= end) {
-                    el.textContent = end.toLocaleString();
-                    clearInterval(timer);
-                } else {
-                    el.textContent = Math.floor(start).toLocaleString();
-                }
-            }, 16);
-        }
-
-        function checkScroll() {
-            const elements = document.querySelectorAll('.fade-in');
-            elements.forEach(element => {
-                const elementTop = element.getBoundingClientRect().top;
-                const elementVisible = 150;
-                if (elementTop < window.innerHeight - elementVisible) {
-                    element.classList.add('visible');
-                }
+            function updateActiveNavLink() {
+                const sections = document.querySelectorAll('section[id]');
+                const navLinks = document.querySelectorAll('.nav-link');
+                let currentSection = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop - 120;
+                    const sectionHeight = section.offsetHeight;
+                    if (window.scrollY >= sectionTop && window.scrollY < sectionTop + sectionHeight) {
+                        currentSection = section.getAttribute('id');
+                    }
+                });
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${currentSection}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+            function animateCounter(id, end, duration) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                let start = 0;
+                const increment = end / (duration / 16);
+                const timer = setInterval(() => {
+                    start += increment;
+                    if (start >= end) {
+                        el.textContent = end.toLocaleString();
+                        clearInterval(timer);
+                    } else {
+                        el.textContent = Math.floor(start).toLocaleString();
+                    }
+                }, 16);
+            }
+            function checkScroll() {
+                const elements = document.querySelectorAll('.fade-in');
+                elements.forEach(element => {
+                    const elementTop = element.getBoundingClientRect().top;
+                    const elementVisible = 150;
+                    if (elementTop < window.innerHeight - elementVisible) {
+                        element.classList.add('visible');
+                    }
+                });
+            }
+            window.addEventListener('load', () => {
+                updateActiveNavLink();
+                checkScroll();
             });
-        }
-
-        // Run initial checks on page load
-        window.addEventListener('load', () => {
-            updateActiveNavLink();
-            checkScroll();
-        });
-    </script>
+        </script>
 </body>
 
 
