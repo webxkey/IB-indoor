@@ -695,8 +695,7 @@
 
                                 <div class="mb-3">
                                     <label for="editName" class="form-label required-field">Facility Name</label>
-                                    <input type="text" class="form-control" id="editName" wire:model="name"
-                                        value="{{ $venue->name }}" required>
+                                    <input type="text" class="form-control" id="editName" wire:model="name" required>
                                     @error('name') <span class="text-danger error-message">{{ $message }}</span>
                                     @enderror
                                 </div>
