@@ -1,4 +1,4 @@
-<div> <!-- ✅ Root wrapper required by Livewire -->
+<div> 
 
   <div class="container my-5">
     
@@ -64,44 +64,16 @@
   </div>
 
   <!-- JavaScript for handling venue details -->
-<script>
-
-  function showVenueDetails(name, description, location, hours, contact, imageUrl) {
-    document.getElementById('venueName').textContent = name;
-    document.getElementById('venueDescription').textContent = description;
-    document.getElementById('venueLocation').textContent = location;
-    document.getElementById('venueImage').src = imageUrl;
-    
-    // Optional: clear out non-existing fields
-    document.getElementById('venueHours').textContent = '';
-    document.getElementById('venueContact').textContent = '';
-=======
-  // Convert the gallery_images_json field into usable JS arrays
-    const venueImages = @json($VenuesDetails->map(function($v) {
-      if (is_string($v->gallery_images_json)) {
-        return json_decode($v->gallery_images_json, true) ?? [];
-      } elseif (is_array($v->gallery_images_json)) {
-        return $v->gallery_images_json;
-      } else {
-        return [];
-      }
-    }));
-  function loadSlider(index) {
-    const carouselInner = document.getElementById("carouselInner");
-    carouselInner.innerHTML = "";
-
-    if (!venueImages[index] || venueImages[index].length === 0) {
-      carouselInner.innerHTML = `<div class='text-center p-4'>No gallery images available.</div>`;
-      return;
+  <script>
+    function showVenueDetails(name, description, location, hours, contact, imageUrl) {
+      document.getElementById('venueName').innerText = name;
+      document.getElementById('venueDescription').innerText = description;
+      document.getElementById('venueLocation').innerText = location;
+      document.getElementById('venueHours').innerText = hours;
+      document.getElementById('venueContact').innerText = contact;
+      document.getElementById('venueImage').src = imageUrl;
     }
+  </script>
+</div>
 
-    venueImages[index].forEach((img, i) => {
-      const div = document.createElement("div");
-      div.className = `carousel-item ${i === 0 ? "active" : ""}`;
-      div.innerHTML = `<img src="${img.trim()}" class="d-block w-100 rounded" alt="Venue Image ${i + 1}">`;
-      carouselInner.appendChild(div);
-    });
-  }
-</script>
-</div> <!-- ✅ Close root wrapper -->
 

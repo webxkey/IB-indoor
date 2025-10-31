@@ -10,6 +10,19 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        // Ensure booking_venue with id=1 exists
+        \App\Models\BookingVenue::firstOrCreate(
+            ['id' => 1],
+            [
+                'name' => 'Default Venue',
+                'address' => 'Default Address',
+                'contact_number' => '0000000000',
+                'status' => 'active',
+                'rating' => 5,
+                'reviews' => 0,
+            ]
+        );
+
         // 🔥 Delete existing staff record (if any)
         User::where('email', 'staff@gmail.com')->delete();
 
