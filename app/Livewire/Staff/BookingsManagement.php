@@ -8,7 +8,7 @@ use Livewire\Attributes\Title;
 use Carbon\Carbon;
 use App\Models\BookingBooking;
 use App\Models\BookingSport;
-
+use App\Models\UserUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -31,6 +31,8 @@ class BookingsManagement extends Component
     public $status = 'Booked';
     public $permanent = false;
     public $notes = '';
+    public $appIndooruserId;
+
 
     protected $rules = [
         'selectedGame' => 'required|string',
@@ -165,13 +167,16 @@ class BookingsManagement extends Component
             $this->addError('general', 'Selected game is not available for this complex.');
             return;
         }
+   
+        $userEmail = Auth::user()->email;
+        $this->appIndooruserId = UserUser::where('email', $userEmail)->first()->id ?? null;
+    
 
         $endTime = Carbon::parse($this->selectedTime)->addMinutes(60)->format('H:i:s');
         $price = $sport->price_per_hour ?? 1800.00;
-
         // Base booking data
         $bookingData = [
-            'user_id_id' => Auth::id(), // Ensure user_id_id is set
+            'user_id_id' => $this->appIndooruserId, // Ensure user_id_id is set
             'complex_id_id' => $this->complex_id, // Ensure complex_id_id is set
             'game_id_id' => $sport->id, // Ensure game_id_id is set - use $sport->id
             'game_name' => $this->selectedGame,
