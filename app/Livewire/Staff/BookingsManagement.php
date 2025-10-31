@@ -40,7 +40,7 @@ class BookingsManagement extends Component
         'playerName' => 'required|string|max:255',
         'phoneNumber' => 'required|string|max:20',
         'status' => 'required|in:Booked,Pending,Completed,Cancelled,No-Show',
-        'permanent' => 'boolean',
+        'permanent_source_id' => 'nullable',
         'notes' => 'nullable|string|max:1000',
     ];
 
@@ -103,7 +103,7 @@ class BookingsManagement extends Component
                     'player' => $booking->user_name,
                     'phone' => $booking->user_number,
                     'status' => $booking->status,
-                    'permanent' => $booking->permanent,
+                    'permanent_source_id' => $booking-> permanent_source_id,
                     'end' => $currentEndTime, // Set the end time for the hourly slot
                     'avatar' => '/storage/staff/user.png', // Assuming a default avatar
                 ];

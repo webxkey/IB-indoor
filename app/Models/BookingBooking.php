@@ -9,7 +9,7 @@ class BookingBooking extends Model
     protected $table = 'booking_booking';
 
     protected $fillable = [
-        'game_name','user_name','user_number','court_number','permanent',
+        'game_name','user_name','user_number','court_number','permanent_source_id',
         'booking_date','start_time','end_time','duration','price',
         'payment_status','payment_method','status','notes','qr_code',
         'admin_comments','date','time_slot',
