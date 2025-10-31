@@ -17,7 +17,7 @@ class BookingBooking extends Model
     ];
 
     protected $casts = [
-        'permanent' => 'boolean',
+        'permanent_source_id' => 'nullable',
         'booking_date' => 'date',
         'date' => 'date',
     ];
