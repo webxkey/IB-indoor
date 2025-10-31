@@ -33,18 +33,7 @@ use App\Livewire\LandingPage\Careers;
 use App\Livewire\Admin\BlogsManagement;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+// Landing Page Routes
 
 Route::get('/', Home::class)->name('home');
 Route::get('/indoor', Indoor::class)->name('indoor');

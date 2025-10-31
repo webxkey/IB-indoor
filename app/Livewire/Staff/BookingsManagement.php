@@ -103,7 +103,7 @@ class BookingsManagement extends Component
                     'player' => $booking->user_name,
                     'phone' => $booking->user_number,
                     'status' => $booking->status,
-                    'permanent_source_id' => $booking-> permanent_source_id,
+                    'permanent_source_id' => $booking->permanent_source_id ?? null,
                     'end' => $currentEndTime, // Set the end time for the hourly slot
                     'avatar' => '/storage/staff/user.png', // Assuming a default avatar
                 ];
