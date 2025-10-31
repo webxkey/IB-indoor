@@ -176,6 +176,8 @@ class BookingsManagement extends Component
             'complex_id_id' => $this->complex_id, // Ensure complex_id_id is set
             'game_id_id' => $sport->id, // Ensure game_id_id is set - use $sport->id
             'game_name' => $this->selectedGame,
+            'booking_date' => $this->selectedDate,
+            'permanent_source_id' => $this->permanentSourceId ?? null,
             'user_name' => $this->playerName,
             'user_number' => $this->phoneNumber,
             'court_number' => $this->selectedCourt,
@@ -188,6 +190,8 @@ class BookingsManagement extends Component
             'status' => $this->status,
             'notes' => $this->notes ?: '',
             'admin_comments' => '',
+
+            
         ];
         // dd($bookingData);
 
