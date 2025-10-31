@@ -152,7 +152,7 @@ class Register extends Component
             'cover_image' => 'nullable|image|max:2048',
             'gallery_images.*' => 'nullable|image|max:2048',
             'sport_type' => 'required',
-            'capacity' => 'integer|min:1',
+            'capacity' => 'required|integer|min:1',
             'hourly_rate' => 'required|numeric|min:0',
             'length' => 'required|numeric|min:1',
             'width' => 'required|numeric|min:1',
@@ -262,6 +262,8 @@ class Register extends Component
                 }
 
                 // Create venue
+                // No Complex model: create only booking_venue and use its id for users.complex_id
+
                 $venue = BookingVenue::create([
                     'name' => $this->complex_name,
                     'complex_type' => $this->complex_type,
@@ -276,21 +278,18 @@ class Register extends Component
                     'opening_hours' => $this->opening_hours,
                     'amenities' => $this->amenities,
                     'description' => $this->description,
-                    'capacity' => $this->capacity,
-                    'hourly_rate' => $this->hourly_rate,
-                    'dimensions' => $this->length . 'x' . $this->width,
-                    'primary_sport_type' => $this->sport_type,
+                    'cover_image' => $coverImagePath,
+                    'gallery_images_json' => $galleryImagePaths,
                     'video_tour_url' => $this->video_tour_url,
                     'social_links' => $socialLinks,
                     'terms' => $this->terms,
-                    'cover_image' => $coverImagePath,
                     'rating' => 0,
                     'reviews' => 0,
                 ]);
 
                 // Create sport
                 BookingSport::create([
-                    'name' => $this->sport_type ?? 'Fotball',
+                    'name' => $this->sport_type ?? 'Football',
                     'price' => $this->hourly_rate,
                     'available' => $this->status === 'Active',
                     'game_type' => $this->gameType ?? 'Indoor',
@@ -314,7 +313,8 @@ class Register extends Component
                     'password' => Hash::make($this->password),
                     'role' => 'facility_owner',
                     'contact' => $this->contact,
-                    'complex_id' => $venue->id, // <-- link the user to this venue
+                    // link the user to the booking_venue record id
+                    'complex_id' => $venue->id,
                 ]);
             });
 
@@ -330,6 +330,6 @@ class Register extends Component
 
     public function render()
     {
-        return view('livewire.Landing-page.register');
+        return view('livewire.landing-page.register');
     }
 }

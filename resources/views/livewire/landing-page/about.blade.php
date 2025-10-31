@@ -55,7 +55,7 @@
     <div class="container">
       <div class="row g-4">
         <div class="col-lg-3 col-6">
-          <h2 class="display-5 fw-bold text-success">{{ $venueCount }}</h2>
+          <h2 class="display-5 fw-bold text-success">{{ !empty($venueCount) ? $venueCount : 0 }}</h2>
           <p class="text-muted mb-0">Indoor Venues</p>
         </div>
         <div class="col-lg-3 col-6">

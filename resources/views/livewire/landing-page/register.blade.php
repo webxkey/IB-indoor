@@ -758,6 +758,15 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
             @endif
+
+            @if (session()->has('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center"><i class="fas fa-exclamation-triangle me-2"></i>
+                    <div>{{ session('error') }}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            @endif
             @if (session()->has('error'))
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <div class="d-flex align-items-center"><i class="fas fa-exclamation-triangle me-2"></i>
@@ -874,7 +883,7 @@
                         </div>
                         <div class="form-group">
                             <label for="postal_code" class="form-label"><i class="fas fa-mail-bulk me-2"></i>Postal Code </label>
-                            <input type="text" class="form-input @error('postal_code') is-invalid @enderror" id="postal_code" wire:model="postal_code" required placeholder="Postal code">
+                                <input type="text" class="form-input @error('postal_code') is-invalid @enderror" id="postal_code" wire:model="postal_code" placeholder="Postal code">
                             @error('postal_code') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group full-width">
@@ -889,7 +898,7 @@
                         </div>
                         <div class="form-group">
                             <label for="email_address" class="form-label"><i class="fas fa-envelope me-2"></i>Complex Email </label>
-                            <input type="email" class="form-input @error('email_address') is-invalid @enderror" id="email_address" wire:model="email_address" required placeholder="Complex email address">
+                                <input type="email" class="form-input @error('email_address') is-invalid @enderror" id="email_address" wire:model="email_address" placeholder="Complex email address">
                             @error('email_address') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">

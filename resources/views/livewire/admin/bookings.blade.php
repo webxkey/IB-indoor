@@ -1,7 +1,4 @@
-
-
 <div class="container-fluid">
-    
     <!-- Flash Messages -->
     @if (session()->has('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -261,7 +258,7 @@
             </div>
 
             <!-- Pagination -->
-         {{ $recentBookings->links('vendor.livewire.bootstrap') }}
+            {{ $recentBookings->links('vendor.livewire.bootstrap') }}
 
         </div>
     </div>
@@ -304,42 +301,41 @@
             </div>
         </div>
     </div>
-
+</div>
     @push('scripts')
     <script>
         const venueStats = @json($venueStats);
 
-    document.addEventListener('livewire:initialized', () => {
-        const modal = new bootstrap.Modal(document.getElementById('viewVenueModal'));
-        
-        // Listen for the event to show venue details
-        Livewire.on('showVenueDetails', (event) => {
-            const venue = venueStats.find(v => v.id === event.id);
+        document.addEventListener('livewire:initialized', () => {
+            const modal = new bootstrap.Modal(document.getElementById('viewVenueModal'));
             
-            if (venue) {
-                document.getElementById('venueName').innerText = venue.name;
-                document.getElementById('venueLocation').innerText = venue.location;
-                document.getElementById('venueImage').src = venue.image ?? 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg';
-                document.getElementById('totalBookings').innerText = venue.total_bookings;
-                document.getElementById('confirmedBookings').innerText = venue.confirmed;
-                document.getElementById('pendingBookings').innerText = venue.pending;
-                document.getElementById('canceledBookings').innerText = venue.canceled;
-                document.getElementById('totalRevenue').innerText = '$' + Number(venue.revenue).toFixed(2);
-            } else {
-                // Fallback if no venue found (unlikely, but good to have)
-                document.getElementById('venueName').innerText = 'Venue Not Found';
-                document.getElementById('venueLocation').innerText = '';
-                document.getElementById('venueImage').src = 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg';
-                document.getElementById('totalBookings').innerText = 'N/A';
-                document.getElementById('confirmedBookings').innerText = 'N/A';
-                document.getElementById('pendingBookings').innerText = 'N/A';
-                document.getElementById('canceledBookings').innerText = 'N/A';
-                document.getElementById('totalRevenue').innerText = '$0.00';
-            }
-            
-            modal.show();
+            // Listen for the event to show venue details
+            Livewire.on('showVenueDetails', (event) => {
+                const venue = venueStats.find(v => v.id === event.id);
+                
+                if (venue) {
+                    document.getElementById('venueName').innerText = venue.name;
+                    document.getElementById('venueLocation').innerText = venue.location;
+                    document.getElementById('venueImage').src = venue.image ?? 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg';
+                    document.getElementById('totalBookings').innerText = venue.total_bookings;
+                    document.getElementById('confirmedBookings').innerText = venue.confirmed;
+                    document.getElementById('pendingBookings').innerText = venue.pending;
+                    document.getElementById('canceledBookings').innerText = venue.canceled;
+                    document.getElementById('totalRevenue').innerText = '$' + Number(venue.revenue).toFixed(2);
+                } else {
+                    // Fallback if no venue found (unlikely, but good to have)
+                    document.getElementById('venueName').innerText = 'Venue Not Found';
+                    document.getElementById('venueLocation').innerText = '';
+                    document.getElementById('venueImage').src = 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg';
+                    document.getElementById('totalBookings').innerText = 'N/A';
+                    document.getElementById('confirmedBookings').innerText = 'N/A';
+                    document.getElementById('pendingBookings').innerText = 'N/A';
+                    document.getElementById('canceledBookings').innerText = 'N/A';
+                    document.getElementById('totalRevenue').innerText = '$0.00';
+                }
+                
+                modal.show();
+            });
         });
-    });
     </script>
     @endpush
-</div>
