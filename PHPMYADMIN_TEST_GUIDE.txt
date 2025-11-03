@@ -1,0 +1,195 @@
+╔════════════════════════════════════════════════════════════════════════╗
+║        ✅ DATABASE POLLING ENABLED - LIVE UPDATES ACTIVE!              ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+Your dashboard now checks the database every 3 seconds for new bookings!
+
+This works with:
+✅ Bookings created in phpMyAdmin
+✅ Bookings created by mobile app
+✅ Direct database inserts
+✅ Any booking added to the database
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                    🧪 HOW TO TEST WITH PHPMYADMIN                      ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+Step 1: Open your dashboard
+        http://127.0.0.1:8000/facility_owner/bookings
+        Keep it open!
+
+Step 2: Press F12 (open Developer Console)
+        You should see: "Database polling active - checking every 3 seconds"
+
+Step 3: Open phpMyAdmin
+        http://localhost/phpmyadmin
+
+Step 4: Go to your database
+        - Select database: indoor_booking_db
+        - Click on table: booking_booking
+
+Step 5: Insert a new booking (Click "Insert" tab)
+        Fill in these fields:
+
+        user_id_id: 1 (or any existing user ID)
+        complex_id_id: 2 (your complex ID)
+        game_id_id: 1 (or any existing sport ID)
+        game_name: Cricket (or any sport name)
+        booking_date: 2025-11-03 (today's date)
+        user_name: Test Mobile User
+        user_number: 1234567890
+        court_number: 1
+        start_time: 14:00:00 (2 PM)
+        end_time: 15:00:00 (3 PM)
+        duration: 60
+        price: 1800.00
+        payment_status: Pending
+        payment_method: Stripe
+        status: Booked
+        notes: Created via phpMyAdmin
+        admin_comments: (leave empty)
+        qr_code: QR123TEST
+        permanent: 0
+        permanent_source_id: NULL
+
+        Click "Go" to insert
+
+Step 6: Watch your dashboard (no refresh needed!)
+        Within 3 seconds:
+        🔔 Notification appears!
+        📅 Calendar updates automatically!
+        ✨ New booking shows up!
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                      📊 QUICK SQL INSERT (EASIER)                      ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+Instead of using the Insert form, you can run this SQL:
+
+Go to phpMyAdmin → indoor_booking_db → SQL tab
+
+Paste and run:
+
+INSERT INTO `booking_booking` (
+    `user_id_id`, `complex_id_id`, `game_id_id`, `game_name`, 
+    `booking_date`, `user_name`, `user_number`, `court_number`, 
+    `start_time`, `end_time`, `duration`, `price`, 
+    `payment_status`, `payment_method`, `status`, 
+    `notes`, `qr_code`, `permanent`
+) VALUES (
+    1, 2, 1, 'Cricket',
+    CURDATE(), 'Mobile App User', '9876543210', '2',
+    '15:00:00', '16:00:00', 60, 1800.00,
+    'Pending', 'Stripe', 'Booked',
+    'Test booking from phpMyAdmin', CONCAT('QR', UPPER(SUBSTRING(MD5(RAND()), 1, 6))), 0
+);
+
+Click "Go"
+
+Watch dashboard → Booking appears within 3 seconds! 🎉
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                   🔍 WHAT TO SEE IN BROWSER CONSOLE                    ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+Press F12 → Console tab
+
+You should see:
+✅ "Database polling active - checking every 3 seconds"
+✅ "New booking detected from database!"
+✅ "New bookings found, calendar will refresh"
+
+When you insert via phpMyAdmin:
+✅ Notification popup appears
+✅ Console shows the booking data
+✅ Calendar refreshes automatically
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                     ⚙️ HOW IT WORKS                                    ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+1. Dashboard polls database every 3 seconds
+2. Checks for bookings with ID > last known booking ID
+3. If new booking found:
+   → Triggers notification
+   → Refreshes calendar data
+   → Shows booking on screen
+4. Works regardless of HOW booking was created!
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                     📱 FOR MOBILE APP                                  ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+Your mobile app just needs to INSERT into booking_booking table:
+
+Example (Flutter/Dart with Supabase):
+```dart
+await supabase.from('booking_booking').insert({
+  'user_id_id': userId,
+  'complex_id_id': 2,
+  'game_id_id': sportId,
+  'game_name': 'Cricket',
+  'booking_date': bookingDate,
+  'user_name': userName,
+  'user_number': userPhone,
+  'court_number': courtNumber,
+  'start_time': startTime,
+  'end_time': endTime,
+  'duration': 60,
+  'price': 1800.00,
+  'payment_status': 'Pending',
+  'payment_method': 'Stripe',
+  'status': 'Booked',
+  'qr_code': generateQRCode(),
+  'permanent': false,
+});
+```
+
+Dashboard will detect it within 3 seconds automatically! ✨
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                   ⚡ PERFORMANCE NOTES                                 ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+Polling Interval: 3 seconds (configurable)
+
+To change polling speed:
+- Edit: resources/views/livewire/staff/bookings-management.blade.php
+- Find: setInterval(..., 3000)
+- Change 3000 to:
+  * 5000 = 5 seconds (slower, less server load)
+  * 2000 = 2 seconds (faster, more responsive)
+  * 1000 = 1 second (very fast, higher server load)
+
+The system only polls when:
+✅ Browser tab is visible
+✅ User is on the booking page
+❌ Stops polling when tab is hidden (saves resources)
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                      🎯 BONUS: BOTH SYSTEMS WORK!                      ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+You now have BOTH methods working:
+
+1. Pusher (Real-time) - for bookings created via Laravel dashboard
+   → Instant updates (0 seconds)
+   → Uses websockets
+
+2. Database Polling - for bookings from mobile app/phpMyAdmin
+   → Updates within 3 seconds
+   → Works with direct database inserts
+
+Best of both worlds! 🎉
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                        ✅ READY TO TEST!                               ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+1. Open dashboard: http://127.0.0.1:8000/facility_owner/bookings
+2. Press F12 to see console messages
+3. Open phpMyAdmin
+4. Insert a new booking using SQL above
+5. Watch dashboard update automatically! 🚀
+
+No page refresh needed! Live database monitoring active! ✨

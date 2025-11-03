@@ -15,6 +15,7 @@
         "laravel/ui": "^4.6",
         "livewire/livewire": "^3.0",
         "nesbot/carbon": "^2.0",
+        "pusher/pusher-php-server": "^7.2",
         "rizky92/carbon-helper": "^0.0.4"
     },
     "require-dev": {

@@ -14,15 +14,15 @@ use Illuminate\Support\Facades\Log;
 
 #[Title("Staff Dashboard")]
 #[Layout("components.layouts.staff")]
-class BookingsManagement extends Component
+class BookingsManagementPolling extends Component
 {
     public $sports;
     public $bookings;
     public $complex_id;
     public $games;
     public $bookingdetails = [];
-    public $lastChecked;
-    public $latestBookingId = 0;
+    public $lastUpdated;
+    public $autoRefreshEnabled = true;
 
     public $selectedGame = '';
     public $selectedDate = '';
@@ -35,7 +35,6 @@ class BookingsManagement extends Component
     public $notes = '';
     public $appIndooruserId;
 
-
     protected $rules = [
         'selectedGame' => 'required|string',
         'selectedDate' => 'required|date_format:Y-m-d',
@@ -47,66 +46,37 @@ class BookingsManagement extends Component
         'notes' => 'nullable|string|max:1000',
     ];
 
-    protected $listeners = ['setSelectedBookingData', 'refreshBookings', 'checkForNewBookings'];
+    protected $listeners = ['setSelectedBookingData', 'refreshBookings', 'pollForUpdates'];
 
     public function mount()
     {
         $this->complex_id = Auth::user()->complex_id;
         $this->loadSports();
-        $this->lastChecked = now();
-        
-        // Get the latest booking ID
-        $latestBooking = BookingBooking::where('complex_id_id', $this->complex_id)
-            ->latest('id')
-            ->first();
-        $this->latestBookingId = $latestBooking ? $latestBooking->id : 0;
+        $this->lastUpdated = now();
     }
 
-    /**
-     * Check for new bookings (called from JavaScript polling)
-     */
-    public function checkForNewBookings()
+    public function pollForUpdates()
     {
-        // Get any bookings newer than the last known booking ID
-        $newBookings = BookingBooking::where('complex_id_id', $this->complex_id)
-            ->where('id', '>', $this->latestBookingId)
-            ->orderBy('id', 'asc')
-            ->get();
-
-        if ($newBookings->count() > 0) {
-            // Update the latest booking ID
-            $this->latestBookingId = $newBookings->last()->id;
-
-            // Reload sports data to refresh the calendar
-            $this->loadSports();
-            
-            // Dispatch event to frontend with new booking details
-            foreach ($newBookings as $booking) {
-                $this->dispatch('newBookingDetected', [
-                    'id' => $booking->id,
-                    'user_name' => $booking->user_name,
-                    'game_name' => $booking->game_name,
-                    'court_number' => $booking->court_number,
-                    'booking_date' => $booking->booking_date,
-                    'start_time' => $booking->start_time,
-                ]);
-            }
-            
-            Log::info('New bookings detected via polling', [
-                'count' => $newBookings->count(),
-                'ids' => $newBookings->pluck('id')->toArray()
-            ]);
-            
-            return true;
+        if (!$this->autoRefreshEnabled) {
+            return;
         }
-        
-        return false;
+
+        $latestBooking = BookingBooking::where('complex_id_id', $this->complex_id)
+            ->latest('created_at')
+            ->first();
+
+        if ($latestBooking && $latestBooking->created_at > $this->lastUpdated) {
+            $this->loadSports();
+            $this->lastUpdated = now();
+            $this->dispatch('newBookingDetected', [
+                'booking' => $latestBooking->toArray()
+            ]);
+        }
     }
 
-    public function refreshBookings()
+    public function toggleAutoRefresh()
     {
-        $this->loadSports();
-        Log::info('Bookings refreshed via real-time event');
+        $this->autoRefreshEnabled = !$this->autoRefreshEnabled;
     }
 
     public function loadSports()
@@ -115,19 +85,15 @@ class BookingsManagement extends Component
             ->where('status', 'Active')
             ->get();
 
-        // dd($this->sports);
         $this->bookings = BookingBooking::where('complex_id_id', $this->complex_id)->get();
-        // dd($this->bookings);
+        
         $this->games = $this->sports->map(function ($sport) {
-            // Use the correct attribute for the sport name
             return [
                 'name' => $sport->name ?? $sport->game_name ?? 'Unknown',
                 'maximum_court' => $sport->maximum_court,
                 'game_id' => $sport->id ?? $sport->game_id,
             ];
         })->toArray();
-
-        // dd($this->games);
 
         $this->bookingdetails = [];
         foreach ($this->bookings as $booking) {
@@ -137,25 +103,15 @@ class BookingsManagement extends Component
             $start = $booking->start_time;
             $end = $booking->end_time;
 
-            // Parse start and end times using Carbon
             $startTime = Carbon::parse($start);
             $endTime = Carbon::parse($end);
-
-            // Calculate the number of hours the booking spans
             $hours = $startTime->diffInHours($endTime);
 
-            // Iterate through each hour and create a separate booking entry
             for ($i = 0; $i < $hours; $i++) {
-                // Calculate the start time for the current hour
                 $currentStartTime = $startTime->copy()->addHours($i)->format('H:i:s');
-
-                // Calculate the end time for the current hour
                 $currentEndTime = $startTime->copy()->addHours($i + 1)->format('H:i:s');
-
-                // Create a unique key for the booking slot
                 $slotKey = $currentStartTime;
 
-                // Populate booking details for the current hour
                 $permanentSourceId = null;
                 try {
                     $permanentSourceId = $booking->permanent_source_id ?? null;
@@ -165,13 +121,14 @@ class BookingsManagement extends Component
                         'error' => $e->getMessage()
                     ]);
                 }
+                
                 $this->bookingdetails[$game][$date][$court][$slotKey] = [
                     'player' => $booking->user_name,
                     'phone' => $booking->user_number,
                     'status' => $booking->status,
                     'permanent_source_id' => $permanentSourceId,
-                    'end' => $currentEndTime, // Set the end time for the hourly slot
-                    'avatar' => '/storage/staff/user.png', // Assuming a default avatar
+                    'end' => $currentEndTime,
+                    'avatar' => '/storage/staff/user.png',
                 ];
             }
         }
@@ -181,21 +138,26 @@ class BookingsManagement extends Component
         ]);
     }
 
+    public function refreshBookings()
+    {
+        $this->loadSports();
+        $this->lastUpdated = now();
+        Log::info('Bookings refreshed via real-time event');
+    }
+
     public function getBookingDetails()
     {
-        $this->loadSports(); // Re-run loadSports to refresh bookingdetails
+        $this->loadSports();
         return $this->bookingdetails;
     }
 
     public function setSelectedBookingData($data)
     {
-        // dd($data); // Debugging line to check the input data
         if (is_string($data)) {
             $data = json_decode($data, true);
         }
 
         $this->selectedGame = $data['game'] ?? '';
-
         $this->selectedDate = $data['dateKey'] ?? '';
         $this->selectedTime = $data['time'] ?? '';
         $this->selectedCourt = $data['court'] ?? '';
@@ -227,14 +189,13 @@ class BookingsManagement extends Component
         $userEmail = Auth::user()->email;
         $this->appIndooruserId = UserUser::where('email', $userEmail)->first()->id ?? null;
     
-
         $endTime = Carbon::parse($this->selectedTime)->addMinutes(60)->format('H:i:s');
         $price = $sport->price_per_hour ?? 1800.00;
-        // Base booking data
+        
         $bookingData = [
-            'user_id_id' => $this->appIndooruserId, // Ensure user_id_id is set
-            'complex_id_id' => $this->complex_id, // Ensure complex_id_id is set
-            'game_id_id' => $sport->id, // Ensure game_id_id is set - use $sport->id
+            'user_id_id' => $this->appIndooruserId,
+            'complex_id_id' => $this->complex_id,
+            'game_id_id' => $sport->id,
             'game_name' => $this->selectedGame,
             'booking_date' => $this->selectedDate,
             'permanent_source_id' => $this->permanentSourceId ?? null,
@@ -251,17 +212,15 @@ class BookingsManagement extends Component
             'notes' => $this->notes ?: '',
             'admin_comments' => '',
         ];
-        // dd($bookingData);
 
         try {
             if ($this->permanent) {
-                // Create 7 consecutive daily bookings
                 for ($i = 0; $i < 7; $i++) {
                     $bookingDate = Carbon::parse($this->selectedDate)->addDays($i)->format('Y-m-d');
 
                     BookingBooking::create(array_merge($bookingData, [
                         'booking_date' => $bookingDate,
-                        'permanent' => ($i === 0), // Only mark first booking as permanent
+                        'permanent' => ($i === 0),
                         'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
                     ]));
                 }
@@ -271,7 +230,6 @@ class BookingsManagement extends Component
                     'end_date' => Carbon::parse($this->selectedDate)->addDays(6)->format('Y-m-d')
                 ]);
             } else {
-                // Create single booking
                 BookingBooking::create(array_merge($bookingData, [
                     'booking_date' => $this->selectedDate,
                     'permanent' => false,
@@ -282,6 +240,7 @@ class BookingsManagement extends Component
             $this->dispatch('bookingCreated');
             $this->dispatch('closeModal');
             $this->loadSports();
+            $this->lastUpdated = now();
             $this->resetFields();
         } catch (\Illuminate\Database\QueryException $e) {
             if (str_contains($e->getMessage(), 'foreign key constraint fails')) {
@@ -316,12 +275,8 @@ class BookingsManagement extends Component
         Log::info('resetFields executed');
     }
 
-    // Add this to your BookingsManagement class
     public function cancelBooking($bookingId)
     {
-        $booking = BookingBooking::find($bookingId);
-        // dd($booking);  
-        // Find the booking based on the selected criteria
         $booking = BookingBooking::where('complex_id_id', $this->complex_id)
             ->where('game_name', $this->selectedGame)
             ->where('booking_date', $this->selectedDate)
@@ -339,7 +294,8 @@ class BookingsManagement extends Component
             ]);
 
             $this->dispatch('bookingCancelled');
-            $this->loadSports(); // Refresh the data
+            $this->loadSports();
+            $this->lastUpdated = now();
             session()->flash('message', 'Booking cancelled successfully.');
         } else {
             Log::warning('Booking not found for cancellation', [
@@ -351,20 +307,12 @@ class BookingsManagement extends Component
             session()->flash('error', 'Booking not found!');
         }
     }
+    
     public function render()
     {
-        // Debug logging
-        Log::info('Rendering BookingsManagement', [
-            'complex_id' => $this->complex_id,
-            'games_count' => count($this->games ?? []),
-            'games' => $this->games,
-            'bookingdetails_count' => count($this->bookingdetails ?? []),
-        ]);
-
         return view('livewire.staff.bookings-management', [
-            'games' => $this->games ?? [],
-            'bookingdetails' => $this->bookingdetails ?? [],
-            'complex_id' => $this->complex_id,
+            'games' => $this->games,
+            'bookingdetails' => $this->bookingdetails,
         ]);
     }
 }

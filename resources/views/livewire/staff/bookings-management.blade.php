@@ -690,7 +690,7 @@
 
 <div>
     <div class="container-fluid">
-        <div wire:loading.flex class="loading-overlay"
+        {{-- <div wire:loading.flex class="loading-overlay"
             style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center;">
             <div class="text-center">
                 <div class="spinner-border text-primary" role="status">
@@ -698,7 +698,7 @@
                 </div>
                 <div class="mt-2">Processing...</div>
             </div>
-        </div>
+        </div> --}}
 
         @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -734,7 +734,7 @@
             </div>
             <div class="card-body p-0">
                 <div class="game-tabs">
-                    @forelse ($games as $game)
+                    @forelse ($games as $index => $game)
                         @php
                             $icon = match(strtolower($game['name'])) {
                                 'cricket' => 'fas fa-baseball-ball',
@@ -745,7 +745,7 @@
                                 default => 'fas fa-gamepad',
                             };
                         @endphp
-                        <div class="game-tab" data-game="{{ strtolower($game['name']) }}">
+                        <div class="game-tab {{ $index === 0 ? 'active' : '' }}" data-game="{{ strtolower($game['name']) }}">
                             <i class="{{ $icon }}"></i> {{ $game['name'] }}
                         </div>
                     @empty
@@ -767,18 +767,13 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="booking-calendar">
+                    <table class="booking-calendar" wire:ignore>
                         <thead>
                             <tr id="calendarHeader">
                                 <th class="time-column">Time</th>
                             </tr>
                         </thead>
                         <tbody id="calendarBody">
-                            <tr>
-                                <td colspan="100%" class="text-center py-4">
-                                    <i class="fas fa-spinner fa-spin me-2"></i>Loading calendar...
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -884,9 +879,9 @@
                                 <span wire:loading.remove>
                                     <i class="fas fa-check me-2"></i>Book Slot
                                 </span>
-                                <span wire:loading>
+                                {{-- <span wire:loading>
                                     <i class="fas fa-spinner fa-spin me-2"></i>Processing...
-                                </span>
+                                </span> --}}
                             </button>
                         </div>
                     </form>
@@ -932,11 +927,21 @@
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
     // Safely handle data from backend
     let sportData = @json($bookingdetails ?? []);
     const gamesConfig = @json($games ?? []);
+    const complexId = @json($complex_id ?? null);
+
+    // Debug - log what we received
+    console.log('=== DATA RECEIVED FROM BACKEND ===');
+    console.log('gamesConfig:', gamesConfig);
+    console.log('gamesConfig length:', gamesConfig ? gamesConfig.length : 0);
+    console.log('sportData:', sportData);
+    console.log('complexId:', complexId);
+    console.log('==================================');
 
     // Global variables
     let currentGame = '';
@@ -950,26 +955,122 @@
     function initializeSystem() {
         console.log('Initializing booking system...', { sportData, gamesConfig });
         
-        // Set active game tab
-        if (gamesConfig && gamesConfig.length > 0) {
-            currentGame = gamesConfig[0].name.toLowerCase();
-            const activeTab = document.querySelector(`.game-tab[data-game="${currentGame}"]`);
-            if (activeTab) {
-                activeTab.classList.add('active');
-            } else {
-                console.warn(`No game-tab found for currentGame: ${currentGame}`);
-                const firstTab = document.querySelector('.game-tab');
-                if (firstTab) {
-                    currentGame = firstTab.getAttribute('data-game');
-                    firstTab.classList.add('active');
-                }
-            }
-            updateCalendar();
-        } else {
-            console.warn('No games configured');
+        // Hide any stuck loading overlays
+        const loadingOverlay = document.querySelector('.loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
         }
         
+        // Set active game tab - always set to first game on init
+        if (gamesConfig && gamesConfig.length > 0) {
+            currentGame = gamesConfig[0].name.toLowerCase();
+            console.log('Current game set to:', currentGame);
+        } else {
+            console.error('No games configured!');
+        }
+        
+        // Always call updateCalendar to display slots
+        updateCalendar();
+        
         setupEventListeners();
+        setupRealtimeUpdates();
+        setupDatabasePolling(); // Start polling for new bookings
+    }
+
+    // Setup real-time updates using Pusher
+    function setupRealtimeUpdates() {
+        if (!complexId) {
+            console.warn('Complex ID not available for real-time updates');
+            return;
+        }
+
+        try {
+            // Initialize Pusher
+            const pusher = new Pusher('{{ config("broadcasting.connections.pusher.key") }}', {
+                cluster: '{{ config("broadcasting.connections.pusher.options.cluster") }}',
+                encrypted: true
+            });
+
+            // Subscribe to the bookings channel for this complex
+            const channel = pusher.subscribe(`bookings.${complexId}`);
+
+            // Listen for booking created events
+            channel.bind('booking.created', function(data) {
+                console.log('New booking received:', data);
+                
+                // Show notification
+                showNotification('New Booking!', `${data.user_name} booked ${data.game_name} - Court ${data.court_number}`);
+                
+                // Refresh the booking data
+                refreshBookingData().then(() => {
+                    updateCalendar();
+                });
+            });
+
+            console.log('Real-time updates initialized for complex:', complexId);
+        } catch (error) {
+            console.error('Error setting up real-time updates:', error);
+        }
+    }
+
+    // Show notification for new bookings
+    function showNotification(title, message) {
+        // Create a toast notification
+        const toastHtml = `
+            <div class="alert alert-info alert-dismissible fade show position-fixed top-0 end-0 m-3" 
+                 style="z-index: 9999; min-width: 300px;" role="alert">
+                <strong>${title}</strong><br>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = toastHtml;
+        document.body.appendChild(tempDiv.firstElementChild);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if (alert) {
+                alert.remove();
+            }
+        }, 5000);
+
+        // Play a sound (optional)
+        playNotificationSound();
+    }
+
+    // Optional: Play notification sound
+    function playNotificationSound() {
+        try {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiDcJGWi77eeaTRAKT6fj8LRgGwc4kdfy0HotBSd4yPDekj4KE12y6OynUxINR6Hh8rsrIQUsgs/y24c5CBpruuvm');
+            audio.play().catch(e => console.log('Audio play failed:', e));
+        } catch (error) {
+            console.log('Notification sound unavailable');
+        }
+    }
+
+    // Setup database polling (checks for new bookings every 3 seconds)
+    function setupDatabasePolling() {
+        console.log('Setting up database polling...');
+        
+        setInterval(() => {
+            // Don't poll if browser tab is not visible
+            if (document.hidden) {
+                return;
+            }
+            
+            // Call Livewire method to check for new bookings
+            @this.call('checkForNewBookings').then(hasNewBookings => {
+                if (hasNewBookings) {
+                    console.log('New bookings found, calendar will refresh');
+                }
+            }).catch(error => {
+                console.error('Polling error:', error);
+            });
+        }, 3000); // Check every 3 seconds
+        
+        console.log('Database polling active - checking every 3 seconds');
     }
 
     function setupEventListeners() {
@@ -1084,6 +1185,33 @@
         $('#bookingModal').on('hidden.bs.modal', function () {
             console.log('Booking modal hidden');
             updateCalendar();
+        });
+
+        // Listen for new booking detected event (from polling)
+        window.addEventListener('newBookingDetected', (event) => {
+            console.log('New booking detected from database!', event.detail);
+            
+            const booking = event.detail[0]; // Get booking data
+            
+            // Show notification
+            showNotification(
+                '🔔 New Booking!', 
+                `${booking.user_name} booked ${booking.game_name} - Court ${booking.court_number}<br>
+                Date: ${booking.booking_date} | Time: ${booking.start_time}`
+            );
+            
+            // Refresh the booking data and update calendar
+            refreshBookingData().then(() => {
+                updateCalendar();
+            });
+        });
+
+        // Listen for booking cancelled event
+        window.addEventListener('bookingCancelled', () => {
+            console.log('Booking cancelled - refresh UI');
+            refreshBookingData().then(() => {
+                updateCalendar();
+            });
         });
     }
 
@@ -1205,13 +1333,30 @@
         const dateKey = formatDateKey(currentDate);
         const gameData = sportData[currentGame]?.[dateKey] || {};
         
+        console.log('DEBUG - dateKey:', dateKey);
+        console.log('DEBUG - gameData:', gameData);
+        console.log('DEBUG - sportData[currentGame]:', sportData[currentGame]);
+        console.log('DEBUG - gamesConfig:', gamesConfig);
+        console.log('DEBUG - currentGame:', currentGame);
+        
         let numberOfCourts = 3;
-        const currentGameObject = gamesConfig.find(game => game.name.toLowerCase() === currentGame);
+        const currentGameObject = gamesConfig.find(game => {
+            console.log('DEBUG - Checking game:', game, 'name.toLowerCase():', game.name.toLowerCase(), 'vs currentGame:', currentGame);
+            return game.name.toLowerCase() === currentGame;
+        });
+        
+        console.log('DEBUG - currentGameObject:', currentGameObject);
+        
         if (currentGameObject && currentGameObject.maximum_court) {
             numberOfCourts = currentGameObject.maximum_court;
+            console.log('DEBUG - numberOfCourts from game:', numberOfCourts);
+        } else {
+            console.log('DEBUG - Using default numberOfCourts:', numberOfCourts);
         }
         
         const courts = Array.from({ length: numberOfCourts }, (_, i) => `${i + 1}`);
+        
+        console.log('DEBUG - courts array:', courts);
         
         for (const timerId in activeTimers) {
             if (activeTimers[timerId].intervalId) {
@@ -1223,11 +1368,16 @@
         let headerHtml = '<th class="time-column">Time</th>';
         courts.forEach(court => {
             headerHtml += `<th>Court ${court}</th>`;
-        });        
-         document.getElementById('calendarHeader').innerHTML = headerHtml;
+        });
+        
+        console.log('DEBUG - headerHtml:', headerHtml);
+        
+        document.getElementById('calendarHeader').innerHTML = headerHtml;
          
-         let bodyHtml = '';
+        let bodyHtml = '';
         const timeSlots = generateTimeSlots();
+        
+        console.log('DEBUG - timeSlots generated:', timeSlots.length);
         
         timeSlots.forEach(slot => {
             bodyHtml += `<tr><td class="time-column">${slot.display}</td>`;
@@ -1311,8 +1461,14 @@
             bodyHtml += '</tr>';
         });
         
+        console.log('DEBUG - Total rows generated:', timeSlots.length);
+        console.log('DEBUG - bodyHtml length:', bodyHtml.length);
+        console.log('DEBUG - First 200 chars of bodyHtml:', bodyHtml.substring(0, 200));
+        
         document.getElementById('calendarBody').innerHTML = bodyHtml;
         document.getElementById('currentDate').textContent = formatDate(currentDate);
+        
+        console.log('DEBUG - Calendar body updated!');
         
         for (const timerId in activeTimers) {
             const timerState = activeTimers[timerId];
@@ -1502,13 +1658,6 @@
     window.startTimer = startTimer;
     window.pauseTimer = pauseTimer;    
     window.resetTimer = resetTimer;
-});
-
-document.addEventListener('livewire:initialized', () => {
-    Livewire.on('bookingCancelled', () => {
-        // Refresh your calendar or booking display here
-        console.log('Booking cancelled - refresh UI');
-    });
 });
 </script>
 @endpush

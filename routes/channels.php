@@ -16,3 +16,9 @@ use Illuminate\Support\Facades\Broadcast;
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+
+// Booking channel for real-time updates
+Broadcast::channel('bookings.{complexId}', function ($user, $complexId) {
+    // Allow all authenticated users to listen to their complex's bookings
+    return true; // You can add more specific authorization here
+});
