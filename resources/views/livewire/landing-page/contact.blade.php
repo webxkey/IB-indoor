@@ -69,7 +69,7 @@
                     <a href="https://instagram.com/webxkey" class="text-secondary me-3">
                         <i class="bi bi-instagram" style="font-size: 1.5rem;"></i>
                     </a>
-                    <a href="https://youtube.com/webxkey" class="text-secondary">
+                    <a href="https://youtube.com/@Webxkey" class="text-secondary">
                         <i class="bi bi-youtube" style="font-size: 1.5rem;"></i>
                     </a>
                 </div>
