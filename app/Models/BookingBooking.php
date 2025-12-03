@@ -9,11 +9,30 @@ class BookingBooking extends Model
     protected $table = 'booking_booking';
 
     protected $fillable = [
-        'game_name','user_name','user_number','court_number','permanent_source_id',
-        'booking_date','start_time','end_time','duration','price',
-        'payment_status','payment_method','status','notes','qr_code',
-        'admin_comments','date','time_slot',
-        'user_id_id','game_id_id','complex_id_id','is_challenge_booking','opponent_team_id','team_id',
+        'game_name',
+        'user_name',
+        'user_number',
+        'court_number',
+        'permanent_source_id',
+        'booking_date',
+        'start_time',
+        'end_time',
+        'duration',
+        'price',
+        'payment_status',
+        'payment_method',
+        'status',
+        'notes',
+        'qr_code',
+        'admin_comments',
+        'date',
+        'time_slot',
+        'user_id_id',
+        'game_id_id',
+        'complex_id_id',
+        'is_challenge_booking',
+        'opponent_team_id',
+        'team_id',
     ];
 
     protected $casts = [

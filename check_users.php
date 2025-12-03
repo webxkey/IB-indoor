@@ -36,4 +36,3 @@ try {
 } catch (Exception $e) {
     echo "Error checking auth: {$e->getMessage()}\n";
 }
-?>

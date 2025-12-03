@@ -54,7 +54,7 @@ class BookingsManagement extends Component
         $this->complex_id = Auth::user()->complex_id;
         $this->loadSports();
         $this->lastChecked = now();
-        
+
         // Get the latest booking ID
         $latestBooking = BookingBooking::where('complex_id_id', $this->complex_id)
             ->latest('id')
@@ -79,7 +79,7 @@ class BookingsManagement extends Component
 
             // Reload sports data to refresh the calendar
             $this->loadSports();
-            
+
             // Dispatch event to frontend with new booking details
             foreach ($newBookings as $booking) {
                 $this->dispatch('newBookingDetected', [
@@ -91,15 +91,15 @@ class BookingsManagement extends Component
                     'start_time' => $booking->start_time,
                 ]);
             }
-            
+
             Log::info('New bookings detected via polling', [
                 'count' => $newBookings->count(),
                 'ids' => $newBookings->pluck('id')->toArray()
             ]);
-            
+
             return true;
         }
-        
+
         return false;
     }
 
@@ -117,7 +117,7 @@ class BookingsManagement extends Component
                 ->get();
 
             $this->bookings = BookingBooking::where('complex_id_id', $this->complex_id)->get();
-            
+
             $this->games = $this->sports->map(function ($sport) {
                 return [
                     'name' => $sport->name ?? 'Unknown',
@@ -133,7 +133,7 @@ class BookingsManagement extends Component
                     Log::warning('Booking with empty game_name', ['booking_id' => $booking->id]);
                     continue;
                 }
-                
+
                 $date = Carbon::parse($booking->booking_date)->format('Y-m-d');
                 $court = $booking->court_number ?? '1';
                 $start = $booking->start_time;
@@ -226,17 +226,17 @@ class BookingsManagement extends Component
             $this->addError('general', 'Selected game is not available for this complex.');
             return;
         }
-   
+
         // Get the current user (staff/admin)
         $userEmail = Auth::user()->email;
         $appUser = UserUser::where('email', $userEmail)->first();
-        
+
         if (!$appUser) {
             $this->addError('general', 'Your user account is not properly configured. Please contact support.');
             Log::error('User not found in users_user table', ['email' => $userEmail]);
             return;
         }
-        
+
         $this->appIndooruserId = $appUser->id;
 
         $endTime = Carbon::parse($this->selectedTime)->addMinutes(60)->format('H:i:s');
@@ -298,7 +298,7 @@ class BookingsManagement extends Component
                     'booking_date' => $this->selectedDate,
                     'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
                 ]));
-                
+
                 Log::info('Single booking created', [
                     'date' => $this->selectedDate,
                     'game' => $this->selectedGame,
@@ -317,7 +317,7 @@ class BookingsManagement extends Component
                 'code' => $e->getCode(),
                 'booking_data' => $bookingData,
             ]);
-            
+
             if (str_contains($e->getMessage(), 'foreign key constraint')) {
                 $this->addError('general', 'Booking failed: One or more required fields are invalid. Ensure all game, user, and complex IDs are correct.');
             } else {

@@ -105,21 +105,21 @@ try {
         echo "   ✗ No venue found in database\n";
     } else {
         echo "   ✓ Found venue: {$venue->name} (ID: {$venue->id})\n";
-        
+
         // Get a sport for this venue
         $sport = BookingSport::where('venue_id', $venue->id)->first();
         if (!$sport) {
             echo "   ✗ No sport found for venue\n";
         } else {
             echo "   ✓ Found sport: {$sport->name} (ID: {$sport->id})\n";
-            
+
             // Get a user
             $user = UserUser::first();
             if (!$user) {
                 echo "   ✗ No user found in database\n";
             } else {
                 echo "   ✓ Found user: {$user->email} (ID: {$user->id})\n";
-                
+
                 // Try to create a test booking
                 echo "\n   Attempting to create a test booking...\n";
                 $testBooking = BookingBooking::create([
@@ -143,9 +143,9 @@ try {
                     'opponent_team_id' => null,
                     'team_id' => null,
                 ]);
-                
+
                 echo "   ✓ Test booking created! ID: {$testBooking->id}\n";
-                
+
                 // Delete test booking
                 $testBooking->delete();
                 echo "   ✓ Test booking deleted\n";
