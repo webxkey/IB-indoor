@@ -43,6 +43,7 @@ class StaffReport extends Component
     public $complexName;
     public $complexAddress;
     public $complexPhoto;
+    public $complex_id;
 
     protected $rules = [
         'period' => 'required|in:daily,weekly,monthly',
@@ -50,16 +51,16 @@ class StaffReport extends Component
 
     public function mount()
     {
-        $this->sports = BookingSport::select('id', 'name')->get();
+        $this->complex_id = Auth::user()->complex_id;
+        $this->sports = BookingSport::where('venue_id', $this->complex_id)->select('id', 'name')->get();
         $this->generateReport();
         $this->loadComplexDetails();
-        
     }
 
     public function loadComplexDetails()
     {
-        // Assuming BookingVenue model has name, address, and photo fields
-        $complex = BookingVenue::first(); // Adjust based on your logic (e.g., get complex by user or specific ID)
+        // Get the current user's complex
+        $complex = BookingVenue::find($this->complex_id);
         $this->complexName = $complex->complex_name ?? 'Default Complex';
         $this->complexAddress = $complex->address ?? 'N/A';
         $this->complexPhoto = $complex->game_image ? asset('storage/' . $complex->game_image) : asset('fd.jpg');
@@ -69,7 +70,7 @@ class StaffReport extends Component
     {
         if ($this->activeReport === 'booking') {
             $this->bookingDetail = BookingBooking::with('sport')
-                ->where('user_id_id', $this->UserId)
+                ->where('complex_id_id', $this->complex_id)
                 ->whereBetween('booking_date', [$this->start_date, $this->end_date])
                 ->orderBy('booking_date', 'desc')
                 ->get();
@@ -78,8 +79,6 @@ class StaffReport extends Component
     public function generateReport()
     {
         $this->validate();
-
-        $this->UserId = Auth::id();
 
         // Set date range based on period
         $end = Carbon::today();
@@ -95,24 +94,27 @@ class StaffReport extends Component
         }
         $this->end_date = $end->toDateString();
 
+        // Filter by current venue/complex
         $query = BookingBooking::query()
-            ->where('user_id_id', $this->UserId)
+            ->where('complex_id_id', $this->complex_id)
             ->whereBetween('booking_date', [$this->start_date, $this->end_date]);
 
         $this->reportData = $query->get();
 
-        $this->bookingDetails = BookingBooking::all();
+        $this->bookingDetails = BookingBooking::where('complex_id_id', $this->complex_id)->get();
         // dd(Booking::all());
         $this->bookingDetailModel = $query->clone()->get();
-        $this->upcomingBooked = $query->clone()->whereIn('status', ['Booked', 'Upcoming'])->get();
+        $this->upcomingBooked = $query->clone()->whereIn('status', ['Confirmed'])->get();
 
         $this->totalUpcomingBookings = $this->upcomingBooked->count();
         $this->totalBookings = $this->bookingDetails->count();
-        $this->totalRevenue = BookingBooking::where('status', 'Completed')->sum('price');
-        $this->cancelledBookings = BookingBooking::where('status', 'Cancelled')->count();
+        $this->totalRevenue = BookingBooking::where('complex_id_id', $this->complex_id)
+            ->where('status', 'Completed')->sum('price');
+        $this->cancelledBookings = BookingBooking::where('complex_id_id', $this->complex_id)
+            ->where('status', 'Cancelled')->count();
 
         // Occupancy rate calculation
-        $sports = BookingSport::all();
+        $sports = BookingSport::where('venue_id', $this->complex_id)->get();
         $days = Carbon::parse($this->end_date)->diffInDays(Carbon::parse($this->start_date)) + 1;
         $totalHours = 0;
         $bookedHours = 0;
@@ -153,7 +155,7 @@ class StaffReport extends Component
                 SUM(price) as total_revenue,
                 COUNT(*) as total_bookings
             ", [$aggregation, $aggregation])
-            ->where('user_id_id', $this->UserId)
+            ->where('complex_id_id', $this->complex_id)
             ->whereBetween('booking_date', [$start, $end])
             ->groupBy('period');
 
@@ -193,12 +195,10 @@ class StaffReport extends Component
 
     public function loadRevenueReport()
     {
-        $userId = $this->UserId ?? auth()->id();
-
         $startDate = \Carbon\Carbon::parse($this->start_date)->startOfDay()->toDateTimeString();
         $endDate = \Carbon\Carbon::parse($this->end_date)->endOfDay()->toDateTimeString();
 
-        $this->revenueReportData = BookingBooking::where('user_id_id', $userId)
+        $this->revenueReportData = BookingBooking::where('complex_id_id', $this->complex_id)
             ->whereBetween('booking_date', [$startDate, $endDate])
             ->with('sport')
             ->selectRaw("
@@ -218,17 +218,17 @@ class StaffReport extends Component
                     'total_bookings' => $revenue->total_bookings,
                     'total_hours'    => round($revenue->total_hours, 2) ?? 0,
                     'total_revenue'  => $revenue->total_revenue ?? 0,
-                    'average_revenue'=> $revenue->average_revenue ?? 0,
+                    'average_revenue' => $revenue->average_revenue ?? 0,
                 ];
             })
             ->values();
 
         $this->dispatch('openRevenueModal');
     }
-    
 
 
-   
+
+
     public function resetFilters()
     {
         $this->period = 'daily';

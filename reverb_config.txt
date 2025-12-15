@@ -1,0 +1,19 @@
+# Add these to your .env file for WebSocket functionality
+
+# Broadcasting Configuration
+BROADCAST_DRIVER=reverb
+QUEUE_CONNECTION=sync
+
+# Reverb WebSocket Configuration
+REVERB_APP_ID=local
+REVERB_APP_KEY=local-key
+REVERB_APP_SECRET=local-secret
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8080
+REVERB_SCHEME=http
+
+# Vite Configuration for Reverb (Frontend)
+VITE_REVERB_APP_KEY=local-key
+VITE_REVERB_HOST=127.0.0.1
+VITE_REVERB_PORT=8080
+VITE_REVERB_SCHEME=http

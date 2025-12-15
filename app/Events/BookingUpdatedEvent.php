@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class BookingCreatedEvent implements ShouldBroadcastNow
+class BookingUpdatedEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -27,8 +27,6 @@ class BookingCreatedEvent implements ShouldBroadcastNow
 
     /**
      * Get the channels the event should broadcast on.
-     *
-     * @return array<int, \Illuminate\Broadcasting\Channel>
      */
     public function broadcastOn(): array
     {
@@ -42,7 +40,7 @@ class BookingCreatedEvent implements ShouldBroadcastNow
      */
     public function broadcastAs(): string
     {
-        return 'booking.created';
+        return 'booking.updated';
     }
 
     /**
@@ -51,7 +49,7 @@ class BookingCreatedEvent implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'booking_id' => $this->booking->booking_id,
+            'booking_id' => $this->booking->id,
             'game_name' => $this->booking->game_name,
             'booking_date' => $this->booking->booking_date,
             'court_number' => $this->booking->court_number,

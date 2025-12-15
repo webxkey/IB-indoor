@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\BookingBooking;
 use App\Events\BookingCreatedEvent;
+use App\Events\BookingUpdatedEvent;
 use Illuminate\Support\Facades\Log;
 
 class BookingObserver
@@ -15,9 +16,9 @@ class BookingObserver
     {
         // Broadcast the event when a new booking is created
         broadcast(new BookingCreatedEvent($booking))->toOthers();
-        
+
         Log::info('BookingCreatedEvent broadcasted', [
-            'booking_id' => $booking->booking_id,
+            'booking_id' => $booking->id,
             'complex_id' => $booking->complex_id_id,
         ]);
     }
@@ -27,13 +28,14 @@ class BookingObserver
      */
     public function updated(BookingBooking $booking): void
     {
-        // You can also broadcast updates if needed
-        if ($booking->wasChanged('status')) {
-            broadcast(new BookingCreatedEvent($booking))->toOthers();
-            
-            Log::info('Booking status updated and broadcasted', [
-                'booking_id' => $booking->booking_id,
-                'new_status' => $booking->status,
+        // Broadcast when status or other important fields change
+        if ($booking->wasChanged(['status', 'start_time', 'end_time', 'court_number'])) {
+            broadcast(new BookingUpdatedEvent($booking))->toOthers();
+
+            Log::info('BookingUpdatedEvent broadcasted', [
+                'booking_id' => $booking->id,
+                'changes' => $booking->getChanges(),
+                'status' => $booking->status,
             ]);
         }
     }

@@ -21,8 +21,6 @@ class BookingsManagement extends Component
     public $complex_id;
     public $games;
     public $bookingdetails = [];
-    public $lastChecked;
-    public $latestBookingId = 0;
 
     public $selectedGame = '';
     public $selectedDate = '';
@@ -30,7 +28,7 @@ class BookingsManagement extends Component
     public $selectedCourt = '';
     public $playerName = '';
     public $phoneNumber = '';
-    public $status = 'Booked';
+    public $status = 'Confirmed';
     public $permanent = false;
     public $notes = '';
     public $appIndooruserId;
@@ -43,64 +41,20 @@ class BookingsManagement extends Component
         'selectedCourt' => 'required|string',
         'playerName' => 'required|string|max:255',
         'phoneNumber' => 'required|string|max:20',
-        'status' => 'required|in:Booked,Pending,Completed,Cancelled,No-Show',
+        'status' => 'required|in:Confirmed,Pending,Completed,Cancelled,No-Show,Playing',
         'notes' => 'nullable|string|max:1000',
     ];
 
-    protected $listeners = ['setSelectedBookingData', 'refreshBookings', 'checkForNewBookings'];
+    protected $listeners = ['setSelectedBookingData', 'refreshBookings'];
 
     public function mount()
     {
         $this->complex_id = Auth::user()->complex_id;
+
+        // Check for No-Shows first before loading sports
+        $this->checkNoShows();
+
         $this->loadSports();
-        $this->lastChecked = now();
-
-        // Get the latest booking ID
-        $latestBooking = BookingBooking::where('complex_id_id', $this->complex_id)
-            ->latest('id')
-            ->first();
-        $this->latestBookingId = $latestBooking ? $latestBooking->id : 0;
-    }
-
-    /**
-     * Check for new bookings (called from JavaScript polling)
-     */
-    public function checkForNewBookings()
-    {
-        // Get any bookings newer than the last known booking ID
-        $newBookings = BookingBooking::where('complex_id_id', $this->complex_id)
-            ->where('id', '>', $this->latestBookingId)
-            ->orderBy('id', 'asc')
-            ->get();
-
-        if ($newBookings->count() > 0) {
-            // Update the latest booking ID
-            $this->latestBookingId = $newBookings->last()->id;
-
-            // Reload sports data to refresh the calendar
-            $this->loadSports();
-
-            // Dispatch event to frontend with new booking details
-            foreach ($newBookings as $booking) {
-                $this->dispatch('newBookingDetected', [
-                    'id' => $booking->id,
-                    'user_name' => $booking->user_name,
-                    'game_name' => $booking->game_name,
-                    'court_number' => $booking->court_number,
-                    'booking_date' => $booking->booking_date,
-                    'start_time' => $booking->start_time,
-                ]);
-            }
-
-            Log::info('New bookings detected via polling', [
-                'count' => $newBookings->count(),
-                'ids' => $newBookings->pluck('id')->toArray()
-            ]);
-
-            return true;
-        }
-
-        return false;
     }
 
     public function refreshBookings()
@@ -116,7 +70,9 @@ class BookingsManagement extends Component
                 ->where('status', 'Active')
                 ->get();
 
-            $this->bookings = BookingBooking::where('complex_id_id', $this->complex_id)->get();
+            $this->bookings = BookingBooking::where('complex_id_id', $this->complex_id)
+                ->whereNotIn('status', ['Cancelled'])
+                ->get();
 
             $this->games = $this->sports->map(function ($sport) {
                 return [
@@ -257,7 +213,7 @@ class BookingsManagement extends Component
             'duration' => 60,
             'price' => $price,
             'payment_status' => 'Pending',
-            'payment_method' => 'Card',
+            'payment_method' => null,
             'status' => $this->status,
             'notes' => $this->notes ?: '',
             'admin_comments' => '',
@@ -349,41 +305,167 @@ class BookingsManagement extends Component
         Log::info('resetFields executed');
     }
 
-    // Add this to your BookingsManagement class
-    public function cancelBooking($bookingId)
+    // Cancel booking by ID or by selected criteria
+    public function cancelBooking($bookingId = null)
     {
-        $booking = BookingBooking::find($bookingId);
-        // dd($booking);  
-        // Find the booking based on the selected criteria
-        $booking = BookingBooking::where('complex_id_id', $this->complex_id)
-            ->where('game_name', $this->selectedGame)
-            ->where('booking_date', $this->selectedDate)
-            ->where('court_number', $this->selectedCourt)
-            ->where('start_time', $this->selectedTime)
-            ->first();
+        $booking = null;
+
+        // Try to find booking by ID first
+        if ($bookingId) {
+            $booking = BookingBooking::find($bookingId);
+        }
+
+        // If not found by ID, try by selected criteria
+        if (!$booking && $this->selectedGame && $this->selectedDate && $this->selectedCourt && $this->selectedTime) {
+            $booking = BookingBooking::where('complex_id_id', $this->complex_id)
+                ->where('game_name', $this->selectedGame)
+                ->where('booking_date', $this->selectedDate)
+                ->where('court_number', $this->selectedCourt)
+                ->where('start_time', $this->selectedTime)
+                ->first();
+        }
 
         if ($booking) {
             $booking->status = 'Cancelled';
             $booking->save();
 
             Log::info('Booking cancelled', [
-                'booking_id' => $booking->booking_id,
-                'details' => $booking->only(['game_name', 'booking_date', 'court_number', 'start_time'])
+                'booking_id' => $booking->id,
+                'details' => $booking->only(['game_name', 'booking_date', 'court_number', 'start_time', 'user_name'])
             ]);
 
             $this->dispatch('bookingCancelled');
             $this->loadSports(); // Refresh the data
             session()->flash('message', 'Booking cancelled successfully.');
+
+            return true;
         } else {
             Log::warning('Booking not found for cancellation', [
+                'bookingId' => $bookingId,
                 'selectedGame' => $this->selectedGame,
                 'selectedDate' => $this->selectedDate,
                 'selectedCourt' => $this->selectedCourt,
                 'selectedTime' => $this->selectedTime
             ]);
             session()->flash('error', 'Booking not found!');
+
+            return false;
         }
     }
+
+    // Update booking status to Playing when timer starts
+    public function startBooking($bookingId)
+    {
+        $booking = BookingBooking::find($bookingId);
+
+        if ($booking && $booking->status === 'Confirmed') {
+            $booking->status = 'Playing';
+            $booking->save();
+
+            Log::info('Booking status changed to Playing', [
+                'booking_id' => $booking->id,
+                'game_name' => $booking->game_name,
+            ]);
+
+            $this->loadSports(); // Refresh the data
+            return true;
+        }
+
+        return false;
+    }
+
+    // Update booking status to Completed when timer ends
+    public function completeBooking($bookingId)
+    {
+        $booking = BookingBooking::find($bookingId);
+
+        if ($booking && $booking->status === 'Playing') {
+            $booking->status = 'Completed';
+            $booking->save();
+
+            Log::info('Booking status changed to Completed', [
+                'booking_id' => $booking->id,
+                'game_name' => $booking->game_name,
+            ]);
+
+            $this->loadSports(); // Refresh the data
+            return true;
+        }
+
+        return false;
+    }
+
+    // Check for bookings that should be marked as No-Show
+    public function checkNoShows()
+    {
+        $now = Carbon::now();
+
+        // Find all confirmed bookings where end_time has passed
+        $noShowBookings = BookingBooking::where('complex_id_id', $this->complex_id)
+            ->where('status', 'Confirmed')
+            ->whereDate('booking_date', '<=', $now->toDateString())
+            ->get()
+            ->filter(function ($booking) use ($now) {
+                try {
+                    // Extract just the date part from booking_date
+                    $bookingDate = Carbon::parse($booking->booking_date)->format('Y-m-d');
+
+                    // Parse end_time - handle both time strings and datetime strings
+                    $endTimeStr = $booking->end_time;
+                    if (strpos($endTimeStr, ' ') !== false) {
+                        // If it contains space, it might be a full datetime
+                        $endTimeStr = Carbon::parse($endTimeStr)->format('H:i:s');
+                    }
+
+                    $bookingEnd = Carbon::parse($bookingDate . ' ' . $endTimeStr);
+                    $isPast = $bookingEnd->lessThan($now);
+
+                    Log::info('Checking booking for No-Show', [
+                        'booking_id' => $booking->id,
+                        'booking_date' => $bookingDate,
+                        'end_time' => $endTimeStr,
+                        'booking_end_datetime' => $bookingEnd->toDateTimeString(),
+                        'current_time' => $now->toDateTimeString(),
+                        'is_past' => $isPast,
+                    ]);
+
+                    return $isPast;
+                } catch (\Exception $e) {
+                    Log::error('Error parsing booking time', [
+                        'booking_id' => $booking->id,
+                        'booking_date' => $booking->booking_date,
+                        'end_time' => $booking->end_time,
+                        'error' => $e->getMessage(),
+                    ]);
+                    return false;
+                }
+            });
+
+        $count = 0;
+        foreach ($noShowBookings as $booking) {
+            $booking->status = 'No-Show';
+            $booking->save(); // This will trigger BookingObserver->updated() which broadcasts the change
+
+            $count++;
+
+            Log::info('Booking marked as No-Show', [
+                'booking_id' => $booking->id,
+                'game_name' => $booking->game_name,
+                'user_name' => $booking->user_name,
+                'booking_date' => $booking->booking_date,
+                'end_time' => $booking->end_time,
+                'current_time' => $now->toDateTimeString(),
+            ]);
+        }
+
+        if ($count > 0) {
+            Log::info('Total No-Shows marked', ['count' => $count]);
+            $this->loadSports(); // Refresh the data immediately
+        }
+
+        return $count;
+    }
+
     public function render()
     {
         // Debug logging

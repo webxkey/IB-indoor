@@ -80,7 +80,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/customers', Customers::class)->name('customers');
         Route::get('/indoor-admins', IndoorAdmins::class)->name('indoor-admins');
         Route::get('/landing-page', LandingPageCMS::class)->name('landing-page');
-        Route::get('/blogs-management',BlogsManagement ::class)->name('blogs-management');
+        Route::get('/blogs-management', BlogsManagement::class)->name('blogs-management');
     });
 
 
@@ -110,3 +110,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 
 });
+
+// WebSocket test route
+Route::get('/test-websocket', function () {
+    return view('test-websocket');
+})->name('test.websocket');

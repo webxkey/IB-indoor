@@ -1,5 +1,32 @@
 @push('styles')
 <style>
+    /* Notification animation */
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .booking-notification {
+        animation: slideInRight 0.3s ease-out !important;
+    }
+
+    /* Past slot styling */
+    .time-slot.past-slot {
+        background: #e9ecef !important;
+        border: 2px dashed #adb5bd !important;
+        color: #6c757d !important;
+        cursor: not-allowed !important;
+        opacity: 0.6 !important;
+        pointer-events: none !important;
+    }
+
     /* Booked slot styling */
     .booked-slot {
         @apply flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded-lg;
@@ -78,7 +105,7 @@
     .container-fluid {
         background: var(--background-color);
         min-height: 100vh;
-        padding:0;
+        padding: 0;
     }
 
     .card.booking-card {
@@ -378,7 +405,7 @@
         font-family: 'Courier New', monospace;
         font-weight: 600;
         font-size: 0.85rem;
-     
+
         color: #374151;
     }
 
@@ -389,8 +416,15 @@
     }
 
     @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.7;
+        }
     }
 
     .modal-content {
@@ -423,7 +457,7 @@
         margin-bottom: 20px;
     }
 
-    .modal-body-content .row > div > div {
+    .modal-body-content .row>div>div {
         background: white;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
@@ -440,7 +474,8 @@
         margin-right: 8px;
     }
 
-    .form-control, .form-select {
+    .form-control,
+    .form-select {
         border-radius: 8px;
         border: 2px solid #e2e8f0;
         padding: 12px 16px;
@@ -448,7 +483,8 @@
         transition: all 0.3s ease;
     }
 
-    .form-control:focus, .form-select:focus {
+    .form-control:focus,
+    .form-select:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
@@ -580,8 +616,13 @@
 
     /* Loading animation */
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     .fa-spin {
@@ -735,23 +776,23 @@
             <div class="card-body p-0">
                 <div class="game-tabs">
                     @forelse ($games as $index => $game)
-                        @php
-                            $icon = match(strtolower($game['name'])) {
-                                'cricket' => 'fas fa-baseball-ball',
-                                'badminton' => 'fas fa-table-tennis',
-                                'tennis' => 'fas fa-table-tennis',
-                                'squash' => 'fas fa-running',
-                                'basketball' => 'fas fa-basketball-ball',
-                                default => 'fas fa-gamepad',
-                            };
-                        @endphp
-                        <div class="game-tab {{ $index === 0 ? 'active' : '' }}" data-game="{{ strtolower($game['name']) }}">
-                            <i class="{{ $icon }}"></i> {{ $game['name'] }}
-                        </div>
+                    @php
+                    $icon = match(strtolower($game['name'])) {
+                    'cricket' => 'fas fa-baseball-ball',
+                    'badminton' => 'fas fa-table-tennis',
+                    'tennis' => 'fas fa-table-tennis',
+                    'squash' => 'fas fa-running',
+                    'basketball' => 'fas fa-basketball-ball',
+                    default => 'fas fa-gamepad',
+                    };
+                    @endphp
+                    <div class="game-tab {{ $index === 0 ? 'active' : '' }}" data-game="{{ strtolower($game['name']) }}">
+                        <i class="{{ $icon }}"></i> {{ $game['name'] }}
+                    </div>
                     @empty
-                        <div class="alert alert-info m-3">
-                            <i class="fas fa-info-circle me-2"></i>No games available. Please add sports to your complex.
-                        </div>
+                    <div class="alert alert-info m-3">
+                        <i class="fas fa-info-circle me-2"></i>No games available. Please add sports to your complex.
+                    </div>
                     @endforelse
                 </div>
 
@@ -894,28 +935,30 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">
-                            <i class="fas fa-stopwatch me-2"></i>Timer Controls
+                            <i class="fas fa-stopwatch me-2"></i>Booking Details
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body text-center">
                         <div class="alert alert-info mb-3">
                             <strong>Player:</strong> <span id="modalTimerPlayerName">-</span><br>
+                            <strong>Game:</strong> <span id="modalTimerGameName">-</span><br>
+                            <strong>Court:</strong> <span id="modalTimerCourt">-</span><br>
+                            <strong>Date:</strong> <span id="modalTimerDate">-</span><br>
                             <strong>Start Time:</strong> <span id="modalTimerGameStartTime">-</span>
                         </div>
                         <div class="modal-timer" id="modalTimer">00:00:00</div>
                         <div class="d-flex justify-content-center gap-2 mt-3" id="timerControls">
-                           
-                            <button class="btn btn-danger" 
-                                    wire:click="cancelBooking(${timerId})"
-                                  >
-                                Cancel booking
+                            <button type="button" class="btn btn-danger" id="cancelBookingBtn">
+                                <i class="fas fa-times me-2"></i>Cancel Booking
                             </button>
                         </div>
                     </div>
 
                     <div class="modal-footer d-flex flex-column align-items-center">
-                        <button type="button" class="btn btn-primary btn-sm mb-2" id="newWindowBtn">Start Time</button>
+                        <button type="button" class="btn btn-primary btn-sm mb-2" id="newWindowBtn">
+                            <i class="fas fa-external-link-alt me-2"></i>Start Timer
+                        </button>
                         <small class="text-muted">Timer will automatically update in the booking view</small>
                     </div>
                 </div>
@@ -930,487 +973,639 @@
 <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-    // Safely handle data from backend
-    let sportData = @json($bookingdetails ?? []);
-    const gamesConfig = @json($games ?? []);
-    const complexId = @json($complex_id ?? null);
+        // Safely handle data from backend
+        let sportData = @json($bookingdetails ?? []);
+        const gamesConfig = @json($games ?? []);
+        const complexId = @json($complex_id ?? null);
 
-    // Debug - log what we received
-    console.log('=== DATA RECEIVED FROM BACKEND ===');
-    console.log('gamesConfig:', gamesConfig);
-    console.log('gamesConfig length:', gamesConfig ? gamesConfig.length : 0);
-    console.log('sportData:', sportData);
-    console.log('complexId:', complexId);
-    console.log('==================================');
+        // Debug - log what we received
+        console.log('=== DATA RECEIVED FROM BACKEND ===');
+        console.log('gamesConfig:', gamesConfig);
+        console.log('gamesConfig length:', gamesConfig ? gamesConfig.length : 0);
+        console.log('sportData:', sportData);
+        console.log('complexId:', complexId);
+        console.log('==================================');
 
-    // Global variables
-    let currentGame = '';
-    let currentDate = new Date();
-    let activeTimers = {};
-    let activeModalTimerId = null;
+        // Global variables
+        let currentGame = '';
+        let currentDate = new Date();
+        let activeTimers = {};
+        let activeModalTimerId = null;
 
-    // Initialize system
-    initializeSystem();
+        // Initialize system
+        initializeSystem();
 
-    function initializeSystem() {
-        console.log('Initializing booking system...', { sportData, gamesConfig });
-        
-        // Hide any stuck loading overlays
-        const loadingOverlay = document.querySelector('.loading-overlay');
-        if (loadingOverlay) {
-            loadingOverlay.style.display = 'none';
-        }
-        
-        // Set active game tab - always set to first game on init
-        if (gamesConfig && gamesConfig.length > 0) {
-            currentGame = gamesConfig[0].name.toLowerCase();
-            console.log('Current game set to:', currentGame);
-        } else {
-            console.error('No games configured!');
-        }
-        
-        // Always call updateCalendar to display slots
-        updateCalendar();
-        
-        setupEventListeners();
-        setupRealtimeUpdates();
-        setupDatabasePolling(); // Start polling for new bookings
-    }
-
-    // Setup real-time updates using Pusher
-    function setupRealtimeUpdates() {
-        if (!complexId) {
-            console.warn('Complex ID not available for real-time updates');
-            return;
-        }
-
-        try {
-            // Initialize Pusher
-            const pusher = new Pusher('{{ config("broadcasting.connections.pusher.key") }}', {
-                cluster: '{{ config("broadcasting.connections.pusher.options.cluster") }}',
-                encrypted: true
+        function initializeSystem() {
+            console.log('Initializing booking system...', {
+                sportData,
+                gamesConfig
             });
 
-            // Subscribe to the bookings channel for this complex
-            const channel = pusher.subscribe(`bookings.${complexId}`);
+            // Hide any stuck loading overlays
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
 
-            // Listen for booking created events
-            channel.bind('booking.created', function(data) {
-                console.log('New booking received:', data);
-                
-                // Show notification
-                showNotification('New Booking!', `${data.user_name} booked ${data.game_name} - Court ${data.court_number}`);
-                
-                // Refresh the booking data
+            // Set active game tab - always set to first game on init
+            if (gamesConfig && gamesConfig.length > 0) {
+                currentGame = gamesConfig[0].name.toLowerCase();
+                console.log('Current game set to:', currentGame);
+            } else {
+                console.error('No games configured!');
+            }
+
+            // Always call updateCalendar to display slots
+
+            updateCalendar();
+
+            setupEventListeners();
+            setupRealtimeUpdates(); // WebSocket + MySQL triggers for ALL database changes (instant)
+        }
+
+        // Setup real-time updates using Laravel Echo + Reverb WebSockets
+        function setupRealtimeUpdates() {
+            if (!complexId) {
+                console.warn('Complex ID not available for real-time updates');
+                return;
+            }
+
+            try {
+                // Check if Echo is available
+                if (typeof window.Echo === 'undefined') {
+                    console.error('Laravel Echo not initialized. WebSocket updates disabled.');
+                    console.log('⚠️ WebSocket unavailable, but polling is active');
+                    return;
+                }
+
+                console.log('✅ Laravel Echo is available:', window.Echo);
+                console.log('📍 Complex ID:', complexId);
+
+                // Subscribe to the bookings channel for this complex
+                const channelName = `bookings.${complexId}`;
+                console.log('📡 Subscribing to channel:', channelName);
+                const channel = window.Echo.channel(channelName);
+
+                console.log('✅ Channel subscribed:', channel);
+
+                // Listen for new bookings
+                channel.listen('booking.created', (data) => {
+                        console.log('🔔 New booking received via WebSocket:', data);
+
+                        // Show notification
+                        showNotification(
+                            '🎉 New Booking Created!',
+                            `${data.user_name} booked ${data.game_name} - Court ${data.court_number} at ${data.start_time}`
+                        );
+
+                        // Play sound
+                        playNotificationSound();
+
+                        // Refresh the booking data using Livewire
+                        @this.call('refreshBookings');
+                    })
+                    .error((error) => {
+                        console.error('Error listening to booking.created:', error);
+                    });
+
+                // Listen for booking updates (status changes, etc.)
+                channel.listen('booking.updated', (data) => {
+                        console.log('🔄 Booking updated via WebSocket:', data);
+
+                        // Show notification for important status changes
+                        if (data.status === 'No-Show') {
+                            showNotification(
+                                '⚠️ Booking No-Show',
+                                `${data.user_name}'s booking marked as No-Show`
+                            );
+                        }
+
+                        // Refresh the booking data using Livewire
+                        @this.call('refreshBookings');
+                    })
+                    .error((error) => {
+                        console.error('Error listening to booking.updated:', error);
+                    });
+
+                // Monitor connection status
+                window.Echo.connector.pusher.connection.bind('connected', () => {
+                    console.log('✅ WebSocket connected successfully');
+                });
+
+                window.Echo.connector.pusher.connection.bind('disconnected', () => {
+                    console.warn('⚠️ WebSocket disconnected (polling continues in background)');
+                });
+
+                window.Echo.connector.pusher.connection.bind('error', (err) => {
+                    console.error('❌ WebSocket connection error:', err);
+                    console.log('📊 Polling will continue to handle updates');
+                });
+
+                console.log('✅ Real-time WebSocket updates initialized for complex:', complexId);
+
+                // Expose channel for debugging in browser console
+                window.bookingsChannel = channel;
+                console.log('💡 Debug: You can test with window.bookingsChannel in console');
+            } catch (error) {
+                console.error('Error setting up real-time updates:', error);
+                console.log('📊 Polling will continue to handle updates');
+            }
+        }
+
+        // Show notification for new bookings
+        function showNotification(title, message) {
+            // Remove any existing notifications first
+            const existingNotifications = document.querySelectorAll('.booking-notification');
+            existingNotifications.forEach(notif => notif.remove());
+
+            // Create a toast notification at the top
+            const toastHtml = `
+            <div class="booking-notification alert alert-success alert-dismissible fade show position-fixed shadow-lg" 
+                 style="top: 20px; right: 20px; z-index: 99999; min-width: 350px; max-width: 450px; animation: slideInRight 0.3s ease-out;" 
+                 role="alert">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-check-circle fa-2x me-3 text-success"></i>
+                    <div class="flex-grow-1">
+                        <h5 class="alert-heading mb-1"><strong>${title}</strong></h5>
+                        <p class="mb-0">${message}</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = toastHtml;
+            const notification = tempDiv.firstElementChild;
+            document.body.appendChild(notification);
+
+            // Play notification sound
+            playNotificationSound();
+
+            // Auto-remove after 8 seconds
+            setTimeout(() => {
+                if (notification && notification.parentNode) {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }
+            }, 8000);
+        } // Optional: Play notification sound
+        function playNotificationSound() {
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiDcJGWi77eeaTRAKT6fj8LRgGwc4kdfy0HotBSd4yPDekj4KE12y6OynUxINR6Hh8rsrIQUsgs/y24c5CBpruuvm');
+                audio.play().catch(e => console.log('Audio play failed:', e));
+            } catch (error) {
+                console.log('Notification sound unavailable');
+            }
+        }
+
+        // Check for No-Shows periodically
+        function checkNoShows() {
+            @this.call('checkNoShows').then(count => {
+                if (count > 0) {
+                    console.log(`⚠️ ${count} booking(s) marked as No-Show`);
+                    refreshBookingData().then(() => {
+                        updateCalendar();
+                    });
+                }
+            }).catch(error => {
+                console.error('Error checking No-Shows:', error);
+            });
+        }
+
+        // Check for No-Shows every 2 minutes
+        setInterval(checkNoShows, 120000);
+        // Also check on page load
+        setTimeout(checkNoShows, 5000);
+
+        function setupEventListeners() {
+            // Game tabs
+            document.querySelectorAll('.game-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentGame = this.dataset.game;
+                    console.log('Game tab clicked:', currentGame);
+                    updateCalendar();
+                });
+            });
+
+            // Date navigation
+            const prevBtn = document.getElementById('prevDay');
+            const nextBtn = document.getElementById('nextDay');
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', function() {
+                    currentDate.setDate(currentDate.getDate() - 1);
+                    console.log('Previous day clicked:', formatDate(currentDate));
+                    updateCalendar();
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function() {
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    console.log('Next day clicked:', formatDate(currentDate));
+                    updateCalendar();
+                });
+            }
+
+            // Available slot clicks
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.time-slot.available')) {
+                    e.preventDefault();
+                    const slot = e.target.closest('.time-slot.available');
+                    openBookingModal(slot);
+                }
+            });
+
+            // Booked slot clicks (for timer)
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.time-slot.booked')) {
+                    e.preventDefault();
+                    const slot = e.target.closest('.time-slot.booked');
+                    const timerId = slot.dataset.timerId;
+                    if (timerId) {
+                        openTimerModal(timerId);
+                    }
+                }
+            });
+
+            // New window button for timer popup
+            const newWindowBtn = document.getElementById('newWindowBtn');
+            if (newWindowBtn) {
+                newWindowBtn.addEventListener('click', function() {
+                    if (activeModalTimerId) {
+                        const timerState = activeTimers[activeModalTimerId];
+                        if (timerState) {
+                            if (timerState.popupWindow && !timerState.popupWindow.closed) {
+                                timerState.popupWindow.close();
+                                timerState.popupWindow = null;
+                            }
+
+                            const newWindow = window.open(
+                                '/storage/staff/timer_window.html',
+                                activeModalTimerId,
+                                'width=500,height=450,resizable=yes,scrollbars=no'
+                            );
+
+                            if (newWindow) {
+                                timerState.popupWindow = newWindow;
+                                newWindow.onload = () => {
+                                    if (newWindow.receiveTimerData) {
+                                        newWindow.receiveTimerData({
+                                            timerId: activeModalTimerId,
+                                            totalDuration: timerState.totalDuration,
+                                            remaining: timerState.remaining,
+                                            isRunning: timerState.isRunning,
+                                            player: timerState.player,
+                                            game: timerState.game,
+                                            startTimeDisplay: timerState.startTimeDisplay,
+                                            bookingId: timerState.bookingId
+                                        });
+                                    }
+                                };
+                            } else {
+                                alert('Popup blocked! Please allow popups for this site.');
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Livewire events
+            window.addEventListener('bookingCreated', function(event) {
+                console.log('Booking created successfully', event.detail);
+                closeModal('bookingModal');
                 refreshBookingData().then(() => {
                     updateCalendar();
                 });
             });
 
-            console.log('Real-time updates initialized for complex:', complexId);
-        } catch (error) {
-            console.error('Error setting up real-time updates:', error);
+            window.addEventListener('closeModal', function() {
+                console.log('closeModal event received');
+                closeModal('bookingModal');
+                updateCalendar();
+            });
+
+            $('#bookingModal').on('hidden.bs.modal', function() {
+                console.log('Booking modal hidden');
+                updateCalendar();
+            });
+
+            // Listen for new booking detected event (from polling)
+            window.addEventListener('newBookingDetected', (event) => {
+                console.log('New booking detected from database!', event.detail);
+
+                const booking = event.detail[0]; // Get booking data
+
+                // Show notification
+                showNotification(
+                    '🔔 New Booking!',
+                    `${booking.user_name} booked ${booking.game_name} - Court ${booking.court_number}<br>
+                Date: ${booking.booking_date} | Time: ${booking.start_time}`
+                );
+
+                // Refresh the booking data and update calendar
+                refreshBookingData().then(() => {
+                    updateCalendar();
+                });
+            });
+
+            // Listen for booking cancelled event
+            window.addEventListener('bookingCancelled', () => {
+                console.log('Booking cancelled - refresh UI');
+                refreshBookingData().then(() => {
+                    updateCalendar();
+                });
+            });
         }
-    }
 
-    // Show notification for new bookings
-    function showNotification(title, message) {
-        // Create a toast notification
-        const toastHtml = `
-            <div class="alert alert-info alert-dismissible fade show position-fixed top-0 end-0 m-3" 
-                 style="z-index: 9999; min-width: 300px;" role="alert">
-                <strong>${title}</strong><br>${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = toastHtml;
-        document.body.appendChild(tempDiv.firstElementChild);
-        
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            const alert = document.querySelector('.alert');
-            if (alert) {
-                alert.remove();
-            }
-        }, 5000);
-
-        // Play a sound (optional)
-        playNotificationSound();
-    }
-
-    // Optional: Play notification sound
-    function playNotificationSound() {
-        try {
-            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiDcJGWi77eeaTRAKT6fj8LRgGwc4kdfy0HotBSd4yPDekj4KE12y6OynUxINR6Hh8rsrIQUsgs/y24c5CBpruuvm');
-            audio.play().catch(e => console.log('Audio play failed:', e));
-        } catch (error) {
-            console.log('Notification sound unavailable');
+        function refreshBookingData() {
+            return new Promise((resolve, reject) => {
+                @this.call('getBookingDetails').then(response => {
+                    sportData = response || {};
+                    console.log('Booking data refreshed:', sportData);
+                    resolve();
+                }).catch(error => {
+                    console.error('Error refreshing booking data:', error);
+                    alert('Error refreshing booking data. Please try again.');
+                    reject(error);
+                });
+            });
         }
-    }
 
-    // Setup database polling (checks for new bookings every 3 seconds)
-    function setupDatabasePolling() {
-        console.log('Setting up database polling...');
-        
-        setInterval(() => {
-            // Don't poll if browser tab is not visible
-            if (document.hidden) {
+        function openBookingModal(slot) {
+            const time = slot.dataset.time || '';
+            const display = slot.dataset.display || '';
+            const court = slot.dataset.court || '';
+            const date = formatDate(currentDate);
+            const dateKey = formatDateKey(currentDate);
+
+            if (!currentGame || !time || !display || !court || !dateKey) {
+                console.error('Missing required data for booking modal:', {
+                    currentGame,
+                    time,
+                    display,
+                    court,
+                    dateKey
+                });
+                alert('Error: Unable to open booking modal. Missing required information.');
                 return;
             }
-            
-            // Call Livewire method to check for new bookings
-            @this.call('checkForNewBookings').then(hasNewBookings => {
-                if (hasNewBookings) {
-                    console.log('New bookings found, calendar will refresh');
-                }
+
+            console.log('Opening booking modal with data:', {
+                game: currentGame,
+                dateKey,
+                time,
+                court,
+                display
+            });
+
+            const modalElement = document.getElementById('bookingModal');
+            if (!modalElement) {
+                console.error('Booking modal element not found');
+                alert('Error: Booking modal not found.');
+                return;
+            }
+
+            const modal = new bootstrap.Modal(modalElement);
+            document.getElementById('modalGame').textContent = currentGame.charAt(0).toUpperCase() + currentGame.slice(1);
+            document.getElementById('modalDate').textContent = date;
+            document.getElementById('modalTime').textContent = display;
+            document.getElementById('modalCourt').textContent = court;
+
+            // Extract the time in H:i:s format from the time variable
+            const timeParts = time.split(':');
+            const formattedTime = `${timeParts[0]}:${timeParts[1]}:${timeParts[2]}`;
+
+            @this.setSelectedBookingData({
+                game: currentGame,
+                dateKey,
+                time: formattedTime,
+                court
+            }).then(() => {
+                console.log('setSelectedBookingData resolved');
+                modal.show();
             }).catch(error => {
-                console.error('Polling error:', error);
-            });
-        }, 3000); // Check every 3 seconds
-        
-        console.log('Database polling active - checking every 3 seconds');
-    }
-
-    function setupEventListeners() {
-        // Game tabs
-        document.querySelectorAll('.game-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                currentGame = this.dataset.game;
-                console.log('Game tab clicked:', currentGame);
-                updateCalendar();
-            });
-        });
-
-        // Date navigation
-        const prevBtn = document.getElementById('prevDay');
-        const nextBtn = document.getElementById('nextDay');
-        
-        if (prevBtn) {
-            prevBtn.addEventListener('click', function() {
-                currentDate.setDate(currentDate.getDate() - 1);
-                console.log('Previous day clicked:', formatDate(currentDate));
-                updateCalendar();
-            });
-        }
-        
-        if (nextBtn) {
-            nextBtn.addEventListener('click', function() {
-                currentDate.setDate(currentDate.getDate() + 1);
-                console.log('Next day clicked:', formatDate(currentDate));
+                console.error('Error setting booking data:', error);
+                alert('Error opening booking form. Please try again.');
                 updateCalendar();
             });
         }
 
-        // Available slot clicks
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.time-slot.available')) {
-                e.preventDefault();
-                const slot = e.target.closest('.time-slot.available');
-                openBookingModal(slot);
+        function openTimerModal(timerId) {
+            activeModalTimerId = timerId;
+            const timerState = activeTimers[timerId] || {
+                totalDuration: 3600,
+                remaining: 3600,
+                intervalId: null,
+                isRunning: false,
+                player: 'N/A',
+                game: currentGame.charAt(0).toUpperCase() + currentGame.slice(1),
+                startTimeDisplay: 'N/A',
+                popupWindow: null,
+                bookingId: null,
+                court: 'N/A',
+                date: formatDate(currentDate),
+                status: 'Confirmed'
+            };
+
+            // Prevent opening modal for No-Show bookings
+            if (timerState.status === 'No-Show') {
+                console.log('Cannot open timer for No-Show booking');
+                showNotification('No-Show Booking', 'This booking is marked as No-Show and cannot be started.');
+                return;
             }
-        });
 
-        // Booked slot clicks (for timer)
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.time-slot.booked')) {
-                e.preventDefault();
-                const slot = e.target.closest('.time-slot.booked');
-                const timerId = slot.dataset.timerId;
-                if (timerId) {
-                    openTimerModal(timerId);
-                }
+            const modalElement = document.getElementById('timerModal');
+            if (!modalElement) {
+                console.error('Timer modal element not found');
+                alert('Error: Timer modal not found.');
+                return;
             }
-        });
 
-        // New window button for timer popup
-        const newWindowBtn = document.getElementById('newWindowBtn');
-        if (newWindowBtn) {
-            newWindowBtn.addEventListener('click', function() {
-                if (activeModalTimerId) {
-                    const timerState = activeTimers[activeModalTimerId];
-                    if (timerState) {
-                        if (timerState.popupWindow && !timerState.popupWindow.closed) {
-                            timerState.popupWindow.close();
-                            timerState.popupWindow = null;
-                        }
+            const modal = new bootstrap.Modal(modalElement);
+            document.getElementById('modalTimerPlayerName').textContent = timerState.player || 'N/A';
+            document.getElementById('modalTimerGameName').textContent = timerState.game || 'N/A';
+            document.getElementById('modalTimerCourt').textContent = timerState.court || 'N/A';
+            document.getElementById('modalTimerDate').textContent = timerState.date || 'N/A';
+            document.getElementById('modalTimerGameStartTime').textContent = timerState.startTimeDisplay || 'N/A';
+            document.getElementById('modalTimer').textContent = formatTime(timerState.remaining);
 
-                        const newWindow = window.open(
-                            '/storage/staff/timer_window.html',
-                            activeModalTimerId,
-                            'width=500,height=450,resizable=yes,scrollbars=no'
-                        );
+            if (!activeTimers[timerId]) {
+                activeTimers[timerId] = timerState;
+            }
 
-                        if (newWindow) {
-                            timerState.popupWindow = newWindow;
-                            newWindow.onload = () => {
-                                if (newWindow.receiveTimerData) {
-                                    newWindow.receiveTimerData({
-                                        timerId: activeModalTimerId,
-                                        totalDuration: timerState.totalDuration,
-                                        remaining: timerState.remaining,
-                                        isRunning: timerState.isRunning,
-                                        player: timerState.player,
-                                        game: timerState.game,
-                                        startTimeDisplay: timerState.startTimeDisplay
-                                    });
-                                }
-                            };
-                        } else {
-                            alert('Popup blocked! Please allow popups for this site.');
-                        }
+            // Setup cancel booking button
+            const cancelBtn = document.getElementById('cancelBookingBtn');
+            if (cancelBtn) {
+                // Remove old event listeners
+                const newCancelBtn = cancelBtn.cloneNode(true);
+                cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+                newCancelBtn.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to cancel this booking?')) {
+                        // Extract booking details from timerId
+                        const parts = timerId.split('-');
+                        const game = parts[0];
+                        const dateKey = parts[1];
+                        const court = parts[2];
+                        const time = parts.slice(3).join(':').replace(/-/g, ':');
+
+                        console.log('Cancelling booking:', {
+                            game,
+                            dateKey,
+                            court,
+                            time
+                        });
+
+                        // Set selected booking data for cancellation
+                        @this.set('selectedGame', game);
+                        @this.set('selectedDate', dateKey);
+                        @this.set('selectedCourt', court);
+                        @this.set('selectedTime', time);
+
+                        // Call cancel booking
+                        @this.call('cancelBooking', timerState.bookingId).then(() => {
+                            modal.hide();
+                            showNotification('Booking Cancelled', 'The booking has been successfully cancelled.');
+                            refreshBookingData().then(() => {
+                                updateCalendar();
+                            });
+                        }).catch(error => {
+                            console.error('Error cancelling booking:', error);
+                            alert('Error cancelling booking. Please try again.');
+                        });
                     }
-                }
-            });
-        }
+                });
+            }
 
-        // Livewire events
-        window.addEventListener('bookingCreated', function(event) {
-            console.log('Booking created successfully', event.detail);
-            closeModal('bookingModal');
-            refreshBookingData().then(() => {
-                updateCalendar();
-            });
-        });
-
-        window.addEventListener('closeModal', function() {
-            console.log('closeModal event received');
-            closeModal('bookingModal');
-            updateCalendar();
-        });
-
-        $('#bookingModal').on('hidden.bs.modal', function () {
-            console.log('Booking modal hidden');
-            updateCalendar();
-        });
-
-        // Listen for new booking detected event (from polling)
-        window.addEventListener('newBookingDetected', (event) => {
-            console.log('New booking detected from database!', event.detail);
-            
-            const booking = event.detail[0]; // Get booking data
-            
-            // Show notification
-            showNotification(
-                '🔔 New Booking!', 
-                `${booking.user_name} booked ${booking.game_name} - Court ${booking.court_number}<br>
-                Date: ${booking.booking_date} | Time: ${booking.start_time}`
-            );
-            
-            // Refresh the booking data and update calendar
-            refreshBookingData().then(() => {
-                updateCalendar();
-            });
-        });
-
-        // Listen for booking cancelled event
-        window.addEventListener('bookingCancelled', () => {
-            console.log('Booking cancelled - refresh UI');
-            refreshBookingData().then(() => {
-                updateCalendar();
-            });
-        });
-    }
-
-    function refreshBookingData() {
-        return new Promise((resolve, reject) => {
-            @this.call('getBookingDetails').then(response => {
-                sportData = response || {};
-                console.log('Booking data refreshed:', sportData);
-                resolve();
-            }).catch(error => {
-                console.error('Error refreshing booking data:', error);
-                alert('Error refreshing booking data. Please try again.');
-                reject(error);
-            });
-        });
-    }
-
-    function openBookingModal(slot) {
-        const time = slot.dataset.time || '';
-        const display = slot.dataset.display || '';
-        const court = slot.dataset.court || '';
-        const date = formatDate(currentDate);
-        const dateKey = formatDateKey(currentDate);
-
-        if (!currentGame || !time || !display || !court || !dateKey) {
-            console.error('Missing required data for booking modal:', { currentGame, time, display, court, dateKey });
-            alert('Error: Unable to open booking modal. Missing required information.');
-            return;
-        }
-
-        console.log('Opening booking modal with data:', { game: currentGame, dateKey, time, court, display });
-
-        const modalElement = document.getElementById('bookingModal');
-        if (!modalElement) {
-            console.error('Booking modal element not found');
-            alert('Error: Booking modal not found.');
-            return;
-        }
-
-        const modal = new bootstrap.Modal(modalElement);
-        document.getElementById('modalGame').textContent = currentGame.charAt(0).toUpperCase() + currentGame.slice(1);
-        document.getElementById('modalDate').textContent = date;
-        document.getElementById('modalTime').textContent = display;
-        document.getElementById('modalCourt').textContent = court;
-
-        // Extract the time in H:i:s format from the time variable
-        const timeParts = time.split(':');
-        const formattedTime = `${timeParts[0]}:${timeParts[1]}:${timeParts[2]}`;
-
-        @this.setSelectedBookingData({ game: currentGame, dateKey, time: formattedTime, court }).then(() => {
-            console.log('setSelectedBookingData resolved');
+            updateTimerButtons(timerState.isRunning, timerId);
             modal.show();
-        }).catch(error => {
-            console.error('Error setting booking data:', error);
-            alert('Error opening booking form. Please try again.');
-            updateCalendar();
-        });
-    }
-
-    function openTimerModal(timerId) {
-        activeModalTimerId = timerId;
-        const timerState = activeTimers[timerId] || {
-            totalDuration: 3600,
-            remaining: 3600,
-            intervalId: null,
-            isRunning: false,
-            player: 'N/A',
-            game: currentGame.charAt(0).toUpperCase() + currentGame.slice(1),
-            startTimeDisplay: 'N/A',
-            popupWindow: null
-        };
-
-        const modalElement = document.getElementById('timerModal');
-        if (!modalElement) {
-            console.error('Timer modal element not found');
-            alert('Error: Timer modal not found.');
-            return;
         }
 
-        const modal = new bootstrap.Modal(modalElement);
-        document.getElementById('modalTimerPlayerName').textContent = timerState.player || 'N/A';
-        document.getElementById('modalTimerGameStartTime').textContent = timerState.startTimeDisplay || 'N/A';
-        document.getElementById('modalTimer').textContent = formatTime(timerState.remaining);
-
-        if (!activeTimers[timerId]) {
-            activeTimers[timerId] = timerState;
-        }
-
-        updateTimerButtons(timerState.isRunning, timerId);
-        modal.show();
-    }
-
-    function closeModal(modalId) {
-        const modalElement = document.getElementById(modalId);
-        if (modalElement) {
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) {
-                modal.hide();
+        function closeModal(modalId) {
+            const modalElement = document.getElementById(modalId);
+            if (modalElement) {
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
             }
         }
-    }
 
-    function updateCalendar() {
-        if (!currentGame) {
-            console.warn('No current game selected, skipping calendar update.');
-            document.getElementById('calendarBody').innerHTML = `
+        function updateCalendar() {
+            if (!currentGame) {
+                console.warn('No current game selected, skipping calendar update.');
+                document.getElementById('calendarBody').innerHTML = `
                 <tr>
                     <td colspan="100%" class="text-center py-4">
                         <i class="fas fa-info-circle me-2"></i>Please select a game to view the calendar.
                     </td>
                 </tr>
             `;
-            document.getElementById('calendarHeader').innerHTML = '<th class="time-column">Time</th>';
-            return;
-        }
-        
-        console.log('Updating calendar for:', currentGame, formatDateKey(currentDate));
-        
-        const dateKey = formatDateKey(currentDate);
-        const gameData = sportData[currentGame]?.[dateKey] || {};
-        
-        console.log('DEBUG - dateKey:', dateKey);
-        console.log('DEBUG - gameData:', gameData);
-        console.log('DEBUG - sportData[currentGame]:', sportData[currentGame]);
-        console.log('DEBUG - gamesConfig:', gamesConfig);
-        console.log('DEBUG - currentGame:', currentGame);
-        
-        let numberOfCourts = 3;
-        const currentGameObject = gamesConfig.find(game => {
-            console.log('DEBUG - Checking game:', game, 'name.toLowerCase():', game.name.toLowerCase(), 'vs currentGame:', currentGame);
-            return game.name.toLowerCase() === currentGame;
-        });
-        
-        console.log('DEBUG - currentGameObject:', currentGameObject);
-        
-        if (currentGameObject && currentGameObject.maximum_court) {
-            numberOfCourts = currentGameObject.maximum_court;
-            console.log('DEBUG - numberOfCourts from game:', numberOfCourts);
-        } else {
-            console.log('DEBUG - Using default numberOfCourts:', numberOfCourts);
-        }
-        
-        const courts = Array.from({ length: numberOfCourts }, (_, i) => `${i + 1}`);
-        
-        console.log('DEBUG - courts array:', courts);
-        
-        for (const timerId in activeTimers) {
-            if (activeTimers[timerId].intervalId) {
-                clearInterval(activeTimers[timerId].intervalId);
-                activeTimers[timerId].intervalId = null;
+                document.getElementById('calendarHeader').innerHTML = '<th class="time-column">Time</th>';
+                return;
             }
-        }
-        
-        let headerHtml = '<th class="time-column">Time</th>';
-        courts.forEach(court => {
-            headerHtml += `<th>Court ${court}</th>`;
-        });
-        
-        console.log('DEBUG - headerHtml:', headerHtml);
-        
-        document.getElementById('calendarHeader').innerHTML = headerHtml;
-         
-        let bodyHtml = '';
-        const timeSlots = generateTimeSlots();
-        
-        console.log('DEBUG - timeSlots generated:', timeSlots.length);
-        
-        timeSlots.forEach(slot => {
-            bodyHtml += `<tr><td class="time-column">${slot.display}</td>`;
-            
+
+            console.log('Updating calendar for:', currentGame, formatDateKey(currentDate));
+
+            const dateKey = formatDateKey(currentDate);
+            const gameData = sportData[currentGame]?.[dateKey] || {};
+
+            console.log('DEBUG - dateKey:', dateKey);
+            console.log('DEBUG - gameData:', gameData);
+            console.log('DEBUG - sportData[currentGame]:', sportData[currentGame]);
+            console.log('DEBUG - gamesConfig:', gamesConfig);
+            console.log('DEBUG - currentGame:', currentGame);
+
+            let numberOfCourts = 3;
+            const currentGameObject = gamesConfig.find(game => {
+                console.log('DEBUG - Checking game:', game, 'name.toLowerCase():', game.name.toLowerCase(), 'vs currentGame:', currentGame);
+                return game.name.toLowerCase() === currentGame;
+            });
+
+            console.log('DEBUG - currentGameObject:', currentGameObject);
+
+            if (currentGameObject && currentGameObject.maximum_court) {
+                numberOfCourts = currentGameObject.maximum_court;
+                console.log('DEBUG - numberOfCourts from game:', numberOfCourts);
+            } else {
+                console.log('DEBUG - Using default numberOfCourts:', numberOfCourts);
+            }
+
+            const courts = Array.from({
+                length: numberOfCourts
+            }, (_, i) => `${i + 1}`);
+
+            console.log('DEBUG - courts array:', courts);
+
+            for (const timerId in activeTimers) {
+                if (activeTimers[timerId].intervalId) {
+                    clearInterval(activeTimers[timerId].intervalId);
+                    activeTimers[timerId].intervalId = null;
+                }
+            }
+
+            let headerHtml = '<th class="time-column">Time</th>';
             courts.forEach(court => {
-                const bookings = gameData[court] || {};                
-                const bookingInfo = bookings[slot.time24.substring(0, 5) + ':00'];
-                 
-                if (bookingInfo) {
-                    const timerId = `${currentGame}-${dateKey}-${court.replace(/\s/g, '')}-${slot.time24.replace(/:/g, '-')}`;
-                    const totalDuration = calculateDurationInSeconds(slot.time24, bookingInfo.end);
-                    
-                    if (!activeTimers[timerId] || activeTimers[timerId].totalDuration !== totalDuration) {
-                        activeTimers[timerId] = {
-                            totalDuration: totalDuration,
-                            remaining: totalDuration,
-                            intervalId: null,
-                            isRunning: false,
-                            player: bookingInfo.player,
-                            game: currentGame.charAt(0).toUpperCase() + currentGame.slice(1),
-                            startTimeDisplay: slot.display,
-                            popupWindow: null
-                        };
-                    }
-                    
-                    const displayTime = formatTime(activeTimers[timerId].remaining);
-                    const statusBadge = getStatusBadge(bookingInfo.status);
-                    const permanentBadge = bookingInfo.permanent ? '<span class="badge bg-primary ms-1">Permanent</span>' : '';
-                    const isRunning = activeTimers[timerId].isRunning;
-                    
-                  bodyHtml += `
+                headerHtml += `<th>Court ${court}</th>`;
+            });
+
+            console.log('DEBUG - headerHtml:', headerHtml);
+
+            document.getElementById('calendarHeader').innerHTML = headerHtml;
+
+            let bodyHtml = '';
+            const timeSlots = generateTimeSlots();
+
+            console.log('DEBUG - timeSlots generated:', timeSlots.length);
+
+            timeSlots.forEach(slot => {
+                bodyHtml += `<tr><td class="time-column">${slot.display}</td>`;
+
+                courts.forEach(court => {
+                    const bookings = gameData[court] || {};
+                    const bookingInfo = bookings[slot.time24.substring(0, 5) + ':00'];
+
+                    if (bookingInfo) {
+                        const timerId = `${currentGame}-${dateKey}-${court.replace(/\s/g, '')}-${slot.time24.replace(/:/g, '-')}`;
+                        const totalDuration = calculateDurationInSeconds(slot.time24, bookingInfo.end);
+                        const isNoShow = bookingInfo.status === 'No-Show';
+
+                        if (!activeTimers[timerId] || activeTimers[timerId].totalDuration !== totalDuration) {
+                            activeTimers[timerId] = {
+                                totalDuration: totalDuration,
+                                remaining: totalDuration,
+                                intervalId: null,
+                                isRunning: false,
+                                player: bookingInfo.player,
+                                game: currentGame.charAt(0).toUpperCase() + currentGame.slice(1),
+                                startTimeDisplay: slot.display,
+                                popupWindow: null,
+                                bookingId: bookingInfo.id,
+                                court: court,
+                                date: formatDate(currentDate),
+                                status: bookingInfo.status
+                            };
+                        }
+
+                        const displayTime = formatTime(activeTimers[timerId].remaining);
+                        const statusBadge = getStatusBadge(bookingInfo.status);
+                        const permanentBadge = bookingInfo.permanent ? '<span class="badge bg-primary ms-1">Permanent</span>' : '';
+                        const isRunning = activeTimers[timerId].isRunning;
+
+                        // Don't show timer for No-Show bookings and make it non-clickable
+                        const timerDisplay = isNoShow ? '' : `<div id="${timerId}" class="timer-display ${isRunning ? 'timer-running' : ''} fw-bold text-primary">${displayTime}</div>`;
+                        const clickHandler = isNoShow ? '' : `onclick="openTimerModal('${timerId}')"`;
+                        const cursorStyle = isNoShow ? 'cursor: not-allowed; opacity: 0.7;' : 'cursor: pointer;';
+
+                        bodyHtml += `
                         <td>
-                            <div class="time-slot booked d-flex align-items-center justify-content-between p-2 rounded shadow-sm bg-light mb-0" data-timer-id="${timerId}">
+                            <div class="time-slot booked d-flex align-items-center justify-content-between p-2 rounded shadow-sm bg-light mb-0" data-timer-id="${timerId}" ${clickHandler} style="${cursorStyle}">
                                 
                                 <!-- Left: Avatar + Booking Info -->
                                 <div class="d-flex align-items-center flex-shrink-0" style="min-width: 0;">
@@ -1428,9 +1623,7 @@
                                 <!-- Center: Timer -->
                                 <div class="text-center flex-grow-1">
                                         ${statusBadge}
-                                    <div id="${timerId}" class="timer-display ${isRunning ? 'timer-running' : ''} fw-bold text-primary">
-                                        ${displayTime}
-                                    </div>
+                                    ${timerDisplay}
                                 </div>
 
                                 <!-- Right: Badges -->
@@ -1445,219 +1638,256 @@
 
                         `;
 
-                } else {
-                    bodyHtml += `
-                        <td>
-                            <div class="time-slot available" 
-                                 data-time="${slot.time24.substring(0, 8)}" 
-                                 data-display="${slot.display}" 
-                                 data-court="${court}">
-                                <i class="fas fa-plus-circle me-2"></i>Available
-                            </div>
-                        </td>`;
-                }
+                    } else {
+                        // Check if this time slot has already passed
+                        const now = new Date();
+                        const slotDateTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(),
+                            parseInt(slot.time24.split(':')[0]), parseInt(slot.time24.split(':')[1]));
+                        const isPastSlot = slotDateTime < now;
+
+                        if (isPastSlot) {
+                            // Show past slot as disabled/unavailable
+                            bodyHtml += `
+                            <td>
+                                <div class="time-slot past-slot" 
+                                     style="background: #e9ecef; border: 2px dashed #adb5bd; color: #6c757d; cursor: not-allowed; opacity: 0.6;">
+                                    <i class="fas fa-lock me-2"></i>Time Past
+                                </div>
+                            </td>`;
+                        } else {
+                            // Show available slot as clickable
+                            bodyHtml += `
+                            <td>
+                                <div class="time-slot available" 
+                                     data-time="${slot.time24.substring(0, 8)}" 
+                                     data-display="${slot.display}" 
+                                     data-court="${court}">
+                                    <i class="fas fa-plus-circle me-2"></i>Available
+                                </div>
+                            </td>`;
+                        }
+                    }
+                });
+
+                bodyHtml += '</tr>';
             });
-            
-            bodyHtml += '</tr>';
-        });
-        
-        console.log('DEBUG - Total rows generated:', timeSlots.length);
-        console.log('DEBUG - bodyHtml length:', bodyHtml.length);
-        console.log('DEBUG - First 200 chars of bodyHtml:', bodyHtml.substring(0, 200));
-        
-        document.getElementById('calendarBody').innerHTML = bodyHtml;
-        document.getElementById('currentDate').textContent = formatDate(currentDate);
-        
-        console.log('DEBUG - Calendar body updated!');
-        
-        for (const timerId in activeTimers) {
-            const timerState = activeTimers[timerId];
-            if (timerState.isRunning && timerState.remaining > 0) {
-                startTimer(timerId);
+
+            console.log('DEBUG - Total rows generated:', timeSlots.length);
+            console.log('DEBUG - bodyHtml length:', bodyHtml.length);
+            console.log('DEBUG - First 200 chars of bodyHtml:', bodyHtml.substring(0, 200));
+
+            document.getElementById('calendarBody').innerHTML = bodyHtml;
+            document.getElementById('currentDate').textContent = formatDate(currentDate);
+
+            console.log('DEBUG - Calendar body updated!');
+
+            for (const timerId in activeTimers) {
+                const timerState = activeTimers[timerId];
+                if (timerState.isRunning && timerState.remaining > 0) {
+                    startTimer(timerId);
+                }
             }
         }
-    }
-    function handleSlotClick(sportId, courtName, timeSlot) {
-    // Open modal and set booking details, similar to sample
-    const modal = document.getElementById('booking-modal');
-    const modalDetailsEl = document.getElementById('modal-details');
-    modalDetailsEl.innerHTML = `
+
+        function handleSlotClick(sportId, courtName, timeSlot) {
+            // Open modal and set booking details, similar to sample
+            const modal = document.getElementById('booking-modal');
+            const modalDetailsEl = document.getElementById('modal-details');
+            modalDetailsEl.innerHTML = `
         <strong>Sport:</strong> ${sportId}<br>
         <strong>Court:</strong> ${courtName}<br>
         <strong>Time:</strong> ${timeSlot}<br>
         <strong>Date:</strong> ${formatDate(currentDate)}
     `;
-    modal.classList.add('flex');
-}
+            modal.classList.add('flex');
+        }
 
-    function handleCancelBooking(timerId) {
-        // Remove booking from sportData and re-render
-        // Example: delete sportData[currentGame][dateKey][court][time];
-        updateCalendar();
-    }
+        function handleCancelBooking(timerId) {
+            // Remove booking from sportData and re-render
+            // Example: delete sportData[currentGame][dateKey][court][time];
+            updateCalendar();
+        }
 
-    function generateTimeSlots() {
-        const slots = [];
-        for (let hour = 6; hour < 23; hour++) {
-            const startHour = hour % 12 || 12;
-            const ampm = hour < 12 ? 'AM' : 'PM';
-            const nextHour24 = (hour + 1) % 24;
-            const nextHour12 = nextHour24 % 12 || 12;
-            const nextAmpm = nextHour24 < 12 ? 'AM' : 'PM';
+        function generateTimeSlots() {
+            const slots = [];
+            for (let hour = 6; hour < 23; hour++) {
+                const startHour = hour % 12 || 12;
+                const ampm = hour < 12 ? 'AM' : 'PM';
+                const nextHour24 = (hour + 1) % 24;
+                const nextHour12 = nextHour24 % 12 || 12;
+                const nextAmpm = nextHour24 < 12 ? 'AM' : 'PM';
 
-            slots.push({
-                time24: `${hour.toString().padStart(2, '0')}:00:00.000000`, // Modified time format
-                display: `${startHour}:00 ${ampm} - ${nextHour12}:00 ${nextAmpm}`
+                slots.push({
+                    time24: `${hour.toString().padStart(2, '0')}:00:00.000000`, // Modified time format
+                    display: `${startHour}:00 ${ampm} - ${nextHour12}:00 ${nextAmpm}`
+                });
+            }
+            return slots;
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
             });
         }
-        return slots;
-    }
 
-    function formatDate(date) {
-        return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    }
-
-    function formatDateKey(date) {
-        return date.toISOString().split('T')[0];
-    }
-
-    function calculateDurationInSeconds(startTimeStr, endTimeStr) {
-        const [startHour, startMinute] = startTimeStr.split(':').map(Number);
-        const [endHour, endMinute] = endTimeStr.split(':').map(Number);
-
-        const startDate = new Date(0, 0, 0, startHour, startMinute, 0);
-        let endDate = new Date(0, 0, 0, endHour, endMinute, 0);
-
-        if (endDate < startDate) {
-            endDate.setDate(endDate.getDate() + 1);
+        function formatDateKey(date) {
+            return date.toISOString().split('T')[0];
         }
 
-        return (endDate.getTime() - startDate.getTime()) / 1000;
-    }
+        function calculateDurationInSeconds(startTimeStr, endTimeStr) {
+            const [startHour, startMinute] = startTimeStr.split(':').map(Number);
+            const [endHour, endMinute] = endTimeStr.split(':').map(Number);
 
-    function formatTime(seconds) {
-        const hrs = Math.floor(seconds / 3600).toString().padStart(2, '0');
-        const mins = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-        const secs = (seconds % 60).toString().padStart(2, '0');
-        return `${hrs}:${mins}:${secs}`;
-    }
+            const startDate = new Date(0, 0, 0, startHour, startMinute, 0);
+            let endDate = new Date(0, 0, 0, endHour, endMinute, 0);
 
-    function getStatusBadge(status) {
-        let badgeClass = '';
-        switch (status) {
-            case 'Confirmed': badgeClass = 'bg-success'; break;
-            case 'Pending': badgeClass = 'bg-warning text-dark'; break;
-            case 'Completed': badgeClass = 'bg-info'; break;
-            case 'Cancelled': badgeClass = 'bg-danger'; break;
-            case 'No-Show': badgeClass = 'bg-secondary'; break;
-            default: badgeClass = 'bg-secondary';
-        }
-        return `<span class="badge ${badgeClass}">${status}</span>`;
-    }
-
-    function startTimer(timerIdToControl) {
-        const timerState = activeTimers[timerIdToControl];
-        if (!timerState || timerState.intervalId) return;
-
-        timerState.isRunning = true;
-        updateTimerButtons(true, timerIdToControl);
-
-        timerState.intervalId = setInterval(() => {
-            if (timerState.remaining > 0) {
-                timerState.remaining--;
-                updateTimerDisplay(timerIdToControl);
-            } else {
-                clearInterval(timerState.intervalId);
-                timerState.intervalId = null;
-                timerState.isRunning = false;
-                updateTimerButtons(false, timerIdToControl);
-                updateTimerDisplay(timerIdToControl);
+            if (endDate < startDate) {
+                endDate.setDate(endDate.getDate() + 1);
             }
-        }, 1000);
 
-        if (timerState.popupWindow && !timerState.popupWindow.closed && typeof timerState.popupWindow.startWindowTimer === 'function') {
-            timerState.popupWindow.startWindowTimer();
-        }
-    }
-
-    function pauseTimer(timerIdToControl) {
-        const timerState = activeTimers[timerIdToControl];
-        if (!timerState || !timerState.intervalId) return;
-
-        clearInterval(timerState.intervalId);
-        timerState.intervalId = null;
-        timerState.isRunning = false;
-        updateTimerButtons(false, timerIdToControl);
-        updateTimerDisplay(timerIdToControl);
-
-        if (timerState.popupWindow && !timerState.popupWindow.closed && typeof timerState.popupWindow.pauseWindowTimer === 'function') {
-            timerState.popupWindow.pauseWindowTimer();
-        }
-    }
-
-    function resetTimer(timerIdToControl) {
-        const timerState = activeTimers[timerIdToControl];
-        if (!timerState) return;
-
-        pauseTimer(timerIdToControl);
-        timerState.remaining = timerState.totalDuration;
-        timerState.isRunning = false;
-        updateTimerButtons(false, timerIdToControl);
-        updateTimerDisplay(timerIdToControl);
-
-        if (timerState.popupWindow && !timerState.popupWindow.closed && typeof timerState.popupWindow.resetWindowTimer === 'function') {
-            timerState.popupWindow.resetWindowTimer();
-        }
-    }
-
-    function updateTimerDisplay(timerId) {
-        const timerState = activeTimers[timerId];
-        if (!timerState) return;
-
-        const formattedTime = formatTime(timerState.remaining);
-
-        if (activeModalTimerId === timerId) {
-            const modalTimer = document.getElementById('modalTimer');
-            if (modalTimer) modalTimer.textContent = formattedTime;
+            return (endDate.getTime() - startDate.getTime()) / 1000;
         }
 
-        const tableTimer = document.getElementById(timerId);
-        if (tableTimer) {
-            tableTimer.textContent = formattedTime;
-            if (timerState.isRunning) tableTimer.classList.add('timer-running');
-            else tableTimer.classList.remove('timer-running');
+        function formatTime(seconds) {
+            const hrs = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const mins = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            return `${hrs}:${mins}:${secs}`;
         }
-    }
 
-    function updateTimerButtons(isRunning, timerId) {
-        const startBtn = document.getElementById('startButton');
-        const pauseBtn = document.getElementById('pauseButton');
-        const resetBtn = document.getElementById('resetButton');
-        
-        if (startBtn && pauseBtn && resetBtn && activeModalTimerId === timerId) {
-            startBtn.disabled = isRunning;
-            pauseBtn.disabled = !isRunning;
-            resetBtn.disabled = isRunning;
+        function getStatusBadge(status) {
+            let badgeClass = '';
+            switch (status) {
+                case 'Confirmed':
+                    badgeClass = 'bg-success';
+                    break;
+                case 'Pending':
+                    badgeClass = 'bg-warning text-dark';
+                    break;
+                case 'Playing':
+                    badgeClass = 'bg-primary';
+                    break;
+                case 'Completed':
+                    badgeClass = 'bg-info';
+                    break;
+                case 'Cancelled':
+                    badgeClass = 'bg-danger';
+                    break;
+                case 'No-Show':
+                    badgeClass = 'bg-secondary';
+                    break;
+                default:
+                    badgeClass = 'bg-secondary';
+            }
+            return `<span class="badge ${badgeClass}">${status}</span>`;
         }
-    }
 
-    window.updateMainTimerDisplay = function(remaining, timerIdFromPopup, isRunningFromPopup) {
-        const timerState = activeTimers[timerIdFromPopup];
-        if (timerState) {
-            timerState.remaining = remaining;
-            timerState.isRunning = isRunningFromPopup;
-            updateTimerDisplay(timerIdFromPopup);
-            if (activeModalTimerId === timerIdFromPopup) {
+        function startTimer(timerIdToControl) {
+            const timerState = activeTimers[timerIdToControl];
+            if (!timerState || timerState.intervalId) return;
+
+            timerState.isRunning = true;
+            updateTimerButtons(true, timerIdToControl);
+
+            timerState.intervalId = setInterval(() => {
+                if (timerState.remaining > 0) {
+                    timerState.remaining--;
+                    updateTimerDisplay(timerIdToControl);
+                } else {
+                    clearInterval(timerState.intervalId);
+                    timerState.intervalId = null;
+                    timerState.isRunning = false;
+                    updateTimerButtons(false, timerIdToControl);
+                    updateTimerDisplay(timerIdToControl);
+                }
+            }, 1000);
+
+            if (timerState.popupWindow && !timerState.popupWindow.closed && typeof timerState.popupWindow.startWindowTimer === 'function') {
+                timerState.popupWindow.startWindowTimer();
+            }
+        }
+
+        function pauseTimer(timerIdToControl) {
+            const timerState = activeTimers[timerIdToControl];
+            if (!timerState || !timerState.intervalId) return;
+
+            clearInterval(timerState.intervalId);
+            timerState.intervalId = null;
+            timerState.isRunning = false;
+            updateTimerButtons(false, timerIdToControl);
+            updateTimerDisplay(timerIdToControl);
+
+            if (timerState.popupWindow && !timerState.popupWindow.closed && typeof timerState.popupWindow.pauseWindowTimer === 'function') {
+                timerState.popupWindow.pauseWindowTimer();
+            }
+        }
+
+        function resetTimer(timerIdToControl) {
+            const timerState = activeTimers[timerIdToControl];
+            if (!timerState) return;
+
+            pauseTimer(timerIdToControl);
+            timerState.remaining = timerState.totalDuration;
+            timerState.isRunning = false;
+            updateTimerButtons(false, timerIdToControl);
+            updateTimerDisplay(timerIdToControl);
+
+            if (timerState.popupWindow && !timerState.popupWindow.closed && typeof timerState.popupWindow.resetWindowTimer === 'function') {
+                timerState.popupWindow.resetWindowTimer();
+            }
+        }
+
+        function updateTimerDisplay(timerId) {
+            const timerState = activeTimers[timerId];
+            if (!timerState) return;
+
+            const formattedTime = formatTime(timerState.remaining);
+
+            if (activeModalTimerId === timerId) {
                 const modalTimer = document.getElementById('modalTimer');
-                if (modalTimer) modalTimer.textContent = formatTime(remaining);
-                updateTimerButtons(isRunningFromPopup, timerIdFromPopup);
+                if (modalTimer) modalTimer.textContent = formattedTime;
+            }
+
+            const tableTimer = document.getElementById(timerId);
+            if (tableTimer) {
+                tableTimer.textContent = formattedTime;
+                if (timerState.isRunning) tableTimer.classList.add('timer-running');
+                else tableTimer.classList.remove('timer-running');
             }
         }
-    };
 
-    window.startTimer = startTimer;
-    window.pauseTimer = pauseTimer;    
-    window.resetTimer = resetTimer;
-});
+        function updateTimerButtons(isRunning, timerId) {
+            const startBtn = document.getElementById('startButton');
+            const pauseBtn = document.getElementById('pauseButton');
+            const resetBtn = document.getElementById('resetButton');
+
+            if (startBtn && pauseBtn && resetBtn && activeModalTimerId === timerId) {
+                startBtn.disabled = isRunning;
+                pauseBtn.disabled = !isRunning;
+                resetBtn.disabled = isRunning;
+            }
+        }
+
+        window.updateMainTimerDisplay = function(remaining, timerIdFromPopup, isRunningFromPopup) {
+            const timerState = activeTimers[timerIdFromPopup];
+            if (timerState) {
+                timerState.remaining = remaining;
+                timerState.isRunning = isRunningFromPopup;
+                updateTimerDisplay(timerIdFromPopup);
+                if (activeModalTimerId === timerIdFromPopup) {
+                    const modalTimer = document.getElementById('modalTimer');
+                    if (modalTimer) modalTimer.textContent = formatTime(remaining);
+                    updateTimerButtons(isRunningFromPopup, timerIdFromPopup);
+                }
+            }
+        };
+
+        window.startTimer = startTimer;
+        window.pauseTimer = pauseTimer;
+        window.resetTimer = resetTimer;
+    });
 </script>
 @endpush

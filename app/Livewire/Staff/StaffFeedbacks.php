@@ -6,6 +6,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use App\Models\BookingVenueReview;
+use Illuminate\Support\Facades\Auth;
 
 
 #[Title("Feedback Dashboard")]
@@ -17,16 +18,19 @@ class StaffFeedbacks extends Component
     public $reviews = [];
     public $venue;
     public $imageUrl;
+    public $complex_id;
 
     public function mount()
     {
+        $this->complex_id = Auth::user()->complex_id;
         $this->loadFeedbacks();
     }
 
     public function loadFeedbacks()
     {
-        // Get all reviews with related user and venue
+        // Get reviews only for the current venue
         $reviews = BookingVenueReview::with(['user', 'venue'])
+            ->where('venue_id', $this->complex_id)
             ->latest()
             ->get();
 

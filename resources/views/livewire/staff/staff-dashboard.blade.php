@@ -93,7 +93,7 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <h6 class="card-title opacity-75">Total Sports</h6>
-                            <h2 class="mb-0">{{ $bookingsCount }}</h2>
+                            <h2 class="mb-0">{{ $sportsCount }}</h2>
                             <small class="opacity-75">
                                 <i class="fas fa-arrow-up me-1"></i>
                                 Increased from last month
@@ -112,7 +112,7 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <h6 class="card-title text-muted">Total Bookings</h6>
-                            <h2 class="mb-0">{{ $sportsCount }}</h2>
+                            <h2 class="mb-0">{{ $bookingsCount }}</h2>
                             <small class="text-muted">
                                 <i class="fas fa-arrow-up text-success me-1"></i>
                                 Increased from last month

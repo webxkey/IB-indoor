@@ -17,8 +17,7 @@ use Illuminate\Support\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Illuminate\Support\Facades\Auth;
-;
+use Illuminate\Support\Facades\Auth;;
 
 #[Title("Staff Dashboard")]
 #[Layout("components.layouts.staff")]
@@ -35,7 +34,7 @@ class StaffDashboard extends Component
     public $selectedDate;
     public $analyticsSlots = [];
     public $showNotifications = false;
-    public $recentBookings ;
+    public $recentBookings;
     public $unreadBookingsCount;
     public $totalBookingsCount;
     public $markedAsRead = false;
@@ -59,13 +58,17 @@ class StaffDashboard extends Component
         $this->selectedDate = Carbon::today()->toDateString();
         $this->complex_id = Auth::user()->complex_id;
         $this->loadDashboardStats(); // Move your count logic here
+        $this->loadUpcomingBookings(); // Load upcoming bookings for this venue
         $this->generateTimeSlots();
         $this->loadNotifications();
     }
 
-     public function showBookingDetails($booking_id)
+    public function showBookingDetails($booking_id)
     {
-        $this->selectedBooking = BookingBooking::find($booking_id);
+        // Only show booking details if it belongs to the current venue
+        $this->selectedBooking = BookingBooking::where('id', $booking_id)
+            ->where('complex_id_id', $this->complex_id)
+            ->first();
     }
 
     public function closeModal()
@@ -87,9 +90,9 @@ class StaffDashboard extends Component
             $this->analyticsSlots = [];
             return;
         }
-        
 
-        $games = BookingSport::all();
+        // Only get games from the current venue
+        $games = BookingSport::where('venue_id', $this->complex_id)->get();
         $startHour = 6;
         $endHour = 23;
 
@@ -102,13 +105,14 @@ class StaffDashboard extends Component
                 $slotStart = Carbon::parse($date)->setHour($i)->setMinute(0)->setSecond(0);
                 $slotEnd = $slotStart->copy()->addHour();
 
-                // Check if a booking overlaps with this slot
-                $bookingExists = BookingBooking::where('game_id_id', $game->game_id)
+                // Check if a booking overlaps with this slot (filtered by complex)
+                $bookingExists = BookingBooking::where('game_id_id', $game->id)
+                    ->where('complex_id_id', $this->complex_id)
                     ->whereDate('booking_date', $date)
                     ->where(function ($query) use ($slotStart, $slotEnd) {
                         $query->where(function ($q) use ($slotStart, $slotEnd) {
                             $q->where('start_time', '<', $slotEnd)
-                            ->where('end_time', '>', $slotStart);
+                                ->where('end_time', '>', $slotStart);
                         });
                     })
                     ->exists();
@@ -117,7 +121,7 @@ class StaffDashboard extends Component
             }
 
             $analytics[] = [
-                'game' => $game->game_name,
+                'game' => $game->name,
                 'slots' => $slots,
             ];
         }
@@ -125,9 +129,21 @@ class StaffDashboard extends Component
         $this->analyticsSlots = $analytics;
     }
 
+    public function loadUpcomingBookings()
+    {
+        // Load only upcoming bookings for the current venue
+        $this->upcomingBookings = BookingBooking::where('complex_id_id', $this->complex_id)
+            ->where('booking_date', '>=', Carbon::today()->toDateString())
+            ->where('status', '!=', 'Cancelled')
+            ->orderBy('booking_date', 'asc')
+            ->orderBy('start_time', 'asc')
+            ->get();
+    }
+
     public function loadDashboardStats()
     {
-        $this->bookingsCount = BookingBooking::count();
+        // Filter all stats by current venue only
+        $this->bookingsCount = BookingBooking::where('complex_id_id', $this->complex_id)->count();
         $this->sportsCount = BookingSport::where('venue_id', $this->complex_id)->count();
         $this->todaybookingRevenue = BookingBooking::whereDate('created_at', today())
             ->where('complex_id_id', $this->complex_id)
@@ -139,16 +155,18 @@ class StaffDashboard extends Component
     }
     public function loadNotifications()
     {
-        $this->recentBookings = BookingBooking::where('created_at', '>', now()
-        ->subDays(1))
-        ->orderBy('created_at', 'desc')
-        ->limit(5)
-        ->get();
+        // Only show notifications for the current venue
+        $this->recentBookings = BookingBooking::where('complex_id_id', $this->complex_id)
+            ->where('created_at', '>', now()->subDays(1))
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
 
-        $this->unreadBookingsCount = BookingBooking::where('created_at', '>', now()->subDays(3))
+        $this->unreadBookingsCount = BookingBooking::where('complex_id_id', $this->complex_id)
+            ->where('created_at', '>', now()->subDays(3))
             ->count();
 
-        $this->totalBookingsCount = BookingBooking::count();
+        $this->totalBookingsCount = BookingBooking::where('complex_id_id', $this->complex_id)->count();
     }
 
     public function markAllAsRead()
@@ -158,7 +176,7 @@ class StaffDashboard extends Component
 
         $this->markedAsRead = true;
         $this->dispatchBrowserEvent('notifications-marked-read');
-        
+
         // Optional: Automatically close modal after 2 seconds
         $this->dispatchBrowserEvent('close-modal-after-delay', [
             'delay' => 2000,
