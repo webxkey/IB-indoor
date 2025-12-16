@@ -8,7 +8,6 @@ use Livewire\Attributes\Title;
 use Carbon\Carbon;
 use App\Models\BookingBooking;
 use App\Models\BookingSport;
-use App\Models\UserUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -31,13 +30,11 @@ class BookingsManagement extends Component
     public $status = 'Confirmed';
     public $permanent = false;
     public $notes = '';
-    public $appIndooruserId;
-
 
     protected $rules = [
         'selectedGame' => 'required|string',
         'selectedDate' => 'required|date_format:Y-m-d',
-        'selectedTime' => 'required|date_format:H:i:s',
+        'selectedTime' => 'required',
         'selectedCourt' => 'required|string',
         'playerName' => 'required|string|max:255',
         'phoneNumber' => 'required|string|max:20',
@@ -50,17 +47,13 @@ class BookingsManagement extends Component
     public function mount()
     {
         $this->complex_id = Auth::user()->complex_id;
-
-        // Check for No-Shows first before loading sports
-        $this->checkNoShows();
-
+        $this->checkAndUpdateBookingStatuses();
         $this->loadSports();
     }
 
     public function refreshBookings()
     {
         $this->loadSports();
-        Log::info('Bookings refreshed via real-time event');
     }
 
     public function loadSports()
@@ -70,6 +63,7 @@ class BookingsManagement extends Component
                 ->where('status', 'Active')
                 ->get();
 
+            // Only load non-cancelled bookings for display
             $this->bookings = BookingBooking::where('complex_id_id', $this->complex_id)
                 ->whereNotIn('status', ['Cancelled'])
                 ->get();
@@ -85,121 +79,85 @@ class BookingsManagement extends Component
             $this->bookingdetails = [];
             foreach ($this->bookings as $booking) {
                 $game = strtolower($booking->game_name ?? '');
-                if (empty($game)) {
-                    Log::warning('Booking with empty game_name', ['booking_id' => $booking->id]);
-                    continue;
-                }
+                if (empty($game)) continue;
 
                 $date = Carbon::parse($booking->booking_date)->format('Y-m-d');
                 $court = $booking->court_number ?? '1';
-                $start = $booking->start_time;
-                $end = $booking->end_time;
+                $startTime = Carbon::parse($booking->start_time);
+                $endTime = Carbon::parse($booking->end_time);
 
-                // Parse start and end times using Carbon
-                $startTime = Carbon::parse($start);
-                $endTime = Carbon::parse($end);
+                $hours = max(1, $startTime->diffInHours($endTime));
 
-                // Calculate the number of hours the booking spans
-                $hours = $startTime->diffInHours($endTime);
-                if ($hours < 1) $hours = 1; // Minimum 1 hour
-
-                // Iterate through each hour and create a separate booking entry
                 for ($i = 0; $i < $hours; $i++) {
-                    // Calculate the start time for the current hour
-                    $currentStartTime = $startTime->copy()->addHours($i)->format('H:i:s');
-
-                    // Calculate the end time for the current hour
-                    $currentEndTime = $startTime->copy()->addHours($i + 1)->format('H:i:s');
-
-                    // Create a unique key for the booking slot
-                    $slotKey = $currentStartTime;
+                    $slotKey = $startTime->copy()->addHours($i)->format('H:i:s');
+                    $slotEnd = $startTime->copy()->addHours($i + 1)->format('H:i:s');
 
                     $this->bookingdetails[$game][$date][$court][$slotKey] = [
                         'player' => $booking->user_name ?? 'Unknown',
                         'phone' => $booking->user_number ?? 'N/A',
                         'status' => $booking->status ?? 'Pending',
                         'permanent_source_id' => $booking->permanent_source_id,
-                        'end' => $currentEndTime,
+                        'end' => $slotEnd,
                         'avatar' => '/storage/staff/user.png',
                         'id' => $booking->id,
                     ];
                 }
             }
-
-            Log::info('loadSports executed successfully', [
-                'games_count' => count($this->games),
-                'bookings_count' => count($this->bookings),
-            ]);
         } catch (\Exception $e) {
-            Log::error('Error in loadSports', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            $this->addError('general', 'Failed to load sports and bookings. Please refresh the page.');
+            Log::error('Error in loadSports', ['error' => $e->getMessage()]);
+            $this->addError('general', 'Failed to load data. Please refresh.');
         }
     }
 
     public function getBookingDetails()
     {
-        $this->loadSports(); // Re-run loadSports to refresh bookingdetails
+        $this->loadSports();
         return $this->bookingdetails;
     }
 
     public function setSelectedBookingData($data)
     {
-        // dd($data); // Debugging line to check the input data
         if (is_string($data)) {
             $data = json_decode($data, true);
         }
 
         $this->selectedGame = $data['game'] ?? '';
-
         $this->selectedDate = $data['dateKey'] ?? '';
         $this->selectedTime = $data['time'] ?? '';
         $this->selectedCourt = $data['court'] ?? '';
-
-        Log::info('setSelectedBookingData called', [
-            'input_data' => $data,
-            'updated_properties' => [
-                'selectedGame' => $this->selectedGame,
-                'selectedDate' => $this->selectedDate,
-                'selectedTime' => $this->selectedTime,
-                'selectedCourt' => $this->selectedCourt,
-            ],
-        ]);
     }
 
     public function addBooking()
     {
         $this->validate();
 
-        // Find sport by name
+        // Find sport
         $sport = BookingSport::where('name', $this->selectedGame)
             ->where('venue_id', $this->complex_id)
+            ->where('status', 'Active')
             ->first();
 
         if (!$sport) {
-            $this->addError('general', 'Selected game is not available for this complex.');
+            $this->addError('general', 'Selected game is not available.');
             return;
         }
 
-        // Get the current user (staff/admin)
-        $userEmail = Auth::user()->email;
-        $appUser = UserUser::where('email', $userEmail)->first();
-
-        if (!$appUser) {
-            $this->addError('general', 'Your user account is not properly configured. Please contact support.');
-            Log::error('User not found in users_user table', ['email' => $userEmail]);
+        $staffUser = Auth::user();
+        if (!$staffUser || !$staffUser->complex_id) {
+            $this->addError('general', 'Your account is not properly configured.');
             return;
         }
 
-        $this->appIndooruserId = $appUser->id;
+        // Normalize time format
+        $startTime = $this->selectedTime;
+        if (strlen($startTime) === 5) {
+            $startTime .= ':00';
+        }
 
-        $endTime = Carbon::parse($this->selectedTime)->addMinutes(60)->format('H:i:s');
-        $price = $sport->price ?? 1800.00;
-        // Base booking data
+        $endTime = Carbon::parse($startTime)->addMinutes(60)->format('H:i:s');
+
         $bookingData = [
-            'user_id_id' => $this->appIndooruserId,
+            'user_id_id' => $staffUser->id,
             'complex_id_id' => $this->complex_id,
             'game_id_id' => $sport->id,
             'game_name' => $this->selectedGame,
@@ -208,10 +166,10 @@ class BookingsManagement extends Component
             'user_name' => $this->playerName,
             'user_number' => $this->phoneNumber,
             'court_number' => $this->selectedCourt,
-            'start_time' => $this->selectedTime,
+            'start_time' => $startTime,
             'end_time' => $endTime,
             'duration' => 60,
-            'price' => $price,
+            'price' => $sport->price ?? 1800.00,
             'payment_status' => 'Pending',
             'payment_method' => null,
             'status' => $this->status,
@@ -221,71 +179,41 @@ class BookingsManagement extends Component
             'opponent_team_id' => null,
             'team_id' => null,
         ];
-        // dd($bookingData);
 
-        try {
-            if ($this->permanent) {
-                // Create 7 consecutive daily bookings
-                for ($i = 0; $i < 7; $i++) {
-                    $bookingDate = Carbon::parse($this->selectedDate)->addDays($i)->format('Y-m-d');
-                    $permanentId = ($i === 0) ? null : BookingBooking::where('booking_date', Carbon::parse($this->selectedDate)->format('Y-m-d'))
-                        ->where('complex_id_id', $this->complex_id)
-                        ->where('game_name', $this->selectedGame)
-                        ->where('court_number', $this->selectedCourt)
-                        ->where('start_time', $this->selectedTime)
-                        ->first()?->id;
-
-                    BookingBooking::create(array_merge($bookingData, [
-                        'booking_date' => $bookingDate,
-                        'permanent_source_id' => $permanentId,
-                        'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
-                    ]));
-                }
-
-                Log::info('7 consecutive bookings created', [
-                    'start_date' => $this->selectedDate,
-                    'end_date' => Carbon::parse($this->selectedDate)->addDays(6)->format('Y-m-d'),
-                    'game' => $this->selectedGame,
-                    'court' => $this->selectedCourt,
-                ]);
-            } else {
-                // Create single booking
-                BookingBooking::create(array_merge($bookingData, [
-                    'booking_date' => $this->selectedDate,
+        // Create booking(s)
+        if ($this->permanent) {
+            $sourceBookingId = null;
+            for ($i = 0; $i < 7; $i++) {
+                $bookingDate = Carbon::parse($this->selectedDate)->addDays($i)->format('Y-m-d');
+                $newBooking = BookingBooking::create(array_merge($bookingData, [
+                    'booking_date' => $bookingDate,
+                    'permanent_source_id' => $sourceBookingId,
                     'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
                 ]));
-
-                Log::info('Single booking created', [
-                    'date' => $this->selectedDate,
-                    'game' => $this->selectedGame,
-                    'court' => $this->selectedCourt,
-                ]);
+                if ($i === 0) {
+                    $sourceBookingId = $newBooking->id;
+                }
             }
+        } else {
+            BookingBooking::create(array_merge($bookingData, [
+                'booking_date' => $this->selectedDate,
+                'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
+            ]));
+        }
 
+        // Refresh data and close modal
+        $this->loadSports();
+        $this->resetFields();
+
+        // Dispatch events (don't let broadcast errors affect success)
+        try {
             $this->dispatch('bookingCreated');
             $this->dispatch('closeModal');
-            $this->loadSports();
-            $this->resetFields();
-            session()->flash('message', 'Booking created successfully!');
-        } catch (\Illuminate\Database\QueryException $e) {
-            Log::error('Database error during booking creation', [
-                'error' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'booking_data' => $bookingData,
-            ]);
-
-            if (str_contains($e->getMessage(), 'foreign key constraint')) {
-                $this->addError('general', 'Booking failed: One or more required fields are invalid. Ensure all game, user, and complex IDs are correct.');
-            } else {
-                $this->addError('general', 'Booking failed: ' . $e->getMessage());
-            }
         } catch (\Exception $e) {
-            Log::error('Unexpected error during booking creation', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            $this->addError('general', 'An unexpected error occurred. Please try again.');
+            Log::warning('Broadcast event failed', ['error' => $e->getMessage()]);
         }
+
+        session()->flash('message', 'Booking created successfully!');
     }
 
     public function resetFields()
@@ -301,21 +229,17 @@ class BookingsManagement extends Component
             'permanent',
             'notes',
         ]);
+        $this->status = 'Confirmed';
         $this->resetErrorBag();
-        Log::info('resetFields executed');
     }
 
-    // Cancel booking by ID or by selected criteria
+    /**
+     * Cancel a booking - slot becomes available again
+     */
     public function cancelBooking($bookingId = null)
     {
-        $booking = null;
+        $booking = $bookingId ? BookingBooking::find($bookingId) : null;
 
-        // Try to find booking by ID first
-        if ($bookingId) {
-            $booking = BookingBooking::find($bookingId);
-        }
-
-        // If not found by ID, try by selected criteria
         if (!$booking && $this->selectedGame && $this->selectedDate && $this->selectedCourt && $this->selectedTime) {
             $booking = BookingBooking::where('complex_id_id', $this->complex_id)
                 ->where('game_name', $this->selectedGame)
@@ -329,52 +253,37 @@ class BookingsManagement extends Component
             $booking->status = 'Cancelled';
             $booking->save();
 
-            Log::info('Booking cancelled', [
-                'booking_id' => $booking->id,
-                'details' => $booking->only(['game_name', 'booking_date', 'court_number', 'start_time', 'user_name'])
-            ]);
-
             $this->dispatch('bookingCancelled');
-            $this->loadSports(); // Refresh the data
-            session()->flash('message', 'Booking cancelled successfully.');
-
+            $this->loadSports();
+            session()->flash('message', 'Booking cancelled. Slot is now available.');
             return true;
-        } else {
-            Log::warning('Booking not found for cancellation', [
-                'bookingId' => $bookingId,
-                'selectedGame' => $this->selectedGame,
-                'selectedDate' => $this->selectedDate,
-                'selectedCourt' => $this->selectedCourt,
-                'selectedTime' => $this->selectedTime
-            ]);
-            session()->flash('error', 'Booking not found!');
-
-            return false;
         }
+
+        session()->flash('error', 'Booking not found!');
+        return false;
     }
 
-    // Update booking status to Playing when timer starts
+    /**
+     * Start a booking - changes status to Playing
+     */
     public function startBooking($bookingId)
     {
         $booking = BookingBooking::find($bookingId);
 
-        if ($booking && $booking->status === 'Confirmed') {
+        if ($booking && in_array($booking->status, ['Confirmed', 'Pending'])) {
             $booking->status = 'Playing';
             $booking->save();
 
-            Log::info('Booking status changed to Playing', [
-                'booking_id' => $booking->id,
-                'game_name' => $booking->game_name,
-            ]);
-
-            $this->loadSports(); // Refresh the data
+            $this->loadSports();
             return true;
         }
 
         return false;
     }
 
-    // Update booking status to Completed when timer ends
+    /**
+     * Complete a booking - changes status to Completed
+     */
     public function completeBooking($bookingId)
     {
         $booking = BookingBooking::find($bookingId);
@@ -383,99 +292,81 @@ class BookingsManagement extends Component
             $booking->status = 'Completed';
             $booking->save();
 
-            Log::info('Booking status changed to Completed', [
-                'booking_id' => $booking->id,
-                'game_name' => $booking->game_name,
-            ]);
-
-            $this->loadSports(); // Refresh the data
+            $this->loadSports();
             return true;
         }
 
         return false;
     }
 
-    // Check for bookings that should be marked as No-Show
+    /**
+     * Alias for checkAndUpdateBookingStatuses (for backward compatibility)
+     */
     public function checkNoShows()
+    {
+        return $this->checkAndUpdateBookingStatuses();
+    }
+
+    /**
+     * Check and update booking statuses based on current time
+     * - Past confirmed/pending bookings become "No-Show"
+     * - Playing bookings past end time become "Completed"
+     */
+    public function checkAndUpdateBookingStatuses()
     {
         $now = Carbon::now();
 
-        // Find all confirmed bookings where end_time has passed
-        $noShowBookings = BookingBooking::where('complex_id_id', $this->complex_id)
-            ->where('status', 'Confirmed')
+        // Find confirmed/pending bookings where end time has passed -> No-Show
+        $expiredBookings = BookingBooking::where('complex_id_id', $this->complex_id)
+            ->whereIn('status', ['Confirmed', 'Pending'])
             ->whereDate('booking_date', '<=', $now->toDateString())
             ->get()
             ->filter(function ($booking) use ($now) {
                 try {
-                    // Extract just the date part from booking_date
                     $bookingDate = Carbon::parse($booking->booking_date)->format('Y-m-d');
-
-                    // Parse end_time - handle both time strings and datetime strings
                     $endTimeStr = $booking->end_time;
                     if (strpos($endTimeStr, ' ') !== false) {
-                        // If it contains space, it might be a full datetime
                         $endTimeStr = Carbon::parse($endTimeStr)->format('H:i:s');
                     }
-
                     $bookingEnd = Carbon::parse($bookingDate . ' ' . $endTimeStr);
-                    $isPast = $bookingEnd->lessThan($now);
-
-                    Log::info('Checking booking for No-Show', [
-                        'booking_id' => $booking->id,
-                        'booking_date' => $bookingDate,
-                        'end_time' => $endTimeStr,
-                        'booking_end_datetime' => $bookingEnd->toDateTimeString(),
-                        'current_time' => $now->toDateTimeString(),
-                        'is_past' => $isPast,
-                    ]);
-
-                    return $isPast;
+                    return $bookingEnd->lessThan($now);
                 } catch (\Exception $e) {
-                    Log::error('Error parsing booking time', [
-                        'booking_id' => $booking->id,
-                        'booking_date' => $booking->booking_date,
-                        'end_time' => $booking->end_time,
-                        'error' => $e->getMessage(),
-                    ]);
                     return false;
                 }
             });
 
-        $count = 0;
-        foreach ($noShowBookings as $booking) {
+        foreach ($expiredBookings as $booking) {
             $booking->status = 'No-Show';
-            $booking->save(); // This will trigger BookingObserver->updated() which broadcasts the change
-
-            $count++;
-
-            Log::info('Booking marked as No-Show', [
-                'booking_id' => $booking->id,
-                'game_name' => $booking->game_name,
-                'user_name' => $booking->user_name,
-                'booking_date' => $booking->booking_date,
-                'end_time' => $booking->end_time,
-                'current_time' => $now->toDateTimeString(),
-            ]);
+            $booking->save();
         }
 
-        if ($count > 0) {
-            Log::info('Total No-Shows marked', ['count' => $count]);
-            $this->loadSports(); // Refresh the data immediately
-        }
+        // Find playing bookings where end time has passed -> Completed
+        $playingBookings = BookingBooking::where('complex_id_id', $this->complex_id)
+            ->where('status', 'Playing')
+            ->whereDate('booking_date', '<=', $now->toDateString())
+            ->get()
+            ->filter(function ($booking) use ($now) {
+                try {
+                    $bookingDate = Carbon::parse($booking->booking_date)->format('Y-m-d');
+                    $endTimeStr = $booking->end_time;
+                    if (strpos($endTimeStr, ' ') !== false) {
+                        $endTimeStr = Carbon::parse($endTimeStr)->format('H:i:s');
+                    }
+                    $bookingEnd = Carbon::parse($bookingDate . ' ' . $endTimeStr);
+                    return $bookingEnd->lessThan($now);
+                } catch (\Exception $e) {
+                    return false;
+                }
+            });
 
-        return $count;
+        foreach ($playingBookings as $booking) {
+            $booking->status = 'Completed';
+            $booking->save();
+        }
     }
 
     public function render()
     {
-        // Debug logging
-        Log::info('Rendering BookingsManagement', [
-            'complex_id' => $this->complex_id,
-            'games_count' => count($this->games ?? []),
-            'games' => $this->games,
-            'bookingdetails_count' => count($this->bookingdetails ?? []),
-        ]);
-
         return view('livewire.staff.bookings-management', [
             'games' => $this->games ?? [],
             'bookingdetails' => $this->bookingdetails ?? [],

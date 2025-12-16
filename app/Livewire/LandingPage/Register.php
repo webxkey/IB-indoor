@@ -15,6 +15,7 @@ use App\Models\BookingSport;
 use App\Models\BookingGalleryImage;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
+use App\Models\UserUser;
 
 
 class Register extends Component
@@ -306,7 +307,7 @@ class Register extends Component
                     ]);
                 }
 
-                // Create user
+                // Create user in users table
                 $registeredUser = User::create([
                     'name' => $this->name,
                     'email' => $this->email,
@@ -315,6 +316,18 @@ class Register extends Component
                     'contact' => $this->contact,
                     // link the user to the booking_venue record id
                     'complex_id' => $venue->id,
+                ]);
+
+                // Also create user in users_user table for app compatibility
+                UserUser::create([
+                    'email' => $this->email,
+                    'password' => Hash::make($this->password),
+                    'first_name' => explode(' ', $this->name)[0] ?? $this->name,
+                    'last_name' => implode(' ', array_slice(explode(' ', $this->name), 1)) ?? '',
+                    'phone_number' => $this->contact,
+                    'is_active' => true,
+                    'is_staff' => false,
+                    'is_superuser' => false,
                 ]);
             });
 

@@ -14,13 +14,21 @@ class BookingObserver
      */
     public function created(BookingBooking $booking): void
     {
-        // Broadcast the event when a new booking is created
-        broadcast(new BookingCreatedEvent($booking))->toOthers();
+        try {
+            // Broadcast the event when a new booking is created
+            broadcast(new BookingCreatedEvent($booking))->toOthers();
 
-        Log::info('BookingCreatedEvent broadcasted', [
-            'booking_id' => $booking->id,
-            'complex_id' => $booking->complex_id_id,
-        ]);
+            Log::info('BookingCreatedEvent broadcasted', [
+                'booking_id' => $booking->id,
+                'complex_id' => $booking->complex_id_id,
+            ]);
+        } catch (\Exception $e) {
+            // Don't let broadcast failures affect the booking creation
+            Log::warning('BookingCreatedEvent broadcast failed (WebSocket may be offline)', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -28,14 +36,22 @@ class BookingObserver
      */
     public function updated(BookingBooking $booking): void
     {
-        // Broadcast when status or other important fields change
-        if ($booking->wasChanged(['status', 'start_time', 'end_time', 'court_number'])) {
-            broadcast(new BookingUpdatedEvent($booking))->toOthers();
+        try {
+            // Broadcast when status or other important fields change
+            if ($booking->wasChanged(['status', 'start_time', 'end_time', 'court_number'])) {
+                broadcast(new BookingUpdatedEvent($booking))->toOthers();
 
-            Log::info('BookingUpdatedEvent broadcasted', [
+                Log::info('BookingUpdatedEvent broadcasted', [
+                    'booking_id' => $booking->id,
+                    'changes' => $booking->getChanges(),
+                    'status' => $booking->status,
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Don't let broadcast failures affect the booking update
+            Log::warning('BookingUpdatedEvent broadcast failed (WebSocket may be offline)', [
                 'booking_id' => $booking->id,
-                'changes' => $booking->getChanges(),
-                'status' => $booking->status,
+                'error' => $e->getMessage(),
             ]);
         }
     }

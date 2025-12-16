@@ -51,13 +51,15 @@ class BookingCreatedEvent implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'booking_id' => $this->booking->booking_id,
+            'id' => $this->booking->id,
+            'booking_id' => $this->booking->id,
             'game_name' => $this->booking->game_name,
             'booking_date' => $this->booking->booking_date,
             'court_number' => $this->booking->court_number,
             'start_time' => $this->booking->start_time,
             'end_time' => $this->booking->end_time,
             'user_name' => $this->booking->user_name,
+            'user_number' => $this->booking->user_number,
             'status' => $this->booking->status,
             'complex_id' => $this->complexId,
         ];

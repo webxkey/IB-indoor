@@ -1020,7 +1020,7 @@
             updateCalendar();
 
             setupEventListeners();
-            setupRealtimeUpdates(); // WebSocket + MySQL triggers for ALL database changes (instant)
+            setupRealtimeUpdates(); // WebSocket for real-time updates (Reverb)
         }
 
         // Setup real-time updates using Laravel Echo + Reverb WebSockets
@@ -1049,39 +1049,48 @@
                 console.log('✅ Channel subscribed:', channel);
 
                 // Listen for new bookings
-                channel.listen('booking.created', (data) => {
+                channel.listen('.booking.created', (data) => {
                         console.log('🔔 New booking received via WebSocket:', data);
 
                         // Show notification
                         showNotification(
-                            '🎉 New Booking Created!',
+                            '🎉 New Booking from Mobile App!',
                             `${data.user_name} booked ${data.game_name} - Court ${data.court_number} at ${data.start_time}`
                         );
 
                         // Play sound
                         playNotificationSound();
 
-                        // Refresh the booking data using Livewire
-                        @this.call('refreshBookings');
+                        // Refresh the booking data and update calendar
+                        refreshBookingData().then(() => {
+                            updateCalendar();
+                        });
                     })
                     .error((error) => {
                         console.error('Error listening to booking.created:', error);
                     });
 
                 // Listen for booking updates (status changes, etc.)
-                channel.listen('booking.updated', (data) => {
+                channel.listen('.booking.updated', (data) => {
                         console.log('🔄 Booking updated via WebSocket:', data);
 
                         // Show notification for important status changes
-                        if (data.status === 'No-Show') {
+                        if (data.status === 'Cancelled') {
+                            showNotification(
+                                '❌ Booking Cancelled',
+                                `${data.user_name}'s booking has been cancelled`
+                            );
+                        } else if (data.status === 'No-Show') {
                             showNotification(
                                 '⚠️ Booking No-Show',
                                 `${data.user_name}'s booking marked as No-Show`
                             );
                         }
 
-                        // Refresh the booking data using Livewire
-                        @this.call('refreshBookings');
+                        // Refresh the booking data and update calendar
+                        refreshBookingData().then(() => {
+                            updateCalendar();
+                        });
                     })
                     .error((error) => {
                         console.error('Error listening to booking.updated:', error);
@@ -1090,15 +1099,18 @@
                 // Monitor connection status
                 window.Echo.connector.pusher.connection.bind('connected', () => {
                     console.log('✅ WebSocket connected successfully');
+                    webSocketConnected = true;
                 });
 
                 window.Echo.connector.pusher.connection.bind('disconnected', () => {
                     console.warn('⚠️ WebSocket disconnected (polling continues in background)');
+                    webSocketConnected = false;
                 });
 
                 window.Echo.connector.pusher.connection.bind('error', (err) => {
                     console.error('❌ WebSocket connection error:', err);
                     console.log('📊 Polling will continue to handle updates');
+                    webSocketConnected = false;
                 });
 
                 console.log('✅ Real-time WebSocket updates initialized for complex:', complexId);
@@ -1279,15 +1291,22 @@
             window.addEventListener('bookingCreated', function(event) {
                 console.log('Booking created successfully', event.detail);
                 closeModal('bookingModal');
+                showNotification('✅ Success', 'Booking created successfully!');
                 refreshBookingData().then(() => {
                     updateCalendar();
+                }).catch(error => {
+                    console.error('Error refreshing after booking:', error);
+                    // Force page refresh as fallback
+                    location.reload();
                 });
             });
 
             window.addEventListener('closeModal', function() {
                 console.log('closeModal event received');
                 closeModal('bookingModal');
-                updateCalendar();
+                refreshBookingData().then(() => {
+                    updateCalendar();
+                });
             });
 
             $('#bookingModal').on('hidden.bs.modal', function() {
@@ -1575,13 +1594,15 @@
                         const timerId = `${currentGame}-${dateKey}-${court.replace(/\s/g, '')}-${slot.time24.replace(/:/g, '-')}`;
                         const totalDuration = calculateDurationInSeconds(slot.time24, bookingInfo.end);
                         const isNoShow = bookingInfo.status === 'No-Show';
+                        const isPlaying = bookingInfo.status === 'Playing';
+                        const isCompleted = bookingInfo.status === 'Completed';
 
                         if (!activeTimers[timerId] || activeTimers[timerId].totalDuration !== totalDuration) {
                             activeTimers[timerId] = {
                                 totalDuration: totalDuration,
                                 remaining: totalDuration,
                                 intervalId: null,
-                                isRunning: false,
+                                isRunning: isPlaying, // Auto-start if Playing
                                 player: bookingInfo.player,
                                 game: currentGame.charAt(0).toUpperCase() + currentGame.slice(1),
                                 startTimeDisplay: slot.display,
@@ -1596,16 +1617,23 @@
                         const displayTime = formatTime(activeTimers[timerId].remaining);
                         const statusBadge = getStatusBadge(bookingInfo.status);
                         const permanentBadge = bookingInfo.permanent ? '<span class="badge bg-primary ms-1">Permanent</span>' : '';
-                        const isRunning = activeTimers[timerId].isRunning;
+                        const isRunning = activeTimers[timerId].isRunning || isPlaying;
 
-                        // Don't show timer for No-Show bookings and make it non-clickable
-                        const timerDisplay = isNoShow ? '' : `<div id="${timerId}" class="timer-display ${isRunning ? 'timer-running' : ''} fw-bold text-primary">${displayTime}</div>`;
-                        const clickHandler = isNoShow ? '' : `onclick="openTimerModal('${timerId}')"`;
-                        const cursorStyle = isNoShow ? 'cursor: not-allowed; opacity: 0.7;' : 'cursor: pointer;';
+                        // Don't show timer for No-Show or Completed bookings
+                        const hideTimer = isNoShow || isCompleted;
+                        const timerDisplay = hideTimer ? '' : `<div id="${timerId}" class="timer-display ${isRunning ? 'timer-running' : ''} fw-bold text-primary">${displayTime}</div>`;
+                        const clickHandler = hideTimer ? '' : `onclick="openTimerModal('${timerId}')"`;
+                        const cursorStyle = hideTimer ? 'cursor: not-allowed; opacity: 0.7;' : 'cursor: pointer;';
+
+                        // Different background colors based on status
+                        let bgClass = 'bg-light';
+                        if (isPlaying) bgClass = 'bg-primary bg-opacity-10 border-primary';
+                        if (isNoShow) bgClass = 'bg-secondary bg-opacity-25';
+                        if (isCompleted) bgClass = 'bg-info bg-opacity-10';
 
                         bodyHtml += `
                         <td>
-                            <div class="time-slot booked d-flex align-items-center justify-content-between p-2 rounded shadow-sm bg-light mb-0" data-timer-id="${timerId}" ${clickHandler} style="${cursorStyle}">
+                            <div class="time-slot booked d-flex align-items-center justify-content-between p-2 rounded shadow-sm ${bgClass} mb-0" data-timer-id="${timerId}" ${clickHandler} style="${cursorStyle}">
                                 
                                 <!-- Left: Avatar + Booking Info -->
                                 <div class="d-flex align-items-center flex-shrink-0" style="min-width: 0;">
@@ -1616,21 +1644,18 @@
                                     <div class="booking-info text-truncate">
                                         <strong class="d-block text-dark text-truncate">${bookingInfo.player}</strong>
                                         <small class="d-block text-muted text-truncate">${bookingInfo.phone}</small>
-                                        <small class="d-block text-muted text-truncate">${bookingInfo.email || ''}</small>
                                     </div>
                                 </div>
 
-                                <!-- Center: Timer -->
+                                <!-- Center: Status + Timer -->
                                 <div class="text-center flex-grow-1">
-                                        ${statusBadge}
+                                    ${statusBadge}
                                     ${timerDisplay}
                                 </div>
 
                                 <!-- Right: Badges -->
                                 <div class="badges d-flex align-items-center gap-1 flex-shrink-0">
-                            
-
-                                    ${bookingInfo.permanent ? `<span class="badge bg-dark text-white">P</span>` : ''}
+                                    ${bookingInfo.permanent_source_id ? `<span class="badge bg-dark text-white">P</span>` : ''}
                                 </div>
                                 
                             </div>
@@ -1760,6 +1785,8 @@
 
         function getStatusBadge(status) {
             let badgeClass = '';
+            let displayText = status;
+
             switch (status) {
                 case 'Confirmed':
                     badgeClass = 'bg-success';
@@ -1769,6 +1796,7 @@
                     break;
                 case 'Playing':
                     badgeClass = 'bg-primary';
+                    displayText = '▶ Playing';
                     break;
                 case 'Completed':
                     badgeClass = 'bg-info';
@@ -1778,16 +1806,28 @@
                     break;
                 case 'No-Show':
                     badgeClass = 'bg-secondary';
+                    displayText = '⏰ Time Passed';
                     break;
                 default:
                     badgeClass = 'bg-secondary';
             }
-            return `<span class="badge ${badgeClass}">${status}</span>`;
+            return `<span class="badge ${badgeClass}">${displayText}</span>`;
         }
 
         function startTimer(timerIdToControl) {
             const timerState = activeTimers[timerIdToControl];
             if (!timerState || timerState.intervalId) return;
+
+            // Update booking status to Playing in the database
+            if (timerState.bookingId && timerState.status !== 'Playing') {
+                @this.call('startBooking', timerState.bookingId).then(success => {
+                    if (success) {
+                        timerState.status = 'Playing';
+                        console.log('Booking status updated to Playing');
+                        refreshBookingData().then(() => updateCalendar());
+                    }
+                });
+            }
 
             timerState.isRunning = true;
             updateTimerButtons(true, timerIdToControl);
@@ -1802,6 +1842,17 @@
                     timerState.isRunning = false;
                     updateTimerButtons(false, timerIdToControl);
                     updateTimerDisplay(timerIdToControl);
+
+                    // Auto-complete the booking when timer ends
+                    if (timerState.bookingId) {
+                        @this.call('completeBooking', timerState.bookingId).then(success => {
+                            if (success) {
+                                timerState.status = 'Completed';
+                                console.log('Booking auto-completed');
+                                refreshBookingData().then(() => updateCalendar());
+                            }
+                        });
+                    }
                 }
             }, 1000);
 
