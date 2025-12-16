@@ -81,13 +81,13 @@ class Register extends Component
         'Hambantota',
         'Badulla',
         'Monaragala',
-        'Ratnapura', 
+        'Ratnapura',
         'Kegalle',
         'Matale',
         'Polonnaruwa',
         'Ampara',
         'Mullaitivu'
-               
+
     ];
 
     public $availableAmenities = [
@@ -237,7 +237,7 @@ class Register extends Component
 
         try {
             $registeredUser = null;
-            
+
             DB::transaction(function () use (&$registeredUser) {
                 // Prepare social links
                 $socialLinks = [
