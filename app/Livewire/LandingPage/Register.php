@@ -296,7 +296,8 @@ class Register extends Component
                     'game_type' => $this->gameType ?? 'Indoor',
                     'venue_id' => $venue->id,
                     'description' => $this->description,
-                    'image_url' => $coverImagePath,
+                    'image' => $coverImagePath,
+                    'status' => 'Active',
                 ]);
 
                 // Create gallery images
@@ -328,6 +329,11 @@ class Register extends Component
                     'is_active' => true,
                     'is_staff' => false,
                     'is_superuser' => false,
+                    'points' => 0,
+                    'referral_code' => $this->name,
+                    'is_public_profile' => true,
+                    'is_show_contact' => true,
+                    'availability' => 'both',
                 ]);
             });
 
@@ -336,7 +342,8 @@ class Register extends Component
             return redirect()->route('staff.dashboard');
         } catch (\Exception $e) {
             Log::error('Registration failed: ' . $e->getMessage());
-            session()->flash('error', 'An error occurred during registration. Please try again.');
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            session()->flash('error', 'An error occurred during registration: ' . $e->getMessage());
         }
     }
 

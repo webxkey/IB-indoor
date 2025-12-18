@@ -8,6 +8,7 @@ use Livewire\Attributes\Title;
 use Carbon\Carbon;
 use App\Models\BookingBooking;
 use App\Models\BookingSport;
+use App\Models\UserUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -148,6 +149,13 @@ class BookingsManagement extends Component
             return;
         }
 
+        // Find or create corresponding users_user record
+        $userUser = UserUser::where('email', $staffUser->email)->first();
+        if (!$userUser) {
+            $this->addError('general', 'User account not found in system.');
+            return;
+        }
+
         // Normalize time format
         $startTime = $this->selectedTime;
         if (strlen($startTime) === 5) {
@@ -157,7 +165,7 @@ class BookingsManagement extends Component
         $endTime = Carbon::parse($startTime)->addMinutes(60)->format('H:i:s');
 
         $bookingData = [
-            'user_id_id' => $staffUser->id,
+            'user_id_id' => $userUser->id, // Use users_user ID
             'complex_id_id' => $this->complex_id,
             'game_id_id' => $sport->id,
             'game_name' => $this->selectedGame,
