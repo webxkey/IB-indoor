@@ -42,7 +42,7 @@ class Register extends Component
     public $contact_number;
     public $email_address;
     public $website;
-    public $status = 'Active';
+    public $status = 'active';
     public $description;
 
     // Step 3: Facility Details
@@ -116,7 +116,7 @@ class Register extends Component
         'other'
     ];
 
-    public $availableStatuses = ['Active', 'Inactive', 'Maintenance', 'New'];
+    public $availableStatuses = ['active', 'inactive', 'maintenance', 'new'];
 
     protected function step1Rules()
     {
@@ -140,7 +140,7 @@ class Register extends Component
             'contact_number' => 'required|max:20',
             'email_address' => 'nullable|email',
             'website' => 'nullable|url',
-            'status' => 'required|in:Active,Inactive,Maintenance,New',
+            'status' => 'required|in:active,inactive,maintenance,new',
             'description' => 'required|min:10|max:1000',
         ];
     }
@@ -264,8 +264,8 @@ class Register extends Component
 
                 // Create venue
                 // No Complex model: create only booking_venue and use its id for users.complex_id
-
-                $venue = BookingVenue::create([
+            
+                $base_image_url = asset('storage/'.$coverImagePath);                $venue = BookingVenue::create([
                     'name' => $this->complex_name,
                     'complex_type' => $this->complex_type,
                     'address' => $this->address,
@@ -274,6 +274,7 @@ class Register extends Component
                     'postal_code' => $this->postal_code,
                     'contact_number' => $this->contact_number,
                     'email_address' => $this->email_address,
+                    'image_url' => $base_image_url,
                     'website' => $this->website,
                     'status' => $this->status,
                     'opening_hours' => $this->opening_hours,
@@ -292,12 +293,12 @@ class Register extends Component
                 BookingSport::create([
                     'name' => $this->sport_type ?? 'Football',
                     'price' => $this->hourly_rate,
-                    'available' => $this->status === 'Active',
+                    'available' => $this->status === 'active',
                     'game_type' => $this->gameType ?? 'Indoor',
                     'venue_id' => $venue->id,
                     'description' => $this->description,
                     'image' => $coverImagePath,
-                    'status' => 'Active',
+                    'status' => 'active',
                 ]);
 
                 // Create gallery images

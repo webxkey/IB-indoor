@@ -861,10 +861,10 @@
                         <div class="form-group">
                             <label for="status" class="form-label"><i class="fas fa-info-circle me-2"></i>Status </label>
                             <select class="form-input @error('status') is-invalid @enderror" id="status" wire:model="status" required>
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                                <option value="Maintenance">Under Maintenance</option>
-                                <option value="New">New</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="maintenance">Under Maintenance</option>
+                                <option value="new">New</option>
                             </select>
                             @error('status') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
