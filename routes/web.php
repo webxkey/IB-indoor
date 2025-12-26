@@ -31,6 +31,7 @@ use App\Livewire\LandingPage\ForBusiness;
 use App\Livewire\LandingPage\Privacy;
 use App\Livewire\LandingPage\Careers;
 use App\Livewire\Admin\BlogsManagement;
+use App\Http\Controllers\PollController;
 
 
 // Landing Page Routes
@@ -115,3 +116,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 Route::get('/test-websocket', function () {
     return view('test-websocket');
 })->name('test.websocket');
+
+// Simple polling routes (returns JSON status and a small polling view)
+Route::get('/poll', [PollController::class, 'view'])->name('poll.view');
+Route::get('/poll/status', [PollController::class, 'status'])->name('poll.status');

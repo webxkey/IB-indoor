@@ -293,12 +293,14 @@ class Register extends Component
                 BookingSport::create([
                     'name' => $this->sport_type ?? 'Football',
                     'price' => $this->hourly_rate,
-                    'available' => $this->status === 'active',
+                    'available' => $this->status === 'Active',
                     'game_type' => $this->gameType ?? 'Indoor',
+                    'rate_type' => 'Per hour',
                     'venue_id' => $venue->id,
                     'description' => $this->description,
-                    'image' => $coverImagePath,
-                    'status' => 'active',
+                    'image' => $base_image_url,
+                    
+                    'status' => 'Active',
                 ]);
 
                 // Create gallery images
