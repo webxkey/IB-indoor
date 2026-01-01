@@ -11,33 +11,33 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         // Ensure booking_venue with id=1 exists
-        \App\Models\BookingVenue::firstOrCreate(
-            ['id' => 1],
-            [
-                'name' => 'Default Venue',
-                'address' => 'Default Address',
-                'contact_number' => '0000000000',
-                'status' => 'active',
-                'rating' => 5,
-                'reviews' => 0,
-            ]
-        );
+        // \App\Models\BookingVenue::firstOrCreate(
+        //     ['id' => 1],
+        //     [
+        //         'name' => 'Default Venue',
+        //         'address' => 'Default Address',
+        //         'contact_number' => '0000000000',
+        //         'status' => 'active',
+        //         'rating' => 5,
+        //         'reviews' => 0,
+        //     ]
+        // );
 
         // 🔥 Delete existing staff record (if any)
-        User::where('email', 'staff@gmail.com')->delete();
+        // User::where('email', 'staff@gmail.com')->delete();
 
         // 🔥 Delete existing admin record (optional, if re-seeding admin too)
         User::where('email', 'admin@gmail.com')->delete();
 
         // Create Staff User
-        User::create([
-            'name' => 'Staff',
-            'email' => 'staff@gmail.com',
-            'password' => Hash::make('staff@1213'),
-            'role' => 'staff',
-            'contact' => '0776657107',
-            'complex_id' => 1, // Make sure complex ID 1 exists
-        ]);
+        // User::create([
+        //     'name' => 'Staff',
+        //     'email' => 'staff@gmail.com',
+        //     'password' => Hash::make('staff@1213'),
+        //     'role' => 'staff',
+        //     'contact' => '0776657107',
+        //     'complex_id' => 1, // Make sure complex ID 1 exists
+        // ]);
 
         // Create Admin User
         User::create([

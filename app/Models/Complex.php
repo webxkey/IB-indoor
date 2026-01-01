@@ -47,6 +47,6 @@ class Complex extends Model
 
     public function bookings()
     {
-        return $this->hasMany(Booking::class, 'complex_id');
+        return $this->hasMany(BookingBooking::class, 'complex_id');
     }
 }

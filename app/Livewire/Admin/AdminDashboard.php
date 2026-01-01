@@ -51,8 +51,8 @@ class AdminDashboard extends Component
         
         $analyticsData = BookingBooking::whereBetween('booking_date', [$sixMonthsAgo, $currentMonth])
             ->select(
-                DB::raw('YEAR(booking_date) as year'),
-                DB::raw('MONTH(booking_date) as month'),
+                DB::raw('EXTRACT(YEAR FROM booking_date) as year'),
+                DB::raw('EXTRACT(MONTH FROM booking_date) as month'),
                 DB::raw('COUNT(*) as total_bookings')
             )
             ->groupBy('year', 'month')

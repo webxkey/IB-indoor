@@ -148,9 +148,9 @@ class StaffReport extends Component
         $query = BookingBooking::query()
             ->selectRaw("
                 CASE 
-                    WHEN ? = 'day' THEN DATE(booking_date)
-                    WHEN ? = 'week' THEN YEARWEEK(booking_date, 1)
-                    ELSE DATE_FORMAT(booking_date, '%Y-%m')
+                    WHEN ? = 'day' THEN booking_date::date
+                    WHEN ? = 'week' THEN to_char(date_trunc('week', booking_date), 'IYYYIW')
+                    ELSE to_char(booking_date, 'YYYY-MM')
                 END as period,
                 SUM(price) as total_revenue,
                 COUNT(*) as total_bookings
@@ -207,7 +207,7 @@ class StaffReport extends Component
                 COUNT(*) as total_bookings,
                 SUM(price) as total_revenue,
                 AVG(price) as average_revenue,
-                SUM((TIME_TO_SEC(end_time) - TIME_TO_SEC(start_time)) / 3600) as total_hours
+                SUM((EXTRACT(EPOCH FROM end_time) - EXTRACT(EPOCH FROM start_time)) / 3600) as total_hours
             ")
             ->groupBy('game_id_id', 'court_number')
             ->get()
