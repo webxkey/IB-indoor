@@ -5,11 +5,11 @@ namespace App\Events;
 use App\Models\BookingBooking;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class BookingUpdatedEvent implements ShouldBroadcastNow
+class BookingUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -22,7 +22,7 @@ class BookingUpdatedEvent implements ShouldBroadcastNow
     public function __construct(BookingBooking $booking)
     {
         $this->booking = $booking;
-        $this->complexId = $booking->complex_id_id;
+        $this->complexId = $booking->complex_id_id ?? $booking->venue_id ?? 1;
     }
 
     /**
@@ -31,16 +31,8 @@ class BookingUpdatedEvent implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new Channel('bookings.' . $this->complexId),
+            new Channel("bookings.complex.{$this->complexId}"),
         ];
-    }
-
-    /**
-     * The event's broadcast name.
-     */
-    public function broadcastAs(): string
-    {
-        return 'booking.updated';
     }
 
     /**
@@ -49,15 +41,24 @@ class BookingUpdatedEvent implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'booking_id' => $this->booking->id,
+            'id' => $this->booking->id,
+            'user_name' => $this->booking->user_name,
             'game_name' => $this->booking->game_name,
-            'booking_date' => $this->booking->booking_date,
-            'court_number' => $this->booking->court_number,
             'start_time' => $this->booking->start_time,
             'end_time' => $this->booking->end_time,
-            'user_name' => $this->booking->user_name,
+            'court_number' => $this->booking->court_number,
             'status' => $this->booking->status,
-            'complex_id' => $this->complexId,
+            'payment_status' => $this->booking->payment_status,
+            'updated_at' => $this->booking->updated_at,
+            'booking_date' => $this->booking->booking_date,
         ];
+    }
+
+    /**
+     * Get the event name.
+     */
+    public function broadcastAs(): string
+    {
+        return 'booking.updated';
     }
 }

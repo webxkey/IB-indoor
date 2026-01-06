@@ -5,12 +5,15 @@ namespace App\Livewire\Staff;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\On;
 use Carbon\Carbon;
 use App\Models\BookingBooking;
 use App\Models\BookingSport;
 use App\Models\UserUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Broadcast;
 
 #[Title("Staff Dashboard")]
 #[Layout("components.layouts.staff")]
@@ -32,6 +35,10 @@ class BookingsManagement extends Component
     public $permanent = false;
     public $notes = '';
 
+    // Last known booking count and latest ID for change detection
+    public $lastBookingCount = 0;
+    public $lastBookingId = 0;
+
     protected $rules = [
         'selectedGame' => 'required|string',
         'selectedDate' => 'required|date_format:Y-m-d',
@@ -43,18 +50,70 @@ class BookingsManagement extends Component
         'notes' => 'nullable|string|max:1000',
     ];
 
-    protected $listeners = ['setSelectedBookingData', 'refreshBookings'];
+    protected $listeners = [
+        'setSelectedBookingData',
+        'refreshBookings',
+        'echo:bookings.complex.{complex_id},booking.created' => 'handleNewBooking',
+        'echo:bookings.complex.{complex_id},booking.updated' => 'handleUpdatedBooking',
+        'echo:bookings.complex.{complex_id},booking.deleted' => 'handleDeletedBooking',
+    ];
 
     public function mount()
     {
         $this->complex_id = Auth::user()->complex_id;
         $this->checkAndUpdateBookingStatuses();
         $this->loadSports();
+        $this->updateChangeTracking();
     }
 
+    /**
+     * Smart polling - checks for changes every 3 seconds
+     * Only refreshes data when booking count or latest ID changes
+     * This is very lightweight - just 2 quick COUNT/MAX queries
+     */
+    public function checkForChanges()
+    {
+        $currentCount = BookingBooking::where('complex_id_id', $this->complex_id)->count();
+        $latestId = BookingBooking::where('complex_id_id', $this->complex_id)->max('id') ?? 0;
+
+        // Check if anything changed
+        if ($currentCount !== $this->lastBookingCount || $latestId !== $this->lastBookingId) {
+            Log::info('Booking change detected', [
+                'old_count' => $this->lastBookingCount,
+                'new_count' => $currentCount,
+                'old_id' => $this->lastBookingId,
+                'new_id' => $latestId,
+            ]);
+
+            $this->lastBookingCount = $currentCount;
+            $this->lastBookingId = $latestId;
+            
+            // Reload the full booking data
+            $this->loadSports();
+            
+            // Dispatch browser event for notification
+            $this->dispatch('bookingDataChanged');
+            
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Update change tracking variables
+     */
+    private function updateChangeTracking()
+    {
+        $this->lastBookingCount = BookingBooking::where('complex_id_id', $this->complex_id)->count();
+        $this->lastBookingId = BookingBooking::where('complex_id_id', $this->complex_id)->max('id') ?? 0;
+    }
+
+    #[On('refreshBookings')]
     public function refreshBookings()
     {
         $this->loadSports();
+        $this->updateChangeTracking();
     }
 
     public function loadSports()
@@ -371,6 +430,77 @@ class BookingsManagement extends Component
             $booking->status = 'Completed';
             $booking->save();
         }
+    }
+
+    /**
+     * Handle real-time booking creation via WebSocket
+     * Called when a new booking is created from mobile app
+     */
+    #[On('echo:bookings.complex.{complex_id},booking.created')]
+    public function handleNewBooking($data)
+    {
+        Log::info('Real-time new booking received', [
+            'booking_id' => $data['id'],
+            'user_name' => $data['user_name'],
+        ]);
+
+        // Reload all bookings to show the new one
+        $this->loadSports();
+        $this->updateChangeTracking();
+        
+        // Send notification to user
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'title' => 'New Booking Created',
+            'message' => "{$data['user_name']} booked {$data['game_name']} on {$data['start_time']}",
+        ]);
+    }
+
+    /**
+     * Handle real-time booking updates via WebSocket
+     * Called when a booking status, payment, or other details change
+     */
+    #[On('echo:bookings.complex.{complex_id},booking.updated')]
+    public function handleUpdatedBooking($data)
+    {
+        Log::info('Real-time booking update received', [
+            'booking_id' => $data['id'],
+            'status' => $data['status'],
+        ]);
+
+        // Reload bookings to reflect the update
+        $this->loadSports();
+        $this->updateChangeTracking();
+        
+        // Send notification to user
+        $this->dispatch('notify', [
+            'type' => 'info',
+            'title' => 'Booking Updated',
+            'message' => "Booking #{$data['id']} status changed to {$data['status']}",
+        ]);
+    }
+
+    /**
+     * Handle real-time booking deletion via WebSocket
+     * Called when a booking is cancelled or deleted
+     */
+    #[On('echo:bookings.complex.{complex_id},booking.deleted')]
+    public function handleDeletedBooking($data)
+    {
+        Log::info('Real-time booking deletion received', [
+            'booking_id' => $data['id'],
+        ]);
+
+        // Reload bookings to remove the deleted one
+        $this->loadSports();
+        $this->updateChangeTracking();
+        
+        // Send notification to user
+        $this->dispatch('notify', [
+            'type' => 'warning',
+            'title' => 'Booking Deleted',
+            'message' => "Booking #{$data['id']} has been deleted",
+        ]);
     }
 
     public function render()

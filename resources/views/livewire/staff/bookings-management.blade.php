@@ -767,6 +767,9 @@
         </div>
         @endif
 
+        {{-- Real-time WebSocket updates via Laravel Reverb + Laravel Echo --}}
+        {{-- No polling! Updates come instantly via persistent WebSocket connection --}}
+
         <div class="card booking-card">
             <div class="card-header booking-header">
                 <h5 class="mb-0 text-white">
@@ -970,7 +973,6 @@
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Safely handle data from backend
@@ -1020,108 +1022,34 @@
             updateCalendar();
 
             setupEventListeners();
-            setupRealtimeUpdates(); // WebSocket for real-time updates (Reverb)
+            setupLivewireListeners(); // Listen for Livewire events
         }
 
-        // Setup real-time updates using Laravel Echo + Reverb WebSockets
-        function setupRealtimeUpdates() {
-            if (!complexId) {
-                console.warn('Complex ID not available for real-time updates');
-                return;
-            }
-
-            try {
-                // Check if Echo is available
-                if (typeof window.Echo === 'undefined') {
-                    console.error('Laravel Echo not initialized. WebSocket updates disabled.');
-                    console.log('⚠️ WebSocket unavailable, but polling is active');
-                    return;
-                }
-
-                console.log('✅ Laravel Echo is available:', window.Echo);
-                console.log('📍 Complex ID:', complexId);
-
-                // Subscribe to the bookings channel for this complex
-                const channelName = `bookings.${complexId}`;
-                console.log('📡 Subscribing to channel:', channelName);
-                const channel = window.Echo.channel(channelName);
-
-                console.log('✅ Channel subscribed:', channel);
-
-                // Listen for new bookings
-                channel.listen('.booking.created', (data) => {
-                        console.log('🔔 New booking received via WebSocket:', data);
-
-                        // Show notification
-                        showNotification(
-                            '🎉 New Booking from Mobile App!',
-                            `${data.user_name} booked ${data.game_name} - Court ${data.court_number} at ${data.start_time}`
-                        );
-
-                        // Play sound
-                        playNotificationSound();
-
-                        // Refresh the booking data and update calendar
-                        refreshBookingData().then(() => {
-                            updateCalendar();
-                        });
-                    })
-                    .error((error) => {
-                        console.error('Error listening to booking.created:', error);
-                    });
-
-                // Listen for booking updates (status changes, etc.)
-                channel.listen('.booking.updated', (data) => {
-                        console.log('🔄 Booking updated via WebSocket:', data);
-
-                        // Show notification for important status changes
-                        if (data.status === 'Cancelled') {
-                            showNotification(
-                                '❌ Booking Cancelled',
-                                `${data.user_name}'s booking has been cancelled`
-                            );
-                        } else if (data.status === 'No-Show') {
-                            showNotification(
-                                '⚠️ Booking No-Show',
-                                `${data.user_name}'s booking marked as No-Show`
-                            );
-                        }
-
-                        // Refresh the booking data and update calendar
-                        refreshBookingData().then(() => {
-                            updateCalendar();
-                        });
-                    })
-                    .error((error) => {
-                        console.error('Error listening to booking.updated:', error);
-                    });
-
-                // Monitor connection status
-                window.Echo.connector.pusher.connection.bind('connected', () => {
-                    console.log('✅ WebSocket connected successfully');
-                    webSocketConnected = true;
+        // Setup Livewire event listeners for real-time updates
+        function setupLivewireListeners() {
+            // Listen for booking data changes from Livewire smart polling
+            window.addEventListener('bookingDataChanged', function() {
+                console.log('🔔 Booking data changed - refreshing calendar');
+                
+                // Refresh booking data from Livewire component
+                refreshBookingData().then(() => {
+                    updateCalendar();
+                    showNotification('🔔 New Update', 'Booking data has been updated!');
+                    playNotificationSound();
                 });
+            });
 
-                window.Echo.connector.pusher.connection.bind('disconnected', () => {
-                    console.warn('⚠️ WebSocket disconnected (polling continues in background)');
-                    webSocketConnected = false;
+            // Also listen via Livewire's native event system
+            Livewire.on('bookingDataChanged', () => {
+                console.log('🔔 Livewire: Booking data changed');
+                refreshBookingData().then(() => {
+                    updateCalendar();
+                    showNotification('🔔 New Update', 'Booking data has been updated!');
+                    playNotificationSound();
                 });
+            });
 
-                window.Echo.connector.pusher.connection.bind('error', (err) => {
-                    console.error('❌ WebSocket connection error:', err);
-                    console.log('📊 Polling will continue to handle updates');
-                    webSocketConnected = false;
-                });
-
-                console.log('✅ Real-time WebSocket updates initialized for complex:', complexId);
-
-                // Expose channel for debugging in browser console
-                window.bookingsChannel = channel;
-                console.log('💡 Debug: You can test with window.bookingsChannel in console');
-            } catch (error) {
-                console.error('Error setting up real-time updates:', error);
-                console.log('📊 Polling will continue to handle updates');
-            }
+            console.log('✅ Livewire listeners initialized for real-time updates');
         }
 
         // Show notification for new bookings
@@ -1198,7 +1126,7 @@
                 tab.addEventListener('click', function() {
                     document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
                     this.classList.add('active');
-                    currentGame = this.dataset.game;
+                    currentGame = this.dataset.game.toLowerCase();
                     console.log('Game tab clicked:', currentGame);
                     updateCalendar();
                 });
@@ -1533,18 +1461,26 @@
             console.log('Updating calendar for:', currentGame, formatDateKey(currentDate));
 
             const dateKey = formatDateKey(currentDate);
-            const gameData = sportData[currentGame]?.[dateKey] || {};
+            
+            // FIX: Try both lowercase and exact case for game name
+            let gameData = sportData[currentGame]?.[dateKey];
+            if (!gameData) {
+                // Try lowercase version
+                const lowerGame = currentGame.toLowerCase();
+                gameData = sportData[lowerGame]?.[dateKey] || {};
+                console.log('Using lowercase game key:', lowerGame);
+            } else {
+                console.log('Using exact game key:', currentGame);
+            }
 
             console.log('DEBUG - dateKey:', dateKey);
             console.log('DEBUG - gameData:', gameData);
-            console.log('DEBUG - sportData[currentGame]:', sportData[currentGame]);
-            console.log('DEBUG - gamesConfig:', gamesConfig);
+            console.log('DEBUG - sportData keys:', Object.keys(sportData));
             console.log('DEBUG - currentGame:', currentGame);
 
             let numberOfCourts = 3;
             const currentGameObject = gamesConfig.find(game => {
-                console.log('DEBUG - Checking game:', game, 'name.toLowerCase():', game.name.toLowerCase(), 'vs currentGame:', currentGame);
-                return game.name.toLowerCase() === currentGame;
+                return game.name.toLowerCase() === currentGame.toLowerCase();
             });
 
             console.log('DEBUG - currentGameObject:', currentGameObject);
@@ -1939,6 +1875,156 @@
         window.startTimer = startTimer;
         window.pauseTimer = pauseTimer;
         window.resetTimer = resetTimer;
+
+        // ========================================
+        // REAL-TIME WEBSOCKET BOOKING UPDATES
+        // ========================================
+        const channelName = `bookings.complex.${complexId}`;
+
+        // Subscribe to real-time booking updates via WebSocket
+        const channel = window.Echo.channel(channelName);
+
+        /**
+         * Listen for new bookings created from mobile app
+         */
+        channel.listen('.booking.created', (data) => {
+            console.log('📱 New Booking Created!', data);
+            
+            // Show toast notification
+            showNotification('success', 
+                '✨ New Booking',
+                `${data.user_name} booked ${data.game_name}`,
+                4000
+            );
+
+            // Reload the Livewire component to display new booking
+            Livewire.dispatch('refreshBookings');
+            
+            // Refresh calendar after data is loaded
+            setTimeout(async () => {
+                console.log('🔄 Fetching fresh booking data...');
+                try {
+                    await refreshBookingData();
+                    console.log('✅ Fresh data loaded, updating calendar...');
+                    if (typeof updateCalendar === 'function') {
+                        updateCalendar();
+                    }
+                } catch (error) {
+                    console.error('Error refreshing data:', error);
+                }
+            }, 500);
+        });
+
+        /**
+         * Listen for booking updates (status changes, payment updates, etc.)
+         */
+        channel.listen('.booking.updated', (data) => {
+            console.log('📝 Booking Updated!', data);
+            
+            // Show toast notification
+            showNotification('info',
+                '📝 Booking Updated',
+                `Booking #${data.id} status: ${data.status}`,
+                3000
+            );
+
+            // Reload the Livewire component to show updates
+            Livewire.dispatch('refreshBookings');
+            
+            // Refresh calendar after data is loaded
+            setTimeout(async () => {
+                console.log('🔄 Fetching fresh booking data...');
+                try {
+                    await refreshBookingData();
+                    console.log('✅ Fresh data loaded, updating calendar...');
+                    if (typeof updateCalendar === 'function') {
+                        updateCalendar();
+                    }
+                } catch (error) {
+                    console.error('Error refreshing data:', error);
+                }
+            }, 500);
+        });
+
+        /**
+         * Listen for booking deletions (cancellations)
+         */
+        channel.listen('.booking.deleted', (data) => {
+            console.log('🗑️  Booking Deleted!', data);
+            
+            // Show toast notification
+            showNotification('warning',
+                '🗑️  Booking Deleted',
+                `Booking #${data.id} has been cancelled`,
+                3000
+            );
+
+            // Reload the Livewire component to remove deleted booking
+            Livewire.dispatch('refreshBookings');
+            
+            // Refresh calendar after data is loaded
+            setTimeout(async () => {
+                console.log('🔄 Fetching fresh booking data...');
+                try {
+                    await refreshBookingData();
+                    console.log('✅ Fresh data loaded, updating calendar...');
+                    if (typeof updateCalendar === 'function') {
+                        updateCalendar();
+                    }
+                } catch (error) {
+                    console.error('Error refreshing data:', error);
+                }
+            }, 500);
+        });
+
+        console.log(`✅ Real-time WebSocket listener connected for ${channelName}`);
     });
+
+    // Also listen for Livewire update event
+    document.addEventListener('livewire:updated', function() {
+        console.log('✅ Livewire component updated - refreshing calendar');
+        if (typeof updateCalendar === 'function') {
+            updateCalendar();
+        }
+    });
+
+    /**
+     * Helper function to show toast notifications
+     */
+    function showNotification(type, title, message, duration = 3000) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `booking-notification alert alert-${type} alert-dismissible fade show`;
+        notification.role = 'alert';
+        
+        const icon = getNotificationIcon(type);
+        notification.innerHTML = `
+            ${icon}
+            <strong>${title}:</strong> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        // Add to page
+        const container = document.querySelector('.container-fluid') || document.body;
+        container.insertBefore(notification, container.firstChild);
+
+        // Auto dismiss after duration
+        setTimeout(() => {
+            notification.remove();
+        }, duration);
+    }
+
+    /**
+     * Get icon for notification type
+     */
+    function getNotificationIcon(type) {
+        const icons = {
+            'success': '✅',
+            'info': 'ℹ️',
+            'warning': '⚠️',
+            'danger': '❌'
+        };
+        return icons[type] || '📢';
+    }
 </script>
 @endpush

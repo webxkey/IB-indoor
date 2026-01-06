@@ -5,11 +5,12 @@ namespace App\Events;
 use App\Models\BookingBooking;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class BookingCreatedEvent implements ShouldBroadcastNow
+class BookingCreated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -22,7 +23,7 @@ class BookingCreatedEvent implements ShouldBroadcastNow
     public function __construct(BookingBooking $booking)
     {
         $this->booking = $booking;
-        $this->complexId = $booking->complex_id_id;
+        $this->complexId = $booking->complex_id_id ?? $booking->venue_id ?? 1;
     }
 
     /**
@@ -33,16 +34,8 @@ class BookingCreatedEvent implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new Channel('bookings.' . $this->complexId),
+            new Channel("bookings.complex.{$this->complexId}"),
         ];
-    }
-
-    /**
-     * The event's broadcast name.
-     */
-    public function broadcastAs(): string
-    {
-        return 'booking.created';
     }
 
     /**
@@ -52,16 +45,23 @@ class BookingCreatedEvent implements ShouldBroadcastNow
     {
         return [
             'id' => $this->booking->id,
-            'booking_id' => $this->booking->id,
+            'user_name' => $this->booking->user_name,
             'game_name' => $this->booking->game_name,
-            'booking_date' => $this->booking->booking_date,
-            'court_number' => $this->booking->court_number,
             'start_time' => $this->booking->start_time,
             'end_time' => $this->booking->end_time,
-            'user_name' => $this->booking->user_name,
-            'user_number' => $this->booking->user_number,
+            'court_number' => $this->booking->court_number,
             'status' => $this->booking->status,
-            'complex_id' => $this->complexId,
+            'payment_status' => $this->booking->payment_status,
+            'created_at' => $this->booking->created_at,
+            'booking_date' => $this->booking->booking_date,
         ];
+    }
+
+    /**
+     * Get the event name.
+     */
+    public function broadcastAs(): string
+    {
+        return 'booking.created';
     }
 }

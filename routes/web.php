@@ -31,8 +31,8 @@ use App\Livewire\LandingPage\ForBusiness;
 use App\Livewire\LandingPage\Privacy;
 use App\Livewire\LandingPage\Careers;
 use App\Livewire\Admin\BlogsManagement;
-use App\Http\Controllers\PollController;
 
+// Note: PollController removed - using WebSocket real-time updates instead
 
 // Landing Page Routes
 
@@ -112,11 +112,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 });
 
-// WebSocket test route
-Route::get('/test-websocket', function () {
-    return view('test-websocket');
-})->name('test.websocket');
-
-// Simple polling routes (returns JSON status and a small polling view)
-Route::get('/poll', [PollController::class, 'view'])->name('poll.view');
-Route::get('/poll/status', [PollController::class, 'status'])->name('poll.status');
+// Real-time WebSocket updates via Laravel Reverb
+// Old polling system removed - now using efficient persistent WebSocket connections
+// No more /poll endpoint - all real-time updates come via WebSocket broadcasts

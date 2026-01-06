@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Models\BookingBooking;
-use App\Observers\BookingObserver;
+use App\Observers\BookingBookingObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register the BookingObserver
-        BookingBooking::observe(BookingObserver::class);
+        // Register the BookingBooking Observer for real-time WebSocket broadcasts
+        BookingBooking::observe(BookingBookingObserver::class);
     }
 }
