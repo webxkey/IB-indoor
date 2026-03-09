@@ -979,6 +979,7 @@
         let sportData = @json($bookingdetails ?? []);
         const gamesConfig = @json($games ?? []);
         const complexId = @json($complex_id ?? null);
+        const openingHours = @json($opening_hours ?? []);
 
         // Debug - log what we received
         console.log('=== DATA RECEIVED FROM BACKEND ===');
@@ -1519,6 +1520,19 @@
 
             console.log('DEBUG - timeSlots generated:', timeSlots.length);
 
+            if (!timeSlots || timeSlots.length === 0) {
+                // Venue closed today or no available slots
+                document.getElementById('calendarBody').innerHTML = `
+                    <tr>
+                        <td colspan="${numberOfCourts + 1}" class="text-center py-4">
+                            <i class="fas fa-times-circle me-2"></i>
+                            No available slots for ${formatDate(currentDate)} (venue may be closed)
+                        </td>
+                    </tr>`;
+                document.getElementById('currentDate').textContent = formatDate(currentDate);
+                return;
+            }
+
             timeSlots.forEach(slot => {
                 bodyHtml += `<tr><td class="time-column">${slot.display}</td>`;
 
@@ -1575,7 +1589,7 @@
                                 <div class="d-flex align-items-center flex-shrink-0" style="min-width: 0;">
                                     <img alt="User Avatar"
                                         class="rounded-circle shadow-sm me-2"
-                                        src="${bookingInfo.avatar || '/storage/staff/user.png'}"
+                                        src="${bookingInfo.avatar || '/'}"
                                         width="48" height="48">
                                     <div class="booking-info text-truncate">
                                         <strong class="d-block text-dark text-truncate">${bookingInfo.player}</strong>
@@ -1670,8 +1684,36 @@
         }
 
         function generateTimeSlots() {
+            // Generate slots based on venue opening hours for the currently selected date
             const slots = [];
-            for (let hour = 6; hour < 23; hour++) {
+            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+            const dayHours = openingHours[dayName] || null;
+
+            if (!dayHours || dayHours.closed || !dayHours.open || !dayHours.close) {
+                return slots; // empty -> venue closed or no hours
+            }
+
+            // Parse open/close HH:MM
+            const [openHStr, openMStr] = (dayHours.open || '00:00').split(':');
+            const [closeHStr, closeMStr] = (dayHours.close || '00:00').split(':');
+            let openH = parseInt(openHStr, 10);
+            const openM = parseInt(openMStr || '0', 10);
+            const closeH = parseInt(closeHStr, 10);
+            const closeM = parseInt(closeMStr || '0', 10);
+
+            // Round start up if minutes > 0
+            if (openM > 0) openH += 1;
+
+            // Last start hour is closeH - 1 if close minutes == 0, else closeH
+            let lastStart = closeH - 1;
+            if (closeM > 0) {
+                // allow a slot starting at closeH if it doesn't exceed close time
+                lastStart = closeH;
+            }
+
+            if (openH > lastStart) return slots;
+
+            for (let hour = openH; hour <= lastStart; hour++) {
                 const startHour = hour % 12 || 12;
                 const ampm = hour < 12 ? 'AM' : 'PM';
                 const nextHour24 = (hour + 1) % 24;
@@ -1679,10 +1721,11 @@
                 const nextAmpm = nextHour24 < 12 ? 'AM' : 'PM';
 
                 slots.push({
-                    time24: `${hour.toString().padStart(2, '0')}:00:00.000000`, // Modified time format
+                    time24: `${hour.toString().padStart(2, '0')}:00:00.000000`,
                     display: `${startHour}:00 ${ampm} - ${nextHour12}:00 ${nextAmpm}`
                 });
             }
+
             return slots;
         }
 
@@ -1880,7 +1923,7 @@
         // REAL-TIME WEBSOCKET BOOKING UPDATES
         // ========================================
         const channelName = `bookings.complex.${complexId}`;
-
+        
         // Subscribe to real-time booking updates via WebSocket
         const channel = window.Echo.channel(channelName);
 
@@ -1888,8 +1931,6 @@
          * Listen for new bookings created from mobile app
          */
         channel.listen('.booking.created', (data) => {
-            console.log('📱 New Booking Created!', data);
-            
             // Show toast notification
             showNotification('success', 
                 '✨ New Booking',
@@ -1902,10 +1943,8 @@
             
             // Refresh calendar after data is loaded
             setTimeout(async () => {
-                console.log('🔄 Fetching fresh booking data...');
                 try {
                     await refreshBookingData();
-                    console.log('✅ Fresh data loaded, updating calendar...');
                     if (typeof updateCalendar === 'function') {
                         updateCalendar();
                     }
@@ -1919,8 +1958,6 @@
          * Listen for booking updates (status changes, payment updates, etc.)
          */
         channel.listen('.booking.updated', (data) => {
-            console.log('📝 Booking Updated!', data);
-            
             // Show toast notification
             showNotification('info',
                 '📝 Booking Updated',
@@ -1933,10 +1970,8 @@
             
             // Refresh calendar after data is loaded
             setTimeout(async () => {
-                console.log('🔄 Fetching fresh booking data...');
                 try {
                     await refreshBookingData();
-                    console.log('✅ Fresh data loaded, updating calendar...');
                     if (typeof updateCalendar === 'function') {
                         updateCalendar();
                     }
@@ -1950,8 +1985,6 @@
          * Listen for booking deletions (cancellations)
          */
         channel.listen('.booking.deleted', (data) => {
-            console.log('🗑️  Booking Deleted!', data);
-            
             // Show toast notification
             showNotification('warning',
                 '🗑️  Booking Deleted',
@@ -1964,10 +1997,8 @@
             
             // Refresh calendar after data is loaded
             setTimeout(async () => {
-                console.log('🔄 Fetching fresh booking data...');
                 try {
                     await refreshBookingData();
-                    console.log('✅ Fresh data loaded, updating calendar...');
                     if (typeof updateCalendar === 'function') {
                         updateCalendar();
                     }
@@ -1976,8 +2007,6 @@
                 }
             }, 500);
         });
-
-        console.log(`✅ Real-time WebSocket listener connected for ${channelName}`);
     });
 
     // Also listen for Livewire update event

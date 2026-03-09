@@ -6,7 +6,9 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use App\Models\BookingVenueReview;
+use App\Models\UserUser;
 use Illuminate\Support\Facades\Auth;
+
 
 
 #[Title("Feedback Dashboard")]
@@ -19,6 +21,7 @@ class StaffFeedbacks extends Component
     public $venue;
     public $imageUrl;
     public $complex_id;
+    public $profile_picture_url;
 
     public function mount()
     {
@@ -33,7 +36,27 @@ class StaffFeedbacks extends Component
             ->where('venue_id', $this->complex_id)
             ->latest()
             ->get();
+        $userids = $reviews->pluck('user_id')->unique()->toArray();
 
+        // Load profile picture filenames for the users and key by user id
+        $userProfileImages = UserUser::whereIn('id', $userids)
+            ->get(['id', 'profile_picture'])
+            ->keyBy('id');
+
+        // Attach a fully-qualified profile picture URL to each review using users_user table
+        foreach ($reviews as $review) {
+            $imgFilename = null;
+            if (isset($userProfileImages[$review->user_id]) && $userProfileImages[$review->user_id]->profile_picture) {
+                $imgFilename = $userProfileImages[$review->user_id]->profile_picture;
+            }
+
+            $review->profile_picture_url = $imgFilename
+                ? 'https://api.indoorbooking.com/media/' . ltrim($imgFilename, '/')
+                : null;
+        }
+
+        // For compatibility keep a single property pointing to the first review image (if present)
+        $this->profile_picture_url = $reviews->first()->profile_picture_url ?? null;
         $this->totalReviews = $reviews->count();
         $this->averageRating = round($reviews->avg('rating'), 1);
         $this->reviews = $reviews;

@@ -19,18 +19,13 @@ return [
     |--------------------------------------------------------------------------
     | Reverb Servers
     |--------------------------------------------------------------------------
-    |
-    | Here you may define details for each of the supported Reverb servers.
-    | Each server has its own configuration options that are defined in
-    | the array below. You should ensure all the options are present.
-    |
     */
 
     'servers' => [
 
         'reverb' => [
-            'host' => env('REVERB_SERVER_HOST', '0.0.0.0'),
-            'port' => env('REVERB_SERVER_PORT', 8080),
+            'host' => env('REVERB_SERVER_HOST', '127.0.0.1'),
+            'port' => env('REVERB_SERVER_PORT', 8081), // Matched to your .env
             'path' => env('REVERB_SERVER_PATH', ''),
             'hostname' => env('REVERB_HOST'),
             'options' => [
@@ -58,38 +53,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Reverb Applications
+    | Reverb Applications & Provider
     |--------------------------------------------------------------------------
-    |
-    | Here you may define how Reverb applications are managed. If you choose
-    | to use the "config" provider, you may define an array of apps which
-    | your server will support, including their connection credentials.
-    |
     */
 
     'apps' => [
-
-        'provider' => 'config',
-
+        'provider' => env('REVERB_APPS_PROVIDER', 'config'),
         'apps' => [
             [
                 'key' => env('REVERB_APP_KEY'),
                 'secret' => env('REVERB_APP_SECRET'),
                 'app_id' => env('REVERB_APP_ID'),
+                'ping_interval' => 30,
+                'activity_timeout' => 30,
                 'options' => [
                     'host' => env('REVERB_HOST'),
-                    'port' => env('REVERB_PORT', 443),
-                    'scheme' => env('REVERB_SCHEME', 'https'),
-                    'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
+                    'port' => env('REVERB_PORT'),
+                    'scheme' => env('REVERB_SCHEME'),
+                    'use_ssl' => env('REVERB_SCHEME') === 'https',
                 ],
-                'allowed_origins' => ['*'],
-                'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
-                'activity_timeout' => env('REVERB_APP_ACTIVITY_TIMEOUT', 30),
-                'max_connections' => env('REVERB_APP_MAX_CONNECTIONS'),
-                'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 10_000),
+                'allowed_origins' => [
+                    'indoorbooking.com',
+                    'www.indoorbooking.com',
+                    'https://indoorbooking.com',
+                    '*'
+                ],
+                'max_message_size' => 10000,
             ],
         ],
-
     ],
 
 ];

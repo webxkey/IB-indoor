@@ -98,4 +98,67 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/bookings/stream/{complexId}', [BookingStreamController::class, 'stream'])
     ->name('bookings.stream');
 
+/*
+|--------------------------------------------------------------------------
+| Mobile App Booking Notification Endpoint
+|--------------------------------------------------------------------------
+|
+| Mobile app calls this endpoint after creating a booking to trigger
+| real-time updates on the staff dashboard for ALL complexes
+|
+*/
+Route::get('/booking/refresh', function (Request $request) {
+    try {
+        Log::info('📱 Refresh API called - broadcasting all bookings', [
+            'endpoint' => 'api/booking/refresh',
+            'timestamp' => now(),
+        ]);
+        
+        // Get ALL bookings from database
+        $bookings = BookingBooking::where('booking_date', '>=', now()->subDays(1)->format('Y-m-d'))
+            ->get();
+        
+        Log::info("Found {$bookings->count()} bookings to broadcast");
+        
+        // Broadcast each booking to its respective complex channel
+        $broadcastCount = 0;
+        foreach ($bookings as $booking) {
+            try {
+                broadcast(new BookingCreated($booking))->toOthers();
+                $broadcastCount++;
+            } catch (\Exception $e) {
+                Log::error("Failed to broadcast booking {$booking->id}", [
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+        
+        Log::info("✅ REFRESHED ALL BOOKINGS", [
+            'total_bookings' => $bookings->count(),
+            'broadcasted' => $broadcastCount,
+            'endpoint' => 'api/booking/refresh',
+        ]);
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => "All bookings refreshed - {$broadcastCount} broadcasted",
+            'total_bookings' => $bookings->count(),
+            'broadcasted' => $broadcastCount,
+        ], 200);
+        
+    } catch (\Exception $e) {
+        Log::error('Booking refresh error', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to refresh bookings',
+        ], 500);
+    }
+});
+
+
+
 

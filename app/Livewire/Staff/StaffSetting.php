@@ -35,14 +35,10 @@ class StaffSetting extends Component
     public $address;
     public $postal_code;
     public $opening_hours = [
-        'Monday' => '',
-        'Tuesday' => '',
-        'Wednesday' => '',
-        'Thursday' => '',
-        'Friday' => '',
-        'Saturday' => '',
-        'Sunday' => ''
+        // will be normalized from DB as lowercase keys with structure ['open' => '09:00','close'=>'17:00','closed'=>false]
     ];
+    public $showOpeningHoursEditor = false;
+    public $days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
     public $amenities = [];
     public $new_amenity = '';
     public $video_tour_url;
@@ -61,11 +57,23 @@ class StaffSetting extends Component
     public function mount()
     {
         try {
-            $this->complex_id = Auth::user()->complex_id;
+            // Refresh user data to get latest complex_id
+            $freshUser = Auth::user()->fresh();
+            $this->complex_id = $freshUser->complex_id;
+            
+            if (!$this->complex_id) {
+                session()->flash('error', 'No complex assigned to your account. Please contact administrator.');
+                // Initialize with empty defaults to prevent null errors
+                $this->opening_hours = $this->getDefaultOpeningHours();
+                return;
+            }
+            
             $this->complexes = BookingVenue::find($this->complex_id);
 
             if (!$this->complexes) {
                 session()->flash('error', 'Complex not found.');
+                // Initialize with empty defaults to prevent null errors
+                $this->opening_hours = $this->getDefaultOpeningHours();
                 return;
             }
 
@@ -76,7 +84,22 @@ class StaffSetting extends Component
             }
         } catch (\Exception $e) {
             session()->flash('error', 'Error loading complex data: ' . $e->getMessage());
+            Log::error('StaffSetting mount error: ' . $e->getMessage());
+            // Initialize with empty defaults to prevent null errors
+            $this->opening_hours = $this->getDefaultOpeningHours();
         }
+    }
+
+    /**
+     * Get default opening hours structure to prevent null errors
+     */
+    private function getDefaultOpeningHours()
+    {
+        $result = [];
+        foreach ($this->days as $day) {
+            $result[$day] = ['open' => null, 'close' => null, 'closed' => false];
+        }
+        return $result;
     }
 
     protected function loadComplexData()
@@ -93,16 +116,16 @@ class StaffSetting extends Component
         $this->address = $this->complexes->address;
         $this->postal_code = $this->complexes->postal_code;
 
-        // Load opening hours
+        // Load opening hours and normalize to canonical structure
         $dbHours = $this->complexes->opening_hours;
         if (is_string($dbHours)) {
-            $decodedHours = json_decode($dbHours, true);
+            $decodedHours = json_decode($dbHours, true) ?: [];
         } else {
-            $decodedHours = $dbHours;
+            $decodedHours = $dbHours ?: [];
         }
-        if (is_array($decodedHours)) {
-            $this->opening_hours = array_merge($this->opening_hours, $decodedHours);
-        }
+        $parsedHours = $this->parseOpeningHoursFromDb($decodedHours);
+        // Ensure opening_hours is always an array, never null
+        $this->opening_hours = is_array($parsedHours) ? $parsedHours : $this->getDefaultOpeningHours();
 
         $dbAmenities = $this->complexes->amenities;
         if (is_string($dbAmenities)) {
@@ -174,6 +197,18 @@ class StaffSetting extends Component
         $this->isEditModalOpen = true;
     }
 
+    /**
+     * Toggle inline opening hours editor visibility
+     */
+    public function toggleOpeningHoursEditor()
+    {
+        $this->showOpeningHoursEditor = ! $this->showOpeningHoursEditor;
+        // Ensure we have fresh data when opening editor
+        if ($this->showOpeningHoursEditor) {
+            $this->loadComplexData();
+        }
+    }
+
     public function closeEditModal()
     {
         $this->isEditModalOpen = false;
@@ -197,13 +232,10 @@ class StaffSetting extends Component
                 'location' => 'required|string|max:255',
                 'address' => 'required|string|max:500',
                 'postal_code' => 'required|string|max:20',
-                'opening_hours.Monday' => 'nullable|string|max:255',
-                'opening_hours.Tuesday' => 'nullable|string|max:255',
-                'opening_hours.Wednesday' => 'nullable|string|max:255',
-                'opening_hours.Thursday' => 'nullable|string|max:255',
-                'opening_hours.Friday' => 'nullable|string|max:255',
-                'opening_hours.Saturday' => 'nullable|string|max:255',
-                'opening_hours.Sunday' => 'nullable|string|max:255',
+                // opening_hours validated as structured array: opening_hours.{day}.open/close/closed
+                'opening_hours.*.open' => 'nullable|date_format:H:i',
+                'opening_hours.*.close' => 'nullable|date_format:H:i',
+                'opening_hours.*.closed' => 'nullable|boolean',
                 'amenities' => 'nullable|array',
                 'video_tour_url' => 'nullable|url|max:255',
                 'description' => 'nullable|string|max:5000',
@@ -272,6 +304,88 @@ class StaffSetting extends Component
         } catch (\Exception $e) {
             session()->flash('error', 'Error updating complex: ' . $e->getMessage());
             Log::error('Complex update error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Parse and normalize opening hours loaded from DB.
+     * Expected DB format: either null, a JSON string or an array like
+     * ['monday' => ['open'=>'09:00','close'=>'17:00','closed'=>false], ...]
+     * Returns canonical array with lowercase day keys and fields open/close/closed.
+     *
+     * @param mixed $dbHours
+     * @return array
+     */
+    private function parseOpeningHoursFromDb($dbHours)
+    {
+        $result = [];
+        foreach ($this->days as $day) {
+            $result[$day] = ['open' => null, 'close' => null, 'closed' => false];
+        }
+
+        if (!is_array($dbHours)) {
+            return $result;
+        }
+
+        foreach ($dbHours as $key => $value) {
+            $k = strtolower($key);
+            if (!in_array($k, $this->days)) {
+                continue;
+            }
+
+            // If value is string like "09:00-17:00" or array
+            if (is_string($value)) {
+                // try to split by - or to a single value
+                if (strpos($value, '-') !== false) {
+                    [$open, $close] = array_map('trim', explode('-', $value, 2));
+                    $result[$k] = ['open' => $open, 'close' => $close, 'closed' => false];
+                } elseif (strtolower($value) === 'closed') {
+                    $result[$k] = ['open' => null, 'close' => null, 'closed' => true];
+                } else {
+                    $result[$k] = ['open' => $value, 'close' => null, 'closed' => false];
+                }
+            } elseif (is_array($value)) {
+                $open = $value['open'] ?? ($value[0] ?? null);
+                $close = $value['close'] ?? ($value[1] ?? null);
+                $closed = isset($value['closed']) ? (bool) $value['closed'] : false;
+                $result[$k] = ['open' => $open, 'close' => $close, 'closed' => $closed];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Update opening hours only (inline editor)
+     */
+    public function updateOpeningHours()
+    {
+        try {
+            $this->validate([
+                'opening_hours.*.open' => 'nullable|date_format:H:i',
+                'opening_hours.*.close' => 'nullable|date_format:H:i',
+                'opening_hours.*.closed' => 'nullable|boolean',
+            ]);
+
+            $complex = BookingVenue::find($this->complex_id);
+            if (!$complex) {
+                session()->flash('error', 'Complex not found.');
+                return;
+            }
+
+            $complex->update(['opening_hours' => $this->opening_hours]);
+            $this->complexes = $complex->fresh();
+            // refresh parsed opening hours
+            $this->opening_hours = $this->parseOpeningHoursFromDb($this->complexes->opening_hours ?: []);
+
+            $this->showOpeningHoursEditor = false;
+            session()->flash('message', 'Opening hours updated successfully!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            session()->flash('error', 'Invalid opening hours format. Please use HH:MM.');
+            throw $e;
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error updating opening hours: ' . $e->getMessage());
+            Log::error('Opening hours update error: ' . $e->getMessage());
         }
     }
 

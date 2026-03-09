@@ -26,10 +26,13 @@
                 <h4>Add Blog</h4>
 
                 <input type="text" wire:model="title" class="form-control mb-2" placeholder="Title">
+                @error('title') <div class="text-danger small">{{ $message }}</div> @enderror
 
                 <textarea wire:model="description" class="form-control mb-2" placeholder="Description"></textarea>
+                @error('description') <div class="text-danger small">{{ $message }}</div> @enderror
 
                 <input type="text" wire:model="image" class="form-control mb-2" placeholder="Image URL ">
+                @error('image') <div class="text-danger small">{{ $message }}</div> @enderror
 
                 <button wire:click="saveBlog" class="btn btn-primary w-100">Save Blog</button>
             </div>
@@ -82,16 +85,19 @@
           <div class="mb-3">
             <label>Title</label>
             <input type="text" class="form-control" wire:model.defer="title">
+                        @error('title') <div class="text-danger small">{{ $message }}</div> @enderror
           </div>
 
           <div class="mb-3">
             <label>Description</label>
             <textarea class="form-control" wire:model.defer="description"></textarea>
+                        @error('description') <div class="text-danger small">{{ $message }}</div> @enderror
           </div>
 
           <div class="mb-3">
             <label>Image URL</label>
             <input type="text" class="form-control" wire:model.defer="image">
+                        @error('image') <div class="text-danger small">{{ $message }}</div> @enderror
           </div>
 
           <button type="submit" class="btn btn-primary w-100">Update</button>

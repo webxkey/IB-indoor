@@ -194,12 +194,10 @@
             <div class="col-12 col-md-6 col-lg-6">
                 <div class="review-card d-flex">
                     <!-- Profile Image -->
-                    <img 
-                        src="{{ $review->user && $review->user->profile_picture 
-                                ? asset('storage/' . $review->user->profile_picture) 
-                                : 'https://via.placeholder.com/80' }}" 
-                        alt="{{ $review->user->first_name ?? 'User' }}" 
-                        class="review-image rounded-circle me-3" 
+                    <img
+                        src="{{ $profile_picture_url }}"
+                        alt="{{ $review->user->first_name ?? 'User' }}"
+                        class="review-image rounded-circle me-3"
                         width="70" height="70">
 
                     <!-- Review Content -->

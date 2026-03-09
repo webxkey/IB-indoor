@@ -14,7 +14,7 @@
 
                 <div class="col-lg-6 text-center text-lg-end">
                     <div class="hero-image-wrapper position-relative">
-                        <img src="{{ asset('images/home.png') }}"
+                        <img src="{{ asset('images/bg-ani.gif') }}"
                             class="main-hero-image img-fluid "
                             alt="Indoor Sports Venue">
                         <div class="deco-circle circle-green position-absolute"></div>

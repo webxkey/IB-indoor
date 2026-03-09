@@ -67,6 +67,252 @@
         border-color: var(--primary-color);
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
+
+    /* Slot Availability Styles */
+    .slot-availability-section {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--small-shadow);
+    }
+
+    .venue-card {
+        background: var(--card-bg);
+        border-radius: var(--small-radius);
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+
+    .venue-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .venue-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .venue-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .venue-icon.football { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); color: #2e7d32; }
+    .venue-icon.badminton { background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); color: #ef6c00; }
+    .venue-icon.cricket { background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%); color: #c2185b; }
+    .venue-icon.tennis { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); color: #1565c0; }
+    .venue-icon.pools { background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%); color: #00838f; }
+    .venue-icon.basketball { background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); color: #c62828; }
+
+    .venue-badge {
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .venue-badge.success { background: #dcfce7; color: #16a34a; }
+    .venue-badge.warning { background: #fef3c7; color: #d97706; }
+    .venue-badge.info { background: #e0f2fe; color: #0284c7; }
+    .venue-badge.danger { background: #fee2e2; color: #dc2626; }
+    .venue-badge.secondary { background: #f3f4f6; color: #6b7280; }
+
+    .maintenance-notice {
+        font-size: 12px;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .slots-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .time-slot {
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+        min-width: 85px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+
+    .time-slot.available {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        color: #0284c7;
+        border-color: #bae6fd;
+    }
+
+    .time-slot.available:hover {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        color: white;
+        transform: scale(1.05);
+    }
+
+    .time-slot.booked {
+        background: linear-gradient(135deg, #f5f5f5 0%, #e5e5e5 100%);
+        color: #737373;
+        border-color: #d4d4d4;
+        cursor: not-allowed;
+    }
+
+    .time-slot.reserved {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #b45309;
+        border-color: #fcd34d;
+    }
+
+    .time-slot.maintenance {
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        color: #6b7280;
+        border-color: #d1d5db;
+        cursor: not-allowed;
+    }
+
+    .time-slot-label {
+        display: block;
+        font-size: 11px;
+        opacity: 0.8;
+        margin-top: 2px;
+    }
+
+    /* Calendar Styles */
+    .calendar-widget {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--small-shadow);
+        padding: 20px;
+    }
+
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .calendar-nav-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: none;
+        background: #f3f4f6;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .calendar-nav-btn:hover {
+        background: #e5e7eb;
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+    }
+
+    .calendar-day-header {
+        text-align: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: #9ca3af;
+        padding: 8px 0;
+    }
+
+    .calendar-day {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: #374151;
+    }
+
+    .calendar-day:hover {
+        background: #f3f4f6;
+    }
+
+    .calendar-day.other-month {
+        color: #d1d5db;
+    }
+
+    .calendar-day.today {
+        background: #16a34a;
+        color: white;
+    }
+
+    .calendar-day.selected {
+        background: #0ea5e9;
+        color: white;
+    }
+
+    /* Upcoming Sidebar */
+    .upcoming-sidebar {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--small-shadow);
+    }
+
+    .upcoming-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .upcoming-item:last-child {
+        border-bottom: none;
+    }
+
+    .upcoming-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+    }
+
+    .upcoming-avatar.blue { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1d4ed8; }
+    .upcoming-avatar.orange { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); color: #c2410c; }
+    .upcoming-avatar.green { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #15803d; }
+    .upcoming-avatar.purple { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); color: #7c3aed; }
+
+    .upcoming-details h6 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 2px;
+        color: #1f2937;
+    }
+
+    .upcoming-details span {
+        font-size: 12px;
+        color: #6b7280;
+    }
 </style>
 
 @endpush
@@ -164,52 +410,7 @@
         </div>
     </div>
 
-    <!-- Booking Analytics -->
-    <div class="row">
-        <!-- Upcoming Bookings -->
-        <div class="col-lg-12 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Upcoming Bookings</h5>
-                    <a href="{{ route('staff.bookings') }}" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-plus me-1"></i> New
-                    </a>
-                </div>
-                <div class="card-body">
-                    @if($upcomingBookings && $upcomingBookings->count())
-                    @foreach($upcomingBookings as $booking)
-                    <div class="upcoming-booking mb-3">
-                        <div class="d-flex align-items-center border rounded p-3 shadow-sm">
-                            <div class="booking-icon me-3">
-                                <i class="fas fa-futbol text-success fs-4"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">{{ $booking->game_name }} - {{ $booking->court_number }}</h6>
-                                <small class="text-muted">
-                                    {{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y,') }}
-                                    {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} -
-                                    {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
-                                </small>
-                                <br>
-                                <small class="text-muted">Player: {{ $booking->user_name }}</small>
-                            </div>
-                            <div>
-                                <button wire:click="showBookingDetails({{ $booking->booking_id }})"
-                                    class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
-                                    data-bs-target="#bookingDetailsModal">
-                                    <i class="fas fa-eye me-1"></i> View Details
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                    @else
-                    <p class="text-muted">No upcoming bookings.</p>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
+
     <!-- Upcoming booking View modal -->
     <div wire:ignore.self class="modal fade" id="bookingDetailsModal" tabindex="-1"
         aria-labelledby="bookingDetailsModalLabel" aria-hidden="true">
@@ -274,6 +475,287 @@
             </div>
         </div>
     </div>
+
+    <!-- Slot Availability Section -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="slot-availability-section p-4">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold mb-1">Slot Availability</h5>
+                        <p class="text-muted mb-0 small">
+                            Showing status for {{ \Carbon\Carbon::parse($slotAvailabilityDate)->format('l, M d') }}
+                        </p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <select wire:model.live="selectedSportFilter" class="form-select form-select-sm" style="width: auto; min-width: 150px;">
+                            <option value="all">All Sports</option>
+                            @foreach($this->sportsList as $sport)
+                                <option value="{{ $sport->id }}">{{ $sport->name }}</option>
+                            @endforeach
+                        </select>
+                        <a href="{{ route('staff.bookings') }}" class="btn btn-success btn-sm">
+                            <i class="fas fa-plus me-1"></i> New
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Venue/Sport Cards -->
+                <div class="venue-list" wire:key="slots-{{ $slotAvailabilityDate }}">
+                    @forelse($sportsWithSlots as $index => $sportData)
+                        <div class="venue-card p-3 mb-3" wire:key="sport-{{ $sportData['id'] }}-{{ $slotAvailabilityDate }}">
+                            <div class="venue-header">
+                                <div class="venue-icon {{ strtolower(str_replace(' ', '', $sportData['name'])) }}">
+                                    @if(str_contains(strtolower($sportData['name']), 'football'))
+                                        <i class="fas fa-futbol"></i>
+                                    @elseif(str_contains(strtolower($sportData['name']), 'badminton'))
+                                        <i class="fas fa-table-tennis"></i>
+                                    @elseif(str_contains(strtolower($sportData['name']), 'cricket'))
+                                        <i class="fas fa-baseball-ball"></i>
+                                    @elseif(str_contains(strtolower($sportData['name']), 'tennis'))
+                                        <i class="fas fa-table-tennis"></i>
+                                    @elseif(str_contains(strtolower($sportData['name']), 'basketball'))
+                                        <i class="fas fa-basketball-ball"></i>
+                                    @elseif(str_contains(strtolower($sportData['name']), 'pool'))
+                                        <i class="fas fa-swimming-pool"></i>
+                                    @else
+                                        <i class="fas fa-running"></i>
+                                    @endif
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0 fw-semibold">{{ $sportData['name'] }}</h6>
+                                    @if($sportData['maxCourts'] > 1)
+                                        <small class="text-muted">{{ $sportData['maxCourts'] }} Courts</small>
+                                    @endif
+                                </div>
+                                @if($sportData['badge'])
+                                    <span class="venue-badge {{ $sportData['badgeType'] }}">
+                                        {{ $sportData['badge'] }}
+                                    </span>
+                                @endif
+                            </div>
+                            
+                            <div class="slots-container">
+                                @if(isset($sportData['isClosed']) && $sportData['isClosed'])
+                                    <div class="text-center py-3 w-100">
+                                        <i class="fas fa-store-slash text-muted me-2"></i>
+                                        <span class="text-muted">Venue is closed on this day</span>
+                                    </div>
+                                @elseif(count($sportData['slots']) === 0)
+                                    <div class="text-center py-3 w-100">
+                                        <i class="fas fa-clock text-muted me-2"></i>
+                                        <span class="text-muted">No available slots remaining for today</span>
+                                    </div>
+                                @else
+                                    @foreach($sportData['slots'] as $slot)
+                                        <div class="time-slot {{ $slot['status'] }}" 
+                                             @if($slot['status'] === 'available')
+                                                wire:click="openAddBookingModal({{ $sportData['id'] }}, '{{ $sportData['name'] }}', {{ $slot['hour'] }})"
+                                                style="cursor: pointer;"
+                                             @endif
+                                             title="{{ ucfirst($slot['status']) }}">
+                                            <span>{{ $slot['time'] }}</span>
+                                            <span class="time-slot-label">{{ ucfirst($slot['status']) }}</span>
+                                        </div>
+                                    @endforeach
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No sports available for this venue.</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                <!-- Legend -->
+                <div class="d-flex justify-content-center gap-4 mt-4 pt-3 border-top">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="time-slot available" style="min-width: auto; padding: 6px 10px; cursor: default;">
+                            <small>Available</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="time-slot booked" style="min-width: auto; padding: 6px 10px; cursor: default;">
+                            <small>Booked</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar & Upcoming Sidebar -->
+        <div class="col-lg-4">
+            <!-- Calendar Widget -->
+            <div class="calendar-widget mb-4">
+                <div class="calendar-header">
+                    <button wire:click="previousMonth" class="calendar-nav-btn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <h6 class="fw-bold mb-0">
+                        {{ \Carbon\Carbon::createFromDate($calendarYear, $calendarMonth, 1)->format('F Y') }}
+                    </h6>
+                    <button wire:click="nextMonth" class="calendar-nav-btn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div class="calendar-grid">
+                    <!-- Day Headers -->
+                    @foreach(['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as $dayName)
+                        <div class="calendar-day-header">{{ $dayName }}</div>
+                    @endforeach
+
+                    <!-- Calendar Days -->
+                    @foreach($calendarDays as $day)
+                        <div class="calendar-day {{ !$day['current'] ? 'other-month' : '' }} {{ $day['today'] ? 'today' : '' }} {{ $day['selected'] ? 'selected' : '' }}"
+                             @if($day['current'])
+                                wire:click="selectCalendarDate({{ $day['day'] }})"
+                             @endif>
+                            {{ $day['day'] }}
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Upcoming Bookings Sidebar -->
+            <div class="upcoming-sidebar p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">Upcoming</h6>
+                    <a href="{{ route('staff.bookings') }}" class="text-primary small text-decoration-none">View All</a>
+                </div>
+
+                @forelse($todayUpcomingBookings as $index => $booking)
+                    @php
+                        $colors = ['blue', 'orange', 'green', 'purple'];
+                        $color = $colors[$index % count($colors)];
+                        $initials = collect(explode(' ', $booking->user_name))->map(fn($word) => strtoupper(substr($word, 0, 1)))->take(2)->join('');
+                    @endphp
+                    <div class="upcoming-item">
+                        <div class="upcoming-avatar {{ $color }}">
+                            {{ $initials }}
+                        </div>
+                        <div class="upcoming-details flex-grow-1">
+                            <h6>{{ $booking->user_name }}</h6>
+                            <span>{{ $booking->game_name }} • {{ \Carbon\Carbon::parse($booking->start_time)->format('g:i A') }} {{ \Carbon\Carbon::parse($booking->booking_date)->isToday() ? 'Today' : \Carbon\Carbon::parse($booking->booking_date)->format('M d') }}</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                @empty
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-check fa-2x text-muted mb-2"></i>
+                        <p class="text-muted small mb-0">No upcoming bookings today</p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Booking Modal -->
+    @if($showAddBookingModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header bg-success text-white" style="border-radius: 16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fas fa-calendar-plus me-2"></i>Add Booking
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="closeAddBookingModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    @if(session()->has('message'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            {{ session('message') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    <!-- Booking Info Summary -->
+                    <div class="bg-light rounded-3 p-3 mb-4">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Sport</small>
+                                <strong>{{ $bookingFormSportName }}</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Date</small>
+                                <strong>{{ \Carbon\Carbon::parse($bookingFormDate)->format('M d, Y') }}</strong>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <small class="text-muted d-block">Time Slot</small>
+                                <strong class="text-success">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ \Carbon\Carbon::createFromTime($bookingFormHour, 0)->format('h:i A') }} - 
+                                    {{ \Carbon\Carbon::createFromTime($bookingFormHour + 1, 0)->format('h:i A') }}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Booking Form -->
+                    <form wire:submit.prevent="saveQuickBooking">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-user me-1 text-muted"></i>Customer Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control @error('bookingFormUserName') is-invalid @enderror" 
+                                   wire:model="bookingFormUserName" 
+                                   placeholder="Enter customer name">
+                            @error('bookingFormUserName')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-phone me-1 text-muted"></i>Phone Number <span class="text-danger">*</span>
+                            </label>
+                            <input type="tel" class="form-control @error('bookingFormUserNumber') is-invalid @enderror" 
+                                   wire:model="bookingFormUserNumber" 
+                                   placeholder="Enter phone number">
+                            @error('bookingFormUserNumber')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-hashtag me-1 text-muted"></i>Court Number <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control @error('bookingFormCourtNumber') is-invalid @enderror" 
+                                   wire:model="bookingFormCourtNumber" 
+                                   min="1" value="1">
+                            @error('bookingFormCourtNumber')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-sticky-note me-1 text-muted"></i>Notes (Optional)
+                            </label>
+                            <textarea class="form-control" wire:model="bookingFormNotes" 
+                                      rows="2" placeholder="Any special requests or notes..."></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-light flex-grow-1" wire:click="closeAddBookingModal">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                            <button type="submit" class="btn btn-success flex-grow-1">
+                                <i class="fas fa-check me-1"></i>Confirm Booking
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Booking Notifications Modal -->
     <div class="modal fade h-50" id="bookingNotificationsModal" tabindex="-1" aria-hidden="true">
@@ -367,50 +849,12 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const dummyData = {
-    "2025-07-24": {
-      "Cricket": ["booked", "available", "available", "booked", "booked", "available"],
-      "Football": ["available", "available", "booked", "booked", "available", "booked"],
-      "Badminton": ["booked", "booked", "available", "available", "available", "booked"]
-    },
-    "2025-07-25": {
-      "Cricket": ["available", "booked", "booked", "available", "available", "available"],
-      "Football": ["booked", "booked", "available", "booked", "available", "booked"],
-      "Badminton": ["available", "available", "available", "booked", "booked", "available"]
-    }
-  };
-
-  const timeSlots = ["12AM - 1AM", "1AM - 2AM", "2AM - 3AM", "3AM - 4AM", "4AM - 5AM", "5AM - 6AM"];
-
-  function renderTable(date) {
-    const tableBody = document.getElementById("booking-table-body");
-    const dateData = dummyData[date];
-    tableBody.innerHTML = "";
-
-    if (!dateData) {
-      tableBody.innerHTML = `<tr><td colspan="${timeSlots.length + 1}" class="text-center">No bookings for selected date.</td></tr>`;
-      return;
-    }
-
-    for (const [game, slots] of Object.entries(dateData)) {
-      const row = document.createElement("tr");
-      row.innerHTML += `<td class="game-name">${game}</td>`;
-      slots.forEach(slot => {
-        const className = slot === "booked" ? "booked" : "available";
-        row.innerHTML += `<td class="${className}">${slot.charAt(0).toUpperCase() + slot.slice(1)}</td>`;
-      });
-      tableBody.appendChild(row);
-    }
-  }
-
-  document.getElementById("date-picker").addEventListener("change", (e) => {
-    const selectedDate = e.target.value;
-    document.getElementById("selected-date").innerText = selectedDate;
-    renderTable(selectedDate);
-  });
-
-  // Default load: today's date
-  const today = new Date().toISOString().split("T")[0];
-  document.getElementById("date-picker").value = today;
-  renderTable(today);
+    // Calendar keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            Livewire.dispatch('previousMonth');
+        } else if (e.key === 'ArrowRight') {
+            Livewire.dispatch('nextMonth');
+        }
+    });
 </script>

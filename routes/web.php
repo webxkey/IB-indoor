@@ -31,6 +31,7 @@ use App\Livewire\LandingPage\ForBusiness;
 use App\Livewire\LandingPage\Privacy;
 use App\Livewire\LandingPage\Careers;
 use App\Livewire\Admin\BlogsManagement;
+use App\Livewire\Admin\AdminSettings;
 
 // Note: PollController removed - using WebSocket real-time updates instead
 
@@ -82,6 +83,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/indoor-admins', IndoorAdmins::class)->name('indoor-admins');
         Route::get('/landing-page', LandingPageCMS::class)->name('landing-page');
         Route::get('/blogs-management', BlogsManagement::class)->name('blogs-management');
+        // Route::get('/settings', AdminSettings::class)->name('settings');
     });
 
 

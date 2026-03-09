@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Storage;
 
 #[Title("Staff Dashboard")]
 #[Layout("components.layouts.staff")]
@@ -24,6 +25,7 @@ class BookingsManagement extends Component
     public $complex_id;
     public $games;
     public $bookingdetails = [];
+    public $opening_hours = [];
 
     public $selectedGame = '';
     public $selectedDate = '';
@@ -123,10 +125,24 @@ class BookingsManagement extends Component
                 ->where('status', 'Active')
                 ->get();
 
+            // Load and normalize opening hours from venue
+            $venue = \App\Models\BookingVenue::find($this->complex_id);
+            $dbHours = [];
+            if ($venue) {
+                $dbHours = is_string($venue->opening_hours) ? json_decode($venue->opening_hours, true) : ($venue->opening_hours ?? []);
+            }
+            $this->opening_hours = $this->parseOpeningHoursFromDb($dbHours);
+
             // Only load non-cancelled bookings for display
             $this->bookings = BookingBooking::where('complex_id_id', $this->complex_id)
                 ->whereNotIn('status', ['Cancelled'])
+                ->with('user') // Eager load user relationship to avoid N+1 queries
                 ->get();
+            // $user_userIds = $this->bookings->pluck('user_id_id')->unique()->toArray();  
+            // $userUsersProfile = UserUser::whereIn('id', $user_userIds)
+            //     ->get(['id', 'profile_picture'])
+            //     ->keyBy('id');
+            // dd($userUsersProfile->toArray());
 
             $this->games = $this->sports->map(function ($sport) {
                 return [
@@ -152,13 +168,20 @@ class BookingsManagement extends Component
                     $slotKey = $startTime->copy()->addHours($i)->format('H:i:s');
                     $slotEnd = $startTime->copy()->addHours($i + 1)->format('H:i:s');
 
+                    // Get user's profile picture or use default
+                    $user = $booking->user;
+                    $avatarUrl = '/storage/staff/user.png';
+                    if ($user && $user->profile_picture) {
+                        $avatarUrl = Storage::url($user->profile_picture);
+                    }
+
                     $this->bookingdetails[$game][$date][$court][$slotKey] = [
                         'player' => $booking->user_name ?? 'Unknown',
                         'phone' => $booking->user_number ?? 'N/A',
                         'status' => $booking->status ?? 'Pending',
                         'permanent_source_id' => $booking->permanent_source_id,
                         'end' => $slotEnd,
-                        'avatar' => '/storage/staff/user.png',
+                        'avatar' => $avatarUrl,
                         'id' => $booking->id,
                     ];
                 }
@@ -167,6 +190,44 @@ class BookingsManagement extends Component
             Log::error('Error in loadSports', ['error' => $e->getMessage()]);
             $this->addError('general', 'Failed to load data. Please refresh.');
         }
+    }
+
+    /**
+     * Parse opening hours similar to StaffSetting
+     */
+    private function parseOpeningHoursFromDb($dbHours)
+    {
+        $days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+        $result = [];
+        foreach ($days as $day) {
+            $result[$day] = ['open' => null, 'close' => null, 'closed' => false];
+        }
+
+        if (!is_array($dbHours)) {
+            return $result;
+        }
+
+        foreach ($dbHours as $key => $value) {
+            $k = strtolower($key);
+            if (!in_array($k, $days)) continue;
+            if (is_string($value)) {
+                if (strpos($value, '-') !== false) {
+                    [$open, $close] = array_map('trim', explode('-', $value, 2));
+                    $result[$k] = ['open' => $open, 'close' => $close, 'closed' => false];
+                } elseif (strtolower($value) === 'closed') {
+                    $result[$k] = ['open' => null, 'close' => null, 'closed' => true];
+                } else {
+                    $result[$k] = ['open' => $value, 'close' => null, 'closed' => false];
+                }
+            } elseif (is_array($value)) {
+                $open = $value['open'] ?? ($value[0] ?? null);
+                $close = $value['close'] ?? ($value[1] ?? null);
+                $closed = isset($value['closed']) ? (bool) $value['closed'] : false;
+                $result[$k] = ['open' => $open, 'close' => $close, 'closed' => $closed];
+            }
+        }
+
+        return $result;
     }
 
     public function getBookingDetails()
@@ -434,16 +495,11 @@ class BookingsManagement extends Component
 
     /**
      * Handle real-time booking creation via WebSocket
-     * Called when a new booking is created from mobile app
+     * Called when a new booking is created from mobile app or staff dashboard
      */
     #[On('echo:bookings.complex.{complex_id},booking.created')]
     public function handleNewBooking($data)
     {
-        Log::info('Real-time new booking received', [
-            'booking_id' => $data['id'],
-            'user_name' => $data['user_name'],
-        ]);
-
         // Reload all bookings to show the new one
         $this->loadSports();
         $this->updateChangeTracking();
@@ -509,6 +565,7 @@ class BookingsManagement extends Component
             'games' => $this->games ?? [],
             'bookingdetails' => $this->bookingdetails ?? [],
             'complex_id' => $this->complex_id,
+            'opening_hours' => $this->opening_hours ?? [],
         ]);
     }
 }

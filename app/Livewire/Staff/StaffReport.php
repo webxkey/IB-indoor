@@ -146,15 +146,13 @@ class StaffReport extends Component
         $bookingsData = [];
 
         $query = BookingBooking::query()
-            ->selectRaw("
-                CASE 
-                    WHEN ? = 'day' THEN booking_date::date
+            ->selectRaw("CASE 
+                    WHEN ? = 'day' THEN to_char(booking_date::date, 'YYYY-MM-DD')
                     WHEN ? = 'week' THEN to_char(date_trunc('week', booking_date), 'IYYYIW')
                     ELSE to_char(booking_date, 'YYYY-MM')
                 END as period,
                 SUM(price) as total_revenue,
-                COUNT(*) as total_bookings
-            ", [$aggregation, $aggregation])
+                COUNT(*) as total_bookings", [$aggregation, $aggregation])
             ->where('complex_id_id', $this->complex_id)
             ->whereBetween('booking_date', [$start, $end])
             ->groupBy('period');

@@ -31,7 +31,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('http://127.0.0.1:8000/images/bg.jpg');
+            background-image: url('images/bg.jpg');
             background-size: cover;
             background-position: center;
             z-index: 0;

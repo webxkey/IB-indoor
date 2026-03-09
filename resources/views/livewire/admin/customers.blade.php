@@ -173,7 +173,7 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <img src="{{ $user->profile_picture ? asset('storage/'.$user->profile_picture) : 'https://ui-avatars.com/api/?name='.urlencode($user->first_name.'+'.$user->last_name).'&background=random' }}"
+                                    <img src="{{ $user->profile_picture ? (strpos($user->profile_picture, 'http') === 0 ? $user->profile_picture : 'https://api.indoorbooking.com/media/'.$user->profile_picture) : 'https://ui-avatars.com/api/?name='.urlencode($user->first_name.'+'.$user->last_name).'&background=random' }}"
                                         class="rounded-circle me-3" width="40" height="40"
                                         alt="{{ $user->first_name }} {{ $user->last_name }}">
                                     <div>
@@ -219,9 +219,7 @@
             </div>
 
             <!-- Pagination -->
-            <nav aria-label="Page navigation" class="mt-4">
-                {{ $users->links() }}
-            </nav>
+            {{ $users->links('vendor.livewire.bootstrap') }}
         </div>
     </div>
 

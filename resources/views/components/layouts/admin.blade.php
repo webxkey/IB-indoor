@@ -612,7 +612,7 @@
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('admin.indoor-admins') ? 'active' : '' }}"
                                     href="{{ route('admin.indoor-admins') }}" data-section="indoor-admins">
-                                    <i class="fas fa-chart-bar me-2"></i>
+                                    <i class="fas fa-users-cog me-2"></i>
                                     Indoor Admins
                                 </a>
                             </li>
@@ -620,7 +620,7 @@
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('admin.blogs-management') ? 'active' : '' }}"
                                     href="{{ route('admin.blogs-management') }}" data-section="indoor-admins">
-                                    <i class="fas fa-chart-bar me-2"></i>
+                                    <i class="fas fa-newspaper me-2"></i>
                                     Blogs Management
                                 </a>
                             </li>
@@ -682,18 +682,7 @@
                             data-bs-target=".sidebar">
                             <i class="fas fa-bars"></i>
                         </button>
-                        <div class="search-box">
-                            <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0">
-                                    <i class="fas fa-search text-muted"></i>
-                                </span>
-                                <input type="text" class="form-control border-start-0" placeholder="Search..."
-                                    style="background: transparent;">
-                                <span class="input-group-text bg-transparent border-start-0">
-                                    <kbd>⌘F</kbd>
-                                </span>
-                            </div>
-                        </div>
+                       
                     </div>
                     <div class="d-flex align-items-center">
                         <button class="btn btn-outline-secondary me-2">
@@ -737,6 +726,9 @@
         </main>
     </div>
 </body>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 @livewireScripts
 

@@ -22,7 +22,8 @@ class BlogsManagement extends Component
         $this->validate([
             'title' => 'required',
             'description' => 'required',
-            'image' => 'required|url',
+            // Accept any non-empty image string (URL or path). Strict URL rule removed
+            'image' => 'required',
         ]);
 
         Blog::create([
@@ -58,7 +59,8 @@ public function editBlog($id)
         $this->validate([
             'title' => 'required',
             'description' => 'required',
-            'image' => 'required|url',
+            // Accept any non-empty image string (URL or path). Strict URL rule removed
+            'image' => 'required',
         ]);
 
         Blog::where('id', $this->blog_id)->update([

@@ -123,7 +123,18 @@
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('staff.bookings') ? 'active' : '' }}" href="{{ route('staff.bookings') }}">
                                     <i class="fas fa-calendar-check me-2"></i> Bookings
-                                    <span class="badge bg-success ms-auto">12</span>
+                                    @php
+                                        $todayBookings = 0;
+                                        if (auth()->check()) {
+                                            $complexId = auth()->user()->complex_id ?? null;
+                                            if ($complexId) {
+                                                $todayBookings = \App\Models\BookingBooking::where('complex_id_id', $complexId)
+                                                    ->whereDate('booking_date', now()->toDateString())
+                                                    ->count();
+                                            }
+                                        }
+                                    @endphp
+                                    <span class="badge bg-success ms-auto">{{ $todayBookings }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -173,14 +184,7 @@
                         <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none me-2">
                             <i class="fas fa-bars"></i>
                         </button>
-                        <div class="search-box">
-                            <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0">
-                                    <i class="fas fa-search text-muted"></i>
-                                </span>
-                                <input type="text" class="form-control border-start-0" placeholder="Search..." style="background: transparent;">
-                            </div>
-                        </div>
+                       
                     </div>
                     <div class="d-flex align-items-center">
                         <button class="btn btn-outline-secondary me-3"><i class="fas fa-bell"></i></button>

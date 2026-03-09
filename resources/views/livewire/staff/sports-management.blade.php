@@ -48,7 +48,7 @@
             <p class="text-muted">Manage all sports activities and their booking status</p>
         </div>
         <div>
-            <button class="btn btn-success me-2" wire:click="openModal">
+            <button id="addSportButton" class="btn btn-success me-2" wire:click="openModal">
                 <i class="fas fa-plus me-1"></i> Add New Sport
             </button>
         </div>
@@ -66,8 +66,8 @@
         <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
             <div class="card h-100">
                 <div class="position-relative">
-                    <img src="{{$sport->image }}"
-                        alt="Sport Image" class="img-fluid rounded" style="max-height: 200px; object-fit: cover;">
+                    <img src="{{ $sport->image ?? asset('images/sports_images/default.jpg') }}"
+                        alt="Sport Image" class="img-fluid rounded" style="max-height: 245px; object-fit: cover;">
                     <span class="position-absolute top-0 start-0 text-white px-2 py-1 rounded-end 
                     {{ $sport->status === 'Active' ? 'bg-success' : 'bg-danger' }}">
                         {{ $sport->status }}
@@ -79,7 +79,7 @@
                     <h5 class="card-title">{{ $sport->name }}</h5>
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Hourly Rate:</span>
-                        <span class="fw-bold">{{ number_format($sport->price / 100, 2) }}</span>
+                        <span class="fw-bold">Rs. {{ number_format($sport->price) }}</span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Available Courts:</span>
@@ -113,7 +113,13 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="game_name" class="form-label fw-semibold">Game Name*</label>
-                                <input type="text" class="form-control" id="game_name" wire:model="game_name" required>
+                                <select class="form-select" id="game_name" wire:model="game_name" required>
+                                    <option value="" >Select Sport</option>
+                                    <option value="Cricket">Cricket</option>
+                                    <option value="Badminton">Badminton</option>
+                                    <option value="Pools">Pools</option>
+                                    <option value="Pooltable">Pooltable</option>
+                                </select>
                                 @error('game_name') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
 
@@ -163,23 +169,7 @@
                                 @error('status') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
 
-                            <div class="col-md-6">
-                                <label for="game_image" class="form-label fw-semibold">
-                                    Game Image <span class="text-danger">*</span>
-                                </label>
-                                <input type="file" class="form-control" id="game_image" wire:model="game_image"
-                                    accept="image/*" required>
-                                @error('game_image')
-                                <span class="text-danger small">{{ $message }}</span>
-                                @enderror
-
-                                @if($game_image)
-                                <div class="mt-2">
-                                    <img src="{{ $game_image->temporaryUrl() }}" alt="Preview"
-                                        class="img-thumbnail rounded shadow-sm" width="120">
-                                </div>
-                                @endif
-                            </div>
+                            
 
                             <div class="col-md-12">
                                 <label for="description" class="form-label fw-semibold">Description</label>
@@ -210,14 +200,13 @@
     </div>
 
     <!-- Edit Sport Modal -->
-    <div class="modal fade" id="editSportModal" tabindex="-1" aria-labelledby="editSportModalLabel" aria-hidden="true"
-        wire:ignore.self>
+    <div class="modal fade" id="editSportModal" tabindex="-1" aria-labelledby="editSportModalLabel" wire:ignore.self>
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content shadow">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="editSportModalLabel">Edit Sport</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        wire:click="resetForm"></button>
+                        aria-label="Close"></button>
                 </div>
 
                 <form wire:submit.prevent="updateSport">
@@ -225,7 +214,7 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Game Name*</label>
-                                <input type="text" class="form-control" wire:model="game_name" required>
+                                <input type="text" class="form-control" wire:model="game_name" disabled>
                                 @error('game_name') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
 
@@ -274,27 +263,6 @@
                                 @error('status') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Current Sport Image</label>
-                                <div>
-                                    <img src="{{ $existingImage ? asset('storage/' . $existingImage) : asset('images/default-sport.jpg') }}"
-                                        class="img-thumbnail" width="150">
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="game_image" class="form-label">Upload New Image</label>
-                                <input type="file" class="form-control" id="game_image" wire:model="game_image"
-                                    accept="image/*">
-                                @error('game_image') <span class="text-danger">{{ $message }}</span> @enderror
-
-                                @if ($game_image)
-                                <div class="mt-2">
-                                    <label class="form-label">Preview New Image:</label>
-                                    <img src="{{ $game_image->temporaryUrl() }}" class="img-thumbnail" width="150">
-                                </div>
-                                @endif
-                            </div>
 
                             <div class="col-md-12">
                                 <label class="form-label fw-semibold">Description</label>
@@ -305,9 +273,8 @@
                     </div>
 
                     <div class="modal-footer border-0 pt-0">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
-                            wire:click="resetForm">Cancel</button>
-                        <button type="button" class="btn btn-danger" wire:click="confirmDelete({{ $editSportId }})">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="deleteSportBtn" wire:click="confirmDelete({{ $editSportId }})">
                             Delete
                         </button>
                         <button type="submit" class="btn btn-primary">
@@ -332,6 +299,24 @@
         const editSportModalEl = document.getElementById('editSportModal');
         const addSportModal = new bootstrap.Modal(addSportModalEl);
         const editSportModal = new bootstrap.Modal(editSportModalEl);
+        
+        // Helper function to safely move focus out of modal
+        function moveFocusOutOfModal() {
+            const addBtn = document.getElementById('addSportButton');
+            if (addBtn) {
+                addBtn.focus();
+            } else {
+                document.body.focus();
+            }
+        }
+        
+        // Helper function to clean up modal artifacts
+        function cleanupModalArtifacts() {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }
 
         // Add Sport Modal events
         window.addEventListener('showModal', () => {
@@ -339,13 +324,13 @@
         });
 
         window.addEventListener('hideModal', () => {
-            if (addSportModal._isShown) {
-                addSportModal.hide();
-            }
+            moveFocusOutOfModal();
+            addSportModal.hide();
         });
 
         addSportModalEl.addEventListener('hidden.bs.modal', () => {
             Livewire.dispatch('resetForm');
+            cleanupModalArtifacts();
         });
 
         // Edit Sport Modal events
@@ -354,17 +339,40 @@
         });
 
         window.addEventListener('hideEditSportModal', () => {
-            if (editSportModal._isShown) {
-                editSportModal.hide();
-            }
+            moveFocusOutOfModal();
+            editSportModal.hide();
         });
 
         editSportModalEl.addEventListener('hidden.bs.modal', () => {
             Livewire.dispatch('resetForm');
+            cleanupModalArtifacts();
         });
+
+        // Track pending delete confirmation
+        let pendingDeleteId = null;
 
         // Delete confirmation with SweetAlert2
         window.addEventListener('showConfirmation', event => {
+            pendingDeleteId = event.detail.id;
+            
+            // First move focus out of modal to prevent aria-hidden conflict
+            moveFocusOutOfModal();
+            
+            // Then hide the modal
+            editSportModal.hide();
+        });
+        
+        // Wait for modal to be fully hidden before showing SweetAlert
+        editSportModalEl.addEventListener('hidden.bs.modal', function onHiddenForDelete() {
+            if (pendingDeleteId === null) return;
+            
+            const deleteId = pendingDeleteId;
+            pendingDeleteId = null;
+            
+            // Clean up any remaining modal artifacts
+            cleanupModalArtifacts();
+            
+            // Now show SweetAlert
             Swal.fire({
                 title: 'Are you sure?',
                 text: "You won't be able to revert this!",
@@ -376,21 +384,24 @@
                 cancelButtonText: 'Cancel',
                 customClass: {
                     popup: 'animated shake',
-                    confirmButton: 'btn btn-danger',
-                    cancelButton: 'btn btn-secondary'
+                    confirmButton: 'btn btn-danger mx-1',
+                    cancelButton: 'btn btn-secondary mx-1'
                 },
                 buttonsStyling: false
             }).then((result) => {
                 if (result.isConfirmed) {
-                    Livewire.dispatch('deleteConfirmed', {
-                        id: event.detail.id
-                    });
+                    Livewire.dispatch('deleteConfirmed', { id: deleteId });
+                } else {
+                    // Reopen modal if user cancels
+                    editSportModal.show();
                 }
             });
         });
 
         // Handle successful deletion
         window.addEventListener('sportDeleted', () => {
+            cleanupModalArtifacts();
+            
             Swal.fire({
                 title: 'Deleted!',
                 text: 'The sport has been deleted.',
@@ -401,10 +412,7 @@
                     popup: 'animated fadeIn'
                 }
             }).then(() => {
-                // Ensure modal is closed after deletion
-                if (editSportModal._isShown) {
-                    editSportModal.hide();
-                }
+                moveFocusOutOfModal();
             });
         });
 

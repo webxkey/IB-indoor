@@ -101,17 +101,17 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label for="statusFilter" class="form-label">Status</label>
-                    <select class="form-select" id="statusFilter" wire:model="statusFilter">
+                    <select class="form-select" id="statusFilter" wire:model.live="statusFilter">
                         <option value="" selected>All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="maintenance">Maintenance</option>
-                        <option value="new">New</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="New">New</option>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label for="locationFilter" class="form-label">Location</label>
-                    <select class="form-select" id="locationFilter" wire:model="locationFilter">
+                    <select class="form-select" id="locationFilter" wire:model.live="locationFilter">
                         <option value="" selected>All Locations</option>
                         @foreach($availableCounties as $county)
                         <option value="{{ $county }}">{{ $county }}</option>
@@ -120,7 +120,7 @@
                 </div>
                 <div class="col-md-3">
                     <label for="capacityFilter" class="form-label">Capacity</label>
-                    <select class="form-select" id="capacityFilter" wire:model="capacityFilter">
+                    <select class="form-select" id="capacityFilter" wire:model.live="capacityFilter">
                         <option value="" selected>Any Capacity</option>
                         <option value="100">Up to 100</option>
                         <option value="200">Up to 200</option>
@@ -147,7 +147,7 @@
                 <span class="input-group-text"><i class="fas fa-search"></i></span>
                 <input type="text" class="form-control"
                     placeholder="Search indoor grounds by name, location or features..."
-                    wire:model.debounce.500ms="search">
+                    wire:model.live.debounce.500ms="search">
                 <button class="btn btn-primary">Search</button>
             </div>
         </div>
@@ -175,10 +175,10 @@
         <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
             <div class="card h-100 card-clickable" wire:click="showViewModal({{ $venue->id }})">
                 <div class="position-relative">
-                    <img src="{{ $venue->cover_image ? Storage::url($venue->cover_image) : 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg' }}"
+                    <img src="{{ $venue->image_url }}"
                         class="card-img-top" alt="Indoor Ground">
                     <span
-                        class="badge bg-{{ $venue->status == 'active' ? 'success' : ($venue->status == 'maintenance' ? 'warning' : 'danger') }} position-absolute top-0 end-0 m-2">
+                        class="badge bg-{{ $venue->status == 'Active' ? 'success' : ($venue->status == 'Maintenance' ? 'warning' : 'danger') }} position-absolute top-0 end-0 m-2">
                         {{ ucfirst($venue->status) }}
                     </span>
                 </div>
@@ -216,13 +216,13 @@
                             </button>
                             @if($venue->status == 'active')
                             <button class="btn btn-sm btn-outline-danger" title="Deactivate"
-                                wire:click="updateStatus({{ $venue->id }}, 'inactive')"
+                                wire:click="updateStatus({{ $venue->id }}, 'Inactive')"
                                 onclick="event.stopPropagation()">
                                 <i class="fas fa-ban"></i>
                             </button>
                             @else
                             <button class="btn btn-sm btn-outline-success" title="Activate"
-                                wire:click="updateStatus({{ $venue->id }}, 'active')" onclick="event.stopPropagation()">
+                                wire:click="updateStatus({{ $venue->id }}, 'Active')" onclick="event.stopPropagation()">
                                 <i class="fas fa-check"></i>
                             </button>
 
@@ -231,9 +231,7 @@
                             the activate/deactivate button) --}}
 
                             <button class="btn btn-sm btn-outline-danger" title="Delete"
-                                wire:click="deleteVenue({{ $venue->id }})"
-                                wire:confirm="Are you sure you want to delete this venue?"
-                                onclick="event.stopPropagation()">
+                                wire:click.stop="deleteVenue({{ $venue->id }})">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -251,14 +249,14 @@
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col-md-3">
-                        <img src="{{ $venue->cover_image ? Storage::url($venue->cover_image) : 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg' }}"
+                        <img src="{{ $venue->image_url ? Storage::url($venue->cover_image) : 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg' }}"
                             class="list-view-img rounded" alt="Indoor Ground" width="280" height="140">
                     </div>
                     <div class="col-md-5">
                         <h5>{{ $venue->name }}</h5>
                         <div class="d-flex flex-wrap gap-2 mb-2">
                             <span
-                                class="badge bg-{{ $venue->status == 'active' ? 'success' : ($venue->status == 'maintenance' ? 'warning' : 'danger') }}">
+                                class="badge bg-{{ $venue->status == 'Active' ? 'success' : ($venue->status == 'Maintenance' ? 'warning' : 'danger') }}">
                                 {{ ucfirst($venue->status) }}
                             </span>
                             <span class="badge bg-primary">
@@ -294,18 +292,17 @@
                         after the activate/deactivate button and before the view details button) --}}
 
                         <button class="btn btn-sm btn-outline-danger me-1" title="Delete"
-                            wire:click="deleteVenue({{ $venue->id }})"
-                            wire:confirm="Are you sure you want to delete this venue?">
+                            wire:click="deleteVenue({{ $venue->id }})">
                             <i class="fas fa-trash"></i> Delete
                         </button>
-                        @if($venue->status == 'active')
+                        @if($venue->status == 'Active')
                         <button class="btn btn-sm btn-outline-danger" title="Deactivate"
-                            wire:click="updateStatus({{ $venue->id }}, 'inactive')">
+                            wire:click="updateStatus({{ $venue->id }}, 'Inactive')">
                             <i class="fas fa-ban"></i> Deactivate
                         </button>
                         @else
                         <button class="btn btn-sm btn-outline-success" title="Activate"
-                            wire:click="updateStatus({{ $venue->id }}, 'active')">
+                            wire:click="updateStatus({{ $venue->id }}, 'Active')">
                             <i class="fas fa-check"></i> Activate
                         </button>
                         @endif
@@ -407,10 +404,10 @@
                                 <div class="mb-3">
                                     <label for="status" class="form-label">Status*</label>
                                     <select class="form-select" id="status" wire:model="status" required>
-                                        <option value="active" selected>Active</option>
-                                        <option value="inactive">Inactive</option>
-                                        <option value="maintenance">Under Maintenance</option>
-                                        <option value="new">New</option>
+                                        <option value="Active" selected>Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Maintenance">Under Maintenance</option>
+                                        <option value="New">New</option>
                                     </select>
                                     @error('status') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
@@ -581,7 +578,7 @@
                             <h4 class="mb-3">{{ $viewVenue->name }}</h4>
                             <div class="d-flex flex-wrap gap-2 mb-3">
                                 <span
-                                    class="badge bg-{{ $viewVenue->status == 'active' ? 'success' : ($viewVenue->status == 'maintenance' ? 'warning' : 'danger') }}">
+                                    class="badge bg-{{ $viewVenue->status == 'Active' ? 'success' : ($viewVenue->status == 'Maintenance' ? 'warning' : 'danger') }}">
                                     {{ ucfirst($viewVenue->status) }}
                                 </span>
                                 <span class="badge bg-primary">
@@ -768,10 +765,10 @@
                                 <div class="mb-3">
                                     <label for="editStatus" class="form-label required-field">Status</label>
                                     <select class="form-select" id="editStatus" wire:model="status" required>
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                        <option value="maintenance">Under Maintenance</option>
-                                        <option value="new">New</option>
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Maintenance">Under Maintenance</option>
+                                        <option value="New">New</option>
                                     </select>
                                     @error('status') <span class="text-danger error-message">{{ $message }}</span>
                                     @enderror
@@ -992,6 +989,7 @@
             viewModal.show();
         });
         
+        // Listen for browser event to show edit modal after component state is applied
         window.addEventListener('showEditModal', () => {
             // Hide view modal if open, then show edit modal
             if (viewModal._isShown) {
@@ -1004,6 +1002,38 @@
             if (addModal._isShown) addModal.hide();
             if (viewModal._isShown) viewModal.hide();
             if (editModal._isShown) editModal.hide();
+        });
+
+        // SweetAlert confirmation for delete
+        window.addEventListener('confirm-delete', event => {
+            Swal.fire({
+                title: 'Delete Indoor Venue?',
+                html: '<p class="text-muted">This will permanently remove the venue and all its associated data.</p><p class="text-danger"><small><i class="fas fa-exclamation-triangle"></i> This action cannot be undone.</small></p>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-trash"></i> Yes, Delete',
+                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Livewire.dispatch('confirmDelete');
+                }
+            });
+        });
+
+        // Alert messages
+        window.addEventListener('alert', event => {
+            const message = event.detail?.message || 'Action completed.';
+            const isError = message.toLowerCase().includes('unable') || message.toLowerCase().includes('error');
+            Swal.fire({
+                icon: isError ? 'error' : 'success',
+                title: isError ? 'Cannot Delete' : 'Success',
+                text: message,
+                timer: isError ? undefined : 3000,
+                showConfirmButton: isError
+            });
         });
     });
     </script>

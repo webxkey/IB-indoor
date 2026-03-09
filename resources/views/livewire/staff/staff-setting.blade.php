@@ -30,7 +30,9 @@
                 <a href="#" class="nav-link {{ $activeSection === 'team' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('team')">
                     <i class="fas fa-users me-2"></i>Team Member
                 </a>
-
+                <a href="#" class="nav-link {{ $activeSection === 'opening_time' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('opening_time')">
+                    <i class="fas fa-clock me-2"></i>Opening time 
+                </a>
             </nav>
         </div>
 
@@ -38,6 +40,7 @@
         <div class="bg-white rounded-3 shadow-sm p-4 w-75">
 
             @if($activeSection === 'profile')
+            @if($complexes)
             <!-- Profile Header -->
             <div>
                 <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
@@ -53,11 +56,11 @@
                         <!-- Default/placeholder image if no cover image exists -->
                         <div class="rounded-2 me-3 bg-light d-flex align-items-center justify-content-center"
                             style="width: 100px; height: 100px;">
-                            <i class="fas fa-image text-muted"></i>
+                            <img src="{{ $complexes->image_url }}" alt="Default Complex Image" class="rounded-2" style="width: 100px; height: 100px; object-fit: cover;">
                         </div>
                         @endif
                         <div>
-                            <h3 class="h4 fw-bold text-dark mb-1">{{ $complexes->complex_name }}</h3>
+                            <h3 class="h4 fw-bold text-dark mb-1">{{ $complexes->name }}</h3>
                             <div class="d-flex align-items-center">
                                 <span class="badge bg-success bg-opacity-10 text-success me-2">{{ $complexes->complex_type }}</span>
                                 <span class="text-muted small"><i class="fas fa-map-marker-alt me-1"></i>{{ $complexes->county }}</span>
@@ -141,39 +144,22 @@
                             Operating Details
                         </h5>
 
-                        <!-- Opening Hours -->
-                        <div class="mb-4">
-                            <h6 class="fw-semibold mb-3">Opening Hours</h6>
-                            <div class="table-responsive">
-                                <table class="table table-borderless table-sm">
-                                    <tbody>
-                                        @foreach($complexes->opening_hours as $day => $time)
-                                        <tr>
-                                            <td class="w-25 fw-medium text-muted">{{ ucfirst($day) }}</td>
-                                            <span class="badge bg-success bg-opacity-10 text-success">
-                                                {{-- Ensure $time is always an array for implode --}}
-                                                @php
-                                                    $timeArr = is_array($time) ? $time : (is_string($time) ? (json_decode($time, true) ?: [$time]) : [$time]);
-                                                @endphp
-                                                {{ implode(', ', $timeArr) }}
-                                            </span>
-                                        </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                  
 
                         <!-- Amenities -->
                         <div>
                             <h6 class="fw-semibold mb-3">Amenities</h6>
                             <div class="d-flex flex-wrap gap-2">
-                                @foreach($complexes->amenities as $amenity)
-                                <span class="badge bg-light text-dark border small fw-normal py-2 px-3 d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-success me-2"></i>
-                                    {{ $amenity }}
-                                </span>
-                                @endforeach
+                                @if(isset($complexes->amenities) && is_array($complexes->amenities) && count($complexes->amenities) > 0)
+                                    @foreach($complexes->amenities as $amenity)
+                                    <span class="badge bg-light text-dark border small fw-normal py-2 px-3 d-flex align-items-center">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        {{ $amenity }}
+                                    </span>
+                                    @endforeach
+                                @else
+                                    <span class="text-muted small">No amenities listed</span>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -196,7 +182,7 @@
                         </div>
                         <div class="mb-4">
                             <label class="small text-muted mb-2">Gallery Images</label>
-                            @if(count($complexes->gallery_images ?? []) > 0)
+                            @if(isset($complexes->gallery_images) && is_array($complexes->gallery_images) && count($complexes->gallery_images) > 0)
                             <div class="d-flex flex-wrap gap-3">
                                 @foreach($complexes->gallery_images as $image)
                                 <div class="position-relative" style="width: 120px; height: 120px;">
@@ -241,17 +227,27 @@
                         <div>
                             <label class="small text-muted mb-1">Social Links</label>
                             <div class="d-flex flex-wrap gap-3">
-                                @foreach($complexes->social_links as $platform => $url)
-                                <a href="{{ $url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center">
-                                    <i class="fab fa-{{ strtolower($platform) }} me-2"></i>
-                                    {{ ucfirst($platform) }}
-                                </a>
-                                @endforeach
+                                @if(isset($complexes->social_links) && is_array($complexes->social_links) && count($complexes->social_links) > 0)
+                                    @foreach($complexes->social_links as $platform => $url)
+                                    <a href="{{ $url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center">
+                                        <i class="fab fa-{{ strtolower($platform) }} me-2"></i>
+                                        {{ ucfirst($platform) }}
+                                    </a>
+                                    @endforeach
+                                @else
+                                    <span class="text-muted small">No social links available</span>
+                                @endif
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            @else
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Complex data not found. Please contact administrator.
+            </div>
+            @endif
             @elseif($activeSection === 'security')
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">
@@ -712,6 +708,89 @@
                 </div>
             </div>
 
+            @elseif($activeSection === 'opening_time')
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                        <div class="d-flex justify-content-between mb-4">
+                        <h5 class="card-title fw-semibold mb-3 d-flex align-items-center">
+                            <i class="fas fa-clock text-primary me-2"></i>
+                            Opening Hours
+                        </h5>
+                        <button class="btn btn-sm btn-outline-primary rounded-2 px-3" wire:click.prevent="toggleOpeningHoursEditor">
+                            <i class="fas fa-edit me-1"></i> {{ $showOpeningHoursEditor ? 'Close' : 'Edit Opening Hours' }}
+                        </button>
+                    </div>
+                        <!-- Opening Hours -->
+                        <div class="mb-4">
+                            <h6 class="fw-semibold mb-3">Opening Hours</h6>
+                            <div class="table-responsive">
+                                @if($showOpeningHoursEditor)
+                                    <form wire:submit.prevent="updateOpeningHours">
+                                        <table class="table table-borderless table-sm">
+                                            <tbody>
+                                                @if(isset($days) && is_array($days))
+                                                    @foreach($days as $day)
+                                                    <tr>
+                                                    <td class="w-25 fw-medium text-muted">{{ ucfirst($day) }}</td>
+                                                    <td class="w-50">
+                                                        <div class="d-flex gap-2 align-items-center">
+                                                            <input type="time" class="form-control form-control-sm" wire:model.live="opening_hours.{{ $day }}.open">
+                                                            <span class="text-muted">to</span>
+                                                            <input type="time" class="form-control form-control-sm" wire:model.live="opening_hours.{{ $day }}.close">
+                                                            <div class="form-check ms-3">
+                                                                <input class="form-check-input" type="checkbox" id="closed_{{ $day }}" wire:model.live="opening_hours.{{ $day }}.closed">
+                                                                <label class="form-check-label small" for="closed_{{ $day }}">Closed</label>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    </tr>
+                                                    @endforeach
+                                                @else
+                                                    <tr>
+                                                        <td colspan="2" class="text-center text-muted">Unable to load days</td>
+                                                    </tr>
+                                                @endif
+                                            </tbody>
+                                        </table>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-primary" type="submit">Save Opening Hours</button>
+                                            <button class="btn btn-sm btn-outline-secondary" type="button" wire:click.prevent="toggleOpeningHoursEditor">Cancel</button>
+                                        </div>
+                                    </form>
+                                @else
+                                    <table class="table table-borderless table-sm">
+                                        <tbody>
+                                            @if(is_array($opening_hours) && count($opening_hours) > 0)
+                                                @foreach($opening_hours as $day => $time)
+                                                <tr>
+                                                    <td class="w-25 fw-medium text-muted">{{ ucfirst($day) }}</td>
+                                                    <td>
+                                                        @if(isset($time['closed']) && $time['closed'])
+                                                            <span class="badge bg-danger bg-opacity-10 text-danger">Closed</span>
+                                                        @else
+                                                            @php
+                                                                $open = $time['open'] ?? null;
+                                                                $close = $time['close'] ?? null;
+                                                                $label = $open && $close ? $open . ' - ' . $close : ($open ?? '-');
+                                                            @endphp
+                                                            <span class="text-muted">{{ $label }}</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                                @endforeach
+                                            @else
+                                                <tr>
+                                                    <td colspan="2" class="text-center text-muted">No opening hours set</td>
+                                                </tr>
+                                            @endif
+                                        </tbody>
+                                    </table>
+                                @endif
+                            </div>
+                        </div>
+                </div>
+
+            </div>
             <!-- Add Staff Modal -->
             <div class="modal fade" id="addStaffModal" tabindex="-1" aria-labelledby="addStaffModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
@@ -898,30 +977,7 @@
                                 </div>
                             </div>
 
-                            <!-- Operating Hours -->
-                            <div class="mb-4">
-                                <h6 class="fw-bold mb-3 border-bottom pb-2">Operating Hours</h6>
-                                <div class="row g-3">
-                                    @foreach(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day)
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="{{ strtolower($day) }}_hours" class="form-label">
-                                                {{ $day }}
-                                            </label>
-                                            <input type="text"
-                                                class="form-control @error('opening_hours.'.$day) is-invalid @enderror"
-                                                wire:model="opening_hours.{{ $day }}"
-                                                id="{{ strtolower($day) }}_hours"
-                                                placeholder="e.g. 8:00 AM - 10:00 PM"
-                                                value="{{ $opening_hours[$day] ?? '' }}">
-                                            @error('opening_hours.'.$day)
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    @endforeach
-                                </div>
-                            </div>
+                        
                             <!-- Amenities -->
                             <div class="mb-4">
                                 <h6 class="fw-bold mb-3 border-bottom pb-2">Amenities</h6>

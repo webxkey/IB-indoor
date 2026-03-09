@@ -6,7 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use App\Models\BookingSport;
-use Livewire\WithFileUploads;
+use App\Models\BookingVenue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Log;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 #[Layout("components.layouts.staff")]
 class SportsManagement extends Component
 {
-    use WithFileUploads;
+    // No file uploads for sports images: use default images from public/images/sports_images
 
     public $sports;
     public $editSportId;
@@ -38,11 +38,22 @@ class SportsManagement extends Component
         $this->loadSports();
     }
 
-    public function loadSports()
+    /**
+     * Load sports for a given venue id. If no venue id provided, use the current user's complex_id.
+     */
+    public function loadSports($venueId = null)
     {
-        $this->complex_id = auth()->user()->complex_id;
-        $this->sports = BookingSport::where('venue_id', $this->complex_id)->get();
-        Log::info('Sports image paths: ' . $this->sports->pluck('game_image')->toJson());
+        // Refresh user data from database to get latest complex_id
+        $freshUser = auth()->user()->fresh();
+        $this->complex_id = $venueId ?? $freshUser->complex_id;
+        
+        if ($this->complex_id) {
+            $this->sports = BookingSport::where('venue_id', $this->complex_id)->get();
+            Log::info("Loaded {$this->sports->count()} sports for venue_id {$this->complex_id}");
+        } else {
+            $this->sports = collect();
+            Log::warning('No complex_id found for user ' . auth()->id());
+        }
     }
 
     public function openModal()
@@ -61,35 +72,65 @@ class SportsManagement extends Component
         $this->complex_id = auth()->user()->complex_id;
 
         $validated = $this->validate([
-            'game_name' => 'required|string|max:255',
+            'game_name' => 'required|string|in:Cricket,Badminton,Pools,Pooltable',
             'game_type' => 'required|string',
             'rate_type' => 'required|string',
             'price' => 'required|numeric|min:0',
             'maximum_court' => 'required|integer|min:1',
             'status' => 'required|string|in:Active,Inactive,Maintenance',
-            'game_image' => 'required|image|max:1024',
+            // game_image removed: we use default images based on sport name
             'description' => 'nullable|string',
             'advance_required' => 'boolean',
         ]);
-
-        // Store the file and get the path
-        $imagePath = null;
-        if ($this->game_image) {
-            // Store file and get relative path (e.g., 'sports/filename.jpg')
-            $relativePath = $this->game_image->store('sports', 'public');
-            // Convert to full URL
-            $imagePath = asset('storage/' . $relativePath);
+        // Ensure we have a valid BookingVenue id to satisfy the foreign key
+        $venueId = $this->complex_id;
+        $needsUserUpdate = false;
+        
+        if (! $venueId || ! BookingVenue::where('id', $venueId)->exists()) {
+            // Try to fallback to an existing venue; if none exists, create a minimal one.
+            $existing = BookingVenue::first();
+            if ($existing) {
+                Log::warning("Requested venue_id {$this->complex_id} not found; falling back to venue id {$existing->id}");
+                $venueId = $existing->id;
+                $needsUserUpdate = true;
+            } else {
+                $created = BookingVenue::create([
+                    'name' => auth()->user()->name . "'s Venue",
+                    'address' => 'Auto-generated',
+                    'status' => 'Active'
+                ]);
+                Log::warning("No BookingVenue found; created fallback venue id {$created->id} for user " . auth()->id());
+                $venueId = $created->id;
+                $needsUserUpdate = true;
+            }
         }
         
+        // Always update user's complex_id when using a fallback venue
+        if ($needsUserUpdate) {
+            try {
+                $user = auth()->user();
+                $user->complex_id = $venueId;
+                $user->save();
+                // Refresh the authenticated user instance
+                auth()->setUser($user->fresh());
+                Log::info("Updated user {$user->id} complex_id to {$venueId}");
+            } catch (\Exception $e) {
+                Log::error("Failed to update user complex_id: " . $e->getMessage());
+            }
+        }
+
+        // Determine default image for the sport name
+        $imagePath = $this->getDefaultImageForName($validated['game_name']);
+
         BookingSport::create([
-            'venue_id' => $this->complex_id,
+            'venue_id' => $venueId,
             'name' => $validated['game_name'],
             'game_type' => $validated['game_type'],
             'rate_type' => $validated['rate_type'],
             'price' => $validated['price'],
             'maximum_court' => $validated['maximum_court'],
             'status' => $validated['status'],
-            'image' => $imagePath, // Store full URL
+            'image' => $imagePath,
             'description' => $validated['description'] ?? null,
             'additional_charges' => json_encode($this->additional_charges),
             'advance_required' => $validated['advance_required'],
@@ -97,7 +138,8 @@ class SportsManagement extends Component
         ]);
 
         session()->flash('message', 'Sport added successfully!');
-        $this->loadSports();
+        // Reload sports for the venue actually used so the UI reflects the new sport
+        $this->loadSports($venueId);
         $this->dispatch('hideModal');
         $this->resetForm();
     }
@@ -111,7 +153,7 @@ class SportsManagement extends Component
             'price',
             'maximum_court',
             'status',
-            'game_image',
+            //'game_image', // no upload
             'description',
             'additional_charges',
             'advance_required',
@@ -153,39 +195,33 @@ class SportsManagement extends Component
     public function updateSport()
     {
         $validated = $this->validate([
-            'game_name' => 'required|string|max:255',
+            
             'game_type' => 'required|string',
             'rate_type' => 'required|string',
             'price' => 'required|numeric|min:0',
             'maximum_court' => 'required|integer|min:1',
             'status' => 'required|string|in:Active,Inactive,Maintenance',
-            'game_image' => 'nullable|image|max:1024',
+            // No image upload allowed/required; keep existing or use default
             'description' => 'nullable|string',
             'advance_required' => 'boolean'
         ]);
 
         $sport = BookingSport::findOrFail($this->editSportId);
 
-        $imagePath = $this->existingImage; // Keep existing by default
+        // Keep existing image if present, otherwise pick a default based on name
+        $imagePath = $sport->image ?? $this->getDefaultImageForName($this->game_name ?? $sport->name);
 
-        if ($this->game_image) {
-            // Delete old image if it exists
-            if ($sport->image) {
-                // Extract relative path from full URL
-                $oldPath = str_replace(asset('storage/'), '', $sport->image);
-                if (Storage::exists('public/' . $oldPath)) {
-                    Storage::delete('public/' . $oldPath);
-                }
-            }
-            
-            // Store new image and convert to full URL
-            $relativePath = $this->game_image->store('sports', 'public');
-            $imagePath = asset('storage/' . $relativePath);
+        // Ensure venue id is valid before updating to avoid FK errors
+        $venueId = $this->complex_id ?: $sport->venue_id;
+        if (! $venueId || ! BookingVenue::where('id', $venueId)->exists()) {
+            $fallback = BookingVenue::first();
+            $venueId = $fallback ? $fallback->id : $sport->venue_id;
+            Log::warning("Invalid venue for update; using venue id {$venueId}");
         }
 
         $sport->update([
-            'venue_id' => $this->complex_id,
-            'name' => $validated['game_name'],
+            'venue_id' => $venueId,
+            'name' => $this->game_name,
             'game_type' => $validated['game_type'],
             'rate_type' => $validated['rate_type'],
             'price' => $validated['price'],
@@ -198,7 +234,8 @@ class SportsManagement extends Component
         ]);
 
         session()->flash('message', 'Sport updated successfully.');
-        $this->loadSports();
+        // Reload sports for the venue actually used so the UI reflects updates
+        $this->loadSports($venueId);
         $this->dispatch('hideEditSportModal');
         $this->resetForm();
     }
@@ -214,20 +251,13 @@ class SportsManagement extends Component
     {
         try {
             $sport = BookingSport::findOrFail($id);
-
-            if ($sport->image) {
-                // Extract relative path from full URL
-                $relativePath = str_replace(asset('storage/'), '', $sport->image);
-                if (Storage::exists('public/' . $relativePath)) {
-                    Storage::delete('public/' . $relativePath);
-                }
-            }
-
+            $venueId = $sport->venue_id;
             $sport->delete();
 
             session()->flash('message', 'Sport deleted successfully.');
             $this->dispatch('sportDeleted');
-            $this->loadSports();
+            // Reload sports for the same venue
+            $this->loadSports($venueId);
             $this->dispatch('hideEditSportModal');
         } catch (\Exception $e) {
             $this->dispatch('deleteError', message: 'Error deleting sport: ' . $e->getMessage());
@@ -242,5 +272,27 @@ class SportsManagement extends Component
     public function game_url()
     {
         return $this->game_image;
+    }
+
+    // Determine a default image URL for a given sport/game name. Falls back to default.jpg.
+    protected function getDefaultImageForName($name)
+    {
+        $n = strtolower((string) $name);
+        if (str_contains($n, 'cricket')) {
+            return asset('images/sports_images/cricket.jpg');
+        }
+        if (str_contains($n, 'badminton')) {
+            return asset('images/sports_images/badminton.jpg');
+        }
+        if (str_contains($n, 'pool') || str_contains($n, 'swim')) {
+            // pooltable vs pool
+            if (str_contains($n, 'table') || str_contains($n, 'pooltable')) {
+                return asset('images/sports_images/pooltable.jpg');
+            }
+            return asset('images/sports_images/pools.jpg');
+        }
+
+        // Generic fallback
+        return asset('images/sports_images/default.jpg');
     }
 }

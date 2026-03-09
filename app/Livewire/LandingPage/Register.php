@@ -42,7 +42,7 @@ class Register extends Component
     public $contact_number;
     public $email_address;
     public $website;
-    public $status = 'active';
+    public $status = 'Active';
     public $description;
 
     // Step 3: Facility Details
@@ -116,7 +116,7 @@ class Register extends Component
         'other'
     ];
 
-    public $availableStatuses = ['active', 'inactive', 'maintenance', 'new'];
+    public $availableStatuses = ['Active', 'Inactive', 'Maintenance', 'New'];
 
     protected function step1Rules()
     {
@@ -140,7 +140,7 @@ class Register extends Component
             'contact_number' => 'required|max:20',
             'email_address' => 'nullable|email',
             'website' => 'nullable|url',
-            'status' => 'required|in:active,inactive,maintenance,new',
+            'status' => 'required|in:Active,Inactive,Maintenance,New',
             'description' => 'required|min:10|max:1000',
         ];
     }
@@ -299,7 +299,7 @@ class Register extends Component
                     'venue_id' => $venue->id,
                     'description' => $this->description,
                     'image' => $base_image_url,
-                    
+                    'maximum_court' =>1,
                     'status' => 'Active',
                 ]);
 
@@ -333,7 +333,7 @@ class Register extends Component
                     'is_staff' => false,
                     'is_superuser' => false,
                     'points' => 0,
-                    'referral_code' => $this->name,
+                    'referral_code' => $this->rondomReferralCode(),
                     'is_public_profile' => true,
                     'is_show_contact' => true,
                     'availability' => 'both',
@@ -354,5 +354,23 @@ class Register extends Component
     public function render()
     {
         return view('livewire.landing-page.register');
+    }
+
+    /**
+     * Generate a unique referral code.
+     *
+     * Keeps generating until a unique code is found in the users_user table.
+     * The method name preserves the original typo to avoid changing other callers.
+     *
+     * @return string
+     */
+    private function rondomReferralCode()
+    {
+        do {
+            // 8 character uppercase alphanumeric code
+            $code = strtoupper(Str::random(8));
+        } while (UserUser::where('referral_code', $code)->exists());
+
+        return $code;
     }
 }

@@ -30,6 +30,7 @@ class Indoors extends Component
     public $showEditModalVisible = false;
     public $viewVenue = null;
     public $editingVenue = null;
+    public $deleteId = null;
 
     // Form properties
     public $name;
@@ -145,6 +146,7 @@ class Indoors extends Component
         }
 
         $venues = $query->orderBy('name')->paginate(12);
+          
 
         $stats = [
             'active' => BookingVenue::where('status', 'active')->count(),
@@ -255,6 +257,7 @@ class Indoors extends Component
         }
 
         $this->showEditModalVisible = true;
+        // Use the project's dispatch helper (used elsewhere) to trigger the frontend listener
         $this->dispatch('showEditModal');
     }
     public function setAllHours()
@@ -357,7 +360,18 @@ class Indoors extends Component
 
     public function deleteVenue($id)
     {
-        $venue = BookingVenue::findOrFail($id);
+        $this->deleteId = $id;
+        $this->dispatch('confirm-delete');
+    }
+
+    #[\Livewire\Attributes\On('confirmDelete')]
+    public function deleteVenueConfirmed()
+    {
+        $venue = BookingVenue::find($this->deleteId);
+        if (!$venue) {
+            $this->dispatch('alert', message: 'Venue not found.');
+            return;
+        }
 
         // Delete cover image
         if ($venue->cover_image) {
@@ -372,16 +386,25 @@ class Indoors extends Component
             $galleryImage->delete();
         }
 
-        // Delete associated sports
-        $venue->sports()->delete();
+        try {
+            // Delete associated sports
+            $venue->sports()->delete();
 
-        // Delete associated reviews
-        $venue->reviews()->delete();
+            // Delete associated reviews
+            $venue->reviews()->delete();
 
-        // Delete the venue
-        $venue->delete();
+            // Delete the venue
+            $venue->delete();
 
-        session()->flash('message', "Venue '{$venue->name}' deleted successfully.");
+            $this->dispatch('alert', message: "Venue '{$venue->name}' deleted successfully.");
+        } catch (\Illuminate\Database\QueryException $e) {
+            $sqlState = $e->getCode() ?: ($e->errorInfo[0] ?? null);
+            if ($sqlState === '23503') {
+                $this->dispatch('alert', message: 'Unable to delete this venue because related bookings exist. Please remove those bookings first.');
+            } else {
+                throw $e;
+            }
+        }
     }
 
     private function resetForm()
