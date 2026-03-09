@@ -28,3 +28,4 @@ yarn-error.log
 # It's also good practice to ignore all cache and session files
 /storage/framework/cache/*
 /storage/framework/sessions/*
+/storage/framework/maintenance.php
