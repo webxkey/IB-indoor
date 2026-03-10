@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -10,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('booking_booking')) {
+            return;
+        }
+
         // Create function that sends notifications
         DB::statement(<<<SQL
         CREATE OR REPLACE FUNCTION notify_booking_changes()
@@ -68,7 +73,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("DROP TRIGGER IF EXISTS booking_notification_trigger ON booking_booking;");
+        if (Schema::hasTable('booking_booking')) {
+            DB::statement("DROP TRIGGER IF EXISTS booking_notification_trigger ON booking_booking;");
+        }
         DB::statement("DROP FUNCTION IF EXISTS notify_booking_changes();");
     }
 };

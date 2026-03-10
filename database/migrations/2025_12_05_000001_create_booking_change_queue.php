@@ -26,69 +26,89 @@ return new class extends Migration
             $table->index('complex_id');
         });
 
-        // Create triggers to capture ALL database changes
-        DB::unprepared('
-            DROP TRIGGER IF EXISTS booking_after_insert_trigger;
-            
-            CREATE TRIGGER booking_after_insert_trigger
-            AFTER INSERT ON booking_booking
-            FOR EACH ROW
+        // PostgreSQL-compatible trigger functions + triggers
+        if (Schema::hasTable('booking_booking')) {
+            DB::statement('DROP TRIGGER IF EXISTS booking_after_insert_trigger ON booking_booking;');
+            DB::statement('DROP TRIGGER IF EXISTS booking_after_update_trigger ON booking_booking;');
+            DB::statement('DROP FUNCTION IF EXISTS booking_after_insert_queue_fn();');
+            DB::statement('DROP FUNCTION IF EXISTS booking_after_update_queue_fn();');
+
+            DB::statement(<<<SQL
+            CREATE FUNCTION booking_after_insert_queue_fn()
+            RETURNS TRIGGER AS $$
             BEGIN
                 INSERT INTO booking_change_queue (action, booking_id, complex_id, data, processed, created_at)
                 VALUES (
-                    "INSERT",
+                    'INSERT',
                     NEW.id,
                     NEW.complex_id_id,
-                    JSON_OBJECT(
-                        "id", NEW.id,
-                        "user_name", NEW.user_name,
-                        "game_name", NEW.game_name,
-                        "court_number", NEW.court_number,
-                        "start_time", NEW.start_time,
-                        "end_time", NEW.end_time,
-                        "status", NEW.status,
-                        "booking_date", NEW.booking_date
+                    json_build_object(
+                        'id', NEW.id,
+                        'user_name', NEW.user_name,
+                        'game_name', NEW.game_name,
+                        'court_number', NEW.court_number,
+                        'start_time', NEW.start_time,
+                        'end_time', NEW.end_time,
+                        'status', NEW.status,
+                        'booking_date', NEW.booking_date
                     ),
                     FALSE,
                     NOW()
                 );
-            END;
-        ');
 
-        DB::unprepared('
-            DROP TRIGGER IF EXISTS booking_after_update_trigger;
-            
-            CREATE TRIGGER booking_after_update_trigger
-            AFTER UPDATE ON booking_booking
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+            SQL);
+
+            DB::statement(<<<SQL
+            CREATE TRIGGER booking_after_insert_trigger
+            AFTER INSERT ON booking_booking
             FOR EACH ROW
+            EXECUTE FUNCTION booking_after_insert_queue_fn();
+            SQL);
+
+            DB::statement(<<<SQL
+            CREATE FUNCTION booking_after_update_queue_fn()
+            RETURNS TRIGGER AS $$
             BEGIN
-                -- Only track if important fields changed
-                IF OLD.status != NEW.status 
-                   OR OLD.start_time != NEW.start_time 
-                   OR OLD.end_time != NEW.end_time 
-                   OR OLD.court_number != NEW.court_number THEN
-                    
+                IF OLD.status IS DISTINCT FROM NEW.status
+                   OR OLD.start_time IS DISTINCT FROM NEW.start_time
+                   OR OLD.end_time IS DISTINCT FROM NEW.end_time
+                   OR OLD.court_number IS DISTINCT FROM NEW.court_number THEN
+
                     INSERT INTO booking_change_queue (action, booking_id, complex_id, data, processed, created_at)
                     VALUES (
-                        "UPDATE",
+                        'UPDATE',
                         NEW.id,
                         NEW.complex_id_id,
-                        JSON_OBJECT(
-                            "id", NEW.id,
-                            "user_name", NEW.user_name,
-                            "game_name", NEW.game_name,
-                            "court_number", NEW.court_number,
-                            "start_time", NEW.start_time,
-                            "end_time", NEW.end_time,
-                            "status", NEW.status,
-                            "booking_date", NEW.booking_date
+                        json_build_object(
+                            'id', NEW.id,
+                            'user_name', NEW.user_name,
+                            'game_name', NEW.game_name,
+                            'court_number', NEW.court_number,
+                            'start_time', NEW.start_time,
+                            'end_time', NEW.end_time,
+                            'status', NEW.status,
+                            'booking_date', NEW.booking_date
                         ),
                         FALSE,
                         NOW()
                     );
                 END IF;
+
+                RETURN NEW;
             END;
-        ');
+            $$ LANGUAGE plpgsql;
+            SQL);
+
+            DB::statement(<<<SQL
+            CREATE TRIGGER booking_after_update_trigger
+            AFTER UPDATE ON booking_booking
+            FOR EACH ROW
+            EXECUTE FUNCTION booking_after_update_queue_fn();
+            SQL);
+        }
     }
 
     /**
@@ -96,8 +116,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::unprepared('DROP TRIGGER IF EXISTS booking_after_insert_trigger');
-        DB::unprepared('DROP TRIGGER IF EXISTS booking_after_update_trigger');
+        if (Schema::hasTable('booking_booking')) {
+            DB::statement('DROP TRIGGER IF EXISTS booking_after_insert_trigger ON booking_booking;');
+            DB::statement('DROP TRIGGER IF EXISTS booking_after_update_trigger ON booking_booking;');
+        }
+        DB::statement('DROP FUNCTION IF EXISTS booking_after_insert_queue_fn();');
+        DB::statement('DROP FUNCTION IF EXISTS booking_after_update_queue_fn();');
         Schema::dropIfExists('booking_change_queue');
     }
 };

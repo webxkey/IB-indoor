@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('password');
             $table->string('contact');
             $table->string('role')->default('staff');
+            $table->unsignedBigInteger('complex_id')->nullable();
             $table->rememberToken();
             $table->foreignId('current_team_id')->nullable();
             $table->string('profile_photo_path', 2048)->nullable();
