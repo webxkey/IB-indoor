@@ -741,10 +741,7 @@
                         <div class="dropdown">
                             <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#"
                                 role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <div class="rounded-circle me-2 bg-success d-flex align-items-center justify-content-center text-white fw-bold"
-                                    style="width:40px;height:40px;font-size:1.1rem;">
-                                    {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
-                                </div>
+                                <img src="{{ auth()->user()->profile_photo_url }}" alt="{{ auth()->user()->name }}" class="rounded-circle me-2" width="40" height="40" style="object-fit:cover;">
                                 <div class="text-start">
                                     <div class="fw-semibold">{{ auth()->user()->name ?? 'Admin' }}</div>
                                     <div class="small text-muted">{{ auth()->user()->email ?? '' }}</div>
@@ -752,6 +749,8 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><span class="dropdown-item-text small text-muted">Signed in as <strong>{{ ucfirst(auth()->user()->role ?? 'admin') }}</strong></span></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/user/profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="POST" action="{{ route('logout') }}">

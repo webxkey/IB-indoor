@@ -262,7 +262,7 @@
 
                         <div class="dropdown">
                             <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="Profile" class="rounded-circle me-2" width="40" height="40">
+                                <img src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" class="rounded-circle me-2" width="40" height="40" style="object-fit:cover;">
                                 <div class="text-start d-none d-md-block">
                                     <div class="fw-semibold">{{ Auth::user()->name ?? 'Staff Member' }}</div>
                                     <div class="small text-muted">{{ Auth::user()->email ?? 'staff@example.com' }}</div>
@@ -271,11 +271,12 @@
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <!-- Shown only on small screens -->
                                 <li class="d-md-none px-3 py-2 border-bottom text-center">
+                                    <img src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" class="rounded-circle mb-1" width="48" height="48" style="object-fit:cover;">
                                     <div class="fw-semibold">{{ Auth::user()->name ?? 'Staff Member' }}</div>
                                     <div class="small text-muted">{{ Auth::user()->email ?? 'staff@example.com' }}</div>
                                 </li>
-                                <li><a class="dropdown-item" href="{{ route('staff.setting') }}"><i class="fas fa-user me-2"></i>My Profile</a></li>
-                                <li><a class="dropdown-item" href="{{ route('staff.setting') }}">Settings</a></li>
+                                <li><a class="dropdown-item" href="/user/profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ route('staff.setting') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
                                 <li>
                                     <hr class="dropdown-divider">
                                 </li>
