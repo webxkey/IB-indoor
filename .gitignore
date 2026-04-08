@@ -16,6 +16,7 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+/.claude/worktrees/
 
 # --- CRITICAL LARAVEL IGNORES MISSING FROM YOUR FILE ---
 

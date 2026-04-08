@@ -89,15 +89,17 @@
 
             .header {
                 margin: 0 -0.25rem 0.5rem -0.25rem;
-                padding: 0.6rem 1rem;
-            }
-
-            .text-start.d-md-block {
-                display: none !important;
+                padding: 0.5rem 0.75rem;
             }
 
             .main-content {
                 padding-bottom: 70px;
+            }
+
+            /* Notification dropdown: full-width-ish on mobile */
+            .notif-dropdown {
+                width: calc(100vw - 1.5rem);
+                min-width: unset !important;
             }
         }
     </style>
@@ -205,13 +207,19 @@
             <!-- Main Content -->
             <div class="main-content flex-grow-1">
                 <header class="header d-flex justify-content-between align-items-center">
+                    <!-- Left: hamburger + logo on mobile -->
                     <div class="d-flex align-items-center">
-                        <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none me-2">
+                        <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none me-2" style="padding:0.35rem 0.6rem;">
                             <i class="fas fa-bars"></i>
                         </button>
-                       
+                        <!-- App logo — visible on mobile only -->
+                        <div class="d-md-none d-flex align-items-center gap-1" style="font-size:1.3rem;font-weight:700;line-height:1;">
+                            <span>IndoorB</span><i class="fas fa-futbol text-success" style="font-size:1rem;"></i>
+                        </div>
                     </div>
-                    <div class="d-flex align-items-center">
+
+                    <!-- Right: bell + avatar -->
+                    <div class="d-flex align-items-center gap-2">
                         @php
                             $unreadCount = 0;
                             $recentNotifications = [];
@@ -220,16 +228,18 @@
                                 $recentNotifications = \App\Models\BookingNotification::where('user_id', auth()->id())->orderByDesc('created_at')->limit(5)->get();
                             }
                         @endphp
-                        <div class="dropdown me-3">
-                            <button class="btn btn-outline-secondary position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+
+                        <!-- Notification Bell -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding:0.35rem 0.6rem;">
                                 <i class="fas fa-bell"></i>
                                 @if($unreadCount > 0)
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;">
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.55rem;">
                                     {{ $unreadCount > 9 ? '9+' : $unreadCount }}
                                 </span>
                                 @endif
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:320px;max-height:400px;overflow-y:auto;">
+                            <ul class="dropdown-menu dropdown-menu-end shadow notif-dropdown" style="max-height:380px;overflow-y:auto;">
                                 <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
                                     <span class="fw-semibold">Notifications</span>
                                     @if($unreadCount > 0)
@@ -245,7 +255,7 @@
                                             </div>
                                             <div>
                                                 <div class="fw-semibold small">{{ $notif->title }}</div>
-                                                <div class="text-muted small">{{ Str::limit($notif->message, 60) }}</div>
+                                                <div class="text-muted small">{{ Str::limit($notif->message, 55) }}</div>
                                                 <div class="text-muted" style="font-size:0.7rem;">{{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}</div>
                                             </div>
                                         </div>
@@ -255,31 +265,29 @@
                                 <li class="px-3 py-3 text-center text-muted small">No notifications yet</li>
                                 @endforelse
                                 <li class="border-top px-3 py-2 text-center">
-                                    <a href="{{ route('staff.setting') }}?section=notifications" class="small text-success">View all notifications</a>
+                                    <a href="{{ route('staff.setting') }}?section=notifications" class="small text-success">View all</a>
                                 </li>
                             </ul>
                         </div>
 
+                        <!-- Profile Dropdown -->
                         <div class="dropdown">
-                            <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                <img src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" class="rounded-circle me-2" width="40" height="40" style="object-fit:cover;">
-                                <div class="text-start d-none d-md-block">
-                                    <div class="fw-semibold">{{ Auth::user()->name ?? 'Staff Member' }}</div>
-                                    <div class="small text-muted">{{ Auth::user()->email ?? 'staff@example.com' }}</div>
+                            <button type="button" class="btn p-0 border-0 bg-transparent d-flex align-items-center dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" class="rounded-circle" width="36" height="36" style="object-fit:cover;">
+                                <div class="text-start d-none d-md-block ms-2">
+                                    <div class="fw-semibold" style="font-size:0.9rem;line-height:1.2;">{{ Auth::user()->name ?? 'Staff Member' }}</div>
+                                    <div class="text-muted" style="font-size:0.75rem;">{{ Auth::user()->email ?? '' }}</div>
                                 </div>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <!-- Shown only on small screens -->
-                                <li class="d-md-none px-3 py-2 border-bottom text-center">
-                                    <img src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" class="rounded-circle mb-1" width="48" height="48" style="object-fit:cover;">
-                                    <div class="fw-semibold">{{ Auth::user()->name ?? 'Staff Member' }}</div>
-                                    <div class="small text-muted">{{ Auth::user()->email ?? 'staff@example.com' }}</div>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" style="min-width:200px;z-index:1060;">
+                                <li class="px-3 py-2 border-bottom text-center">
+                                    <img src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" class="rounded-circle mb-1" width="44" height="44" style="object-fit:cover;">
+                                    <div class="fw-semibold small">{{ Auth::user()->name ?? 'Staff Member' }}</div>
+                                    <div class="text-muted" style="font-size:0.72rem;">{{ Auth::user()->email ?? '' }}</div>
                                 </li>
                                 <li><a class="dropdown-item" href="/user/profile"><i class="fas fa-user me-2"></i>My Profile</a></li>
                                 <li><a class="dropdown-item" href="{{ route('staff.setting') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
@@ -301,6 +309,8 @@
     </div>
 
     @livewireScripts
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

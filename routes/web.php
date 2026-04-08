@@ -81,6 +81,14 @@ Route::post('/logout', function (Request $request) {
     return redirect('/');
 })->name('logout');
 
+// Dashboard redirect — required by Jetstream (e.g. after profile save)
+Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->get('/dashboard', function () {
+    $role = auth()->user()->role ?? '';
+    if ($role === 'admin') return redirect()->route('admin.dashboard');
+    if (in_array($role, ['staff', 'facility_owner'])) return redirect()->route('staff.dashboard');
+    return redirect('/');
+})->name('dashboard');
+
 // Routes that require authentication
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
 
