@@ -68,7 +68,7 @@ class StaffDashboard extends Component
         $this->sportsCount = BookingSport::where('venue_id', $this->complex_id)->count(); // Fetch the total number of sports\
         $this->todaybookingRevenue = BookingBooking::whereDate('created_at', today())
             ->where('complex_id_id', $this->complex_id)
-            ->where('status', 'completed')
+            ->where('status', 'Completed')
             ->sum('price');
         // Calculate today's booking revenue
         $this->cancelledBookingsCount = BookingBooking::where('status', 'Cancelled')
@@ -102,7 +102,7 @@ class StaffDashboard extends Component
     public function closeModal()
     {
         $this->selectedBooking = null;
-        $this->dispatchBrowserEvent('closeModal');
+        $this->dispatch('closeModal');
     }
 
     public function updatedSelectedDate()
@@ -175,7 +175,7 @@ class StaffDashboard extends Component
         $this->sportsCount = BookingSport::where('venue_id', $this->complex_id)->count();
         $this->todaybookingRevenue = BookingBooking::whereDate('created_at', today())
             ->where('complex_id_id', $this->complex_id)
-            ->where('status', 'completed')
+            ->where('status', 'Completed')
             ->sum('price');
         $this->cancelledBookingsCount = BookingBooking::where('status', 'Cancelled')
             ->where('complex_id_id', $this->complex_id)
@@ -199,17 +199,12 @@ class StaffDashboard extends Component
 
     public function markAllAsRead()
     {
-        BookingBooking::whereNull('viewed_at')
+        BookingBooking::where('complex_id_id', $this->complex_id)
+            ->whereNull('viewed_at')
             ->update(['viewed_at' => now()]);
 
         $this->markedAsRead = true;
-        $this->dispatchBrowserEvent('notifications-marked-read');
-
-        // Optional: Automatically close modal after 2 seconds
-        $this->dispatchBrowserEvent('close-modal-after-delay', [
-            'delay' => 2000,
-            'modalId' => 'bookingNotificationsModal'
-        ]);
+        $this->dispatch('notifications-marked-read');
     }
 
     // Slot Availability Methods
@@ -518,7 +513,6 @@ class StaffDashboard extends Component
         return view('livewire.staff.staff-dashboard')
             ->with([
                 'bookingsCount' => $this->bookingsCount,
-                'sportsCount' => $this->sportsCount,
                 'sportsCount' => $this->sportsCount,
                 'cancelledBookingsCount' => $this->cancelledBookingsCount,
                 'todaybookingRevenue' => $this->todaybookingRevenue,

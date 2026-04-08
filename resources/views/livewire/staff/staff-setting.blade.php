@@ -182,16 +182,14 @@
                         </div>
                         <div class="mb-4">
                             <label class="small text-muted mb-2">Gallery Images</label>
-                            @if(isset($complexes->gallery_images) && is_array($complexes->gallery_images) && count($complexes->gallery_images) > 0)
+                            @if(isset($existing_gallery_images) && is_array($existing_gallery_images) && count($existing_gallery_images) > 0)
                             <div class="d-flex flex-wrap gap-3">
-                                @foreach($complexes->gallery_images as $image)
+                                @foreach($existing_gallery_images as $index => $image)
                                 <div class="position-relative" style="width: 120px; height: 120px;">
                                     <img src="{{ asset($image) }}"
                                         alt="Gallery Image"
                                         class="rounded-2 w-100 h-100"
                                         style="object-fit: cover;">
-
-                                    <!-- View Full Image Button -->
                                     <a href="{{ asset($image) }}"
                                         target="_blank"
                                         class="position-absolute top-0 end-0 m-1 bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center"
@@ -409,8 +407,8 @@
                         <label class="small text-muted mb-1">Last Login</label>
                         <p class="mb-0">
                             <i class="fas fa-clock me-1 text-muted"></i>
-                            <span class="fw-medium">2023-11-15 14:30:22</span> from
-                            <span class="fw-medium">192.168.1.100</span> (Chrome, Windows)
+                            <span class="fw-medium">{{ auth()->user()->updated_at ? auth()->user()->updated_at->format('Y-m-d H:i:s') : now()->format('Y-m-d H:i:s') }}</span>
+                            &mdash; Logged in as <span class="fw-medium">{{ ucfirst(auth()->user()->role) }}</span>
                         </p>
                     </div>
                 </div>
@@ -454,7 +452,33 @@
                             <i class="fas fa-calendar-check text-success me-2"></i>
                             Upcoming Bookings
                         </h6>
-
+                        @php
+                            $upcomingNotifBookings = \App\Models\BookingBooking::where('complex_id_id', $complex_id)
+                                ->where('booking_date', '>=', \Carbon\Carbon::today()->toDateString())
+                                ->whereNotIn('status', ['Cancelled', 'Completed'])
+                                ->orderBy('booking_date')->orderBy('start_time')
+                                ->limit(5)->get();
+                        @endphp
+                        @if($upcomingNotifBookings->count() > 0)
+                            @foreach($upcomingNotifBookings as $bk)
+                            <div class="d-flex align-items-center mb-2 p-2 bg-light rounded-2">
+                                <div class="me-3">
+                                    <i class="fas fa-calendar-day text-success fs-5"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold small">{{ $bk->game_name }} — {{ $bk->user_name ?? 'Guest' }}</div>
+                                    <div class="text-muted" style="font-size:0.8rem;">
+                                        {{ \Carbon\Carbon::parse($bk->booking_date)->format('D, M d') }}
+                                        &bull; {{ \Carbon\Carbon::parse($bk->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($bk->end_time)->format('h:i A') }}
+                                        &bull; Court {{ $bk->court_number ?? 'N/A' }}
+                                    </div>
+                                </div>
+                                <span class="badge bg-{{ $bk->status === 'Confirmed' ? 'success' : 'warning' }} bg-opacity-75">{{ $bk->status }}</span>
+                            </div>
+                            @endforeach
+                        @else
+                            <p class="text-muted small">No upcoming bookings at this time.</p>
+                        @endif
                     </div>
 
 
@@ -507,7 +531,11 @@
                             <div class="card border-0 shadow-sm h-100">
                                 <div class="card-body text-center">
                                     <div class="position-relative mb-3">
-                                        <img src="https://randomuser.me/api/portraits/women
+                                        <img src="https://randomuser.me/api/portraits/women/45.jpg"
+                                            class="rounded-circle shadow"
+                                            width="100" height="100"
+                                            alt="Sarah Johnson">
+                                        <span class="badge bg-success position-absolute bottom-0 end-0 rounded-circle p-2">
                                             <i class="fas fa-check"></i>
                                         </span>
                                     </div>
@@ -551,7 +579,7 @@
                             <div class="card border-0 shadow-sm h-100">
                                 <div class="card-body text-center">
                                     <div class="position-relative mb-3">
-                                        <img src="https://randomuser.me/api/portraits/men
+                                        <img src="https://randomuser.me/api/portraits/men/32.jpg"
                                             class="rounded-circle shadow"
                                             width="100" height="100"
                                             alt="Michael Chen">
@@ -791,13 +819,15 @@
                 </div>
 
             </div>
-            <!-- Add Staff Modal -->
-            <div class="modal fade" id="addStaffModal" tabindex="-1" aria-labelledby="addStaffModalLabel" aria-hidden="true">
+            <!-- Add Staff Modal (moved outside conditional - see below) -->
+            @php /* placeholder removed */ @endphp
+            @if(false) {{-- old modal placeholder --}}
+                <div class="modal fade" id="addStaffModalOLD" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="addStaffModalLabel">Add New Staff Member</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <h5 class="modal-title">Add New Staff Member</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
                             <form>
@@ -874,6 +904,29 @@
             </div>
             @endif
         </div>
+
+        <!-- Add Staff Modal (outside conditionals so it works from any tab) -->
+        <div class="modal fade" id="addStaffModal" tabindex="-1" aria-labelledby="addStaffModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addStaffModalLabel">Add New Staff Member</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            To add a staff member, go to <strong>Admin Panel → Indoor Admins</strong> and create a new staff account, then assign it to this complex.
+                        </div>
+                        <p class="text-muted">Staff account management is handled through the central admin panel to ensure proper role assignment and security.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Edit Modal -->
         @if($isEditModalOpen)
         <div class="modal fade show d-block" tabindex="-1" aria-modal="true" role="dialog">
@@ -1147,7 +1200,7 @@
                                                     <i class="fab fa-{{ strtolower($platform) }} me-1"></i>
                                                     {{ ucfirst($platform) }}
                                                 </a>
-                                                <button class="btn btn-sm btn-link text-danger position-absolute end-0 top-50 translate-middle-y"
+                                                <button type="button" class="btn btn-sm btn-link text-danger position-absolute end-0 top-50 translate-middle-y"
                                                     wire:click="removeSocialLink('{{ $platform }}')"
                                                     title="Remove {{ $platform }}">
                                                     <i class="fas fa-times"></i>
@@ -1237,6 +1290,7 @@
             }
         </style>
         @endif
+        @endif {{-- end activeSection block --}}
     </div>
 </div>
 

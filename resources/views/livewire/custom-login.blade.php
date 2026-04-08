@@ -187,7 +187,12 @@
                 
                 <!-- Password field -->
                 <div class="form-group">
-                    <input type="password" class="form-control" wire:model="password" placeholder="Enter Password" required>
+                    <div class="input-group">
+                        <input type="password" class="form-control" wire:model="password" placeholder="Enter Password" required id="loginPassword" style="border-radius: 25px 0 0 25px;">
+                        <button class="btn btn-outline-secondary" type="button" onclick="toggleLoginPassword()" style="border-radius: 0 25px 25px 0; border-left: none;">
+                            <i class="bi bi-eye" id="loginPasswordIcon"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Remember & Forgot options -->
@@ -220,5 +225,18 @@
     </div>
     
     @livewireScripts
+    <script>
+        function toggleLoginPassword() {
+            const input = document.getElementById('loginPassword');
+            const icon = document.getElementById('loginPasswordIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+    </script>
 </body>
 </html>

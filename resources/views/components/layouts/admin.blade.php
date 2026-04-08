@@ -651,10 +651,13 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="#">
-                                    <i class="fas fa-sign-out-alt me-2"></i>
-                                    Logout
-                                </a>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="nav-link btn btn-link text-start w-100" style="text-decoration:none;">
+                                        <i class="fas fa-sign-out-alt me-2"></i>
+                                        Logout
+                                    </button>
+                                </form>
                             </li>
                         </ul>
                     </div>
@@ -685,45 +688,45 @@
                        
                     </div>
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-outline-secondary me-2">
+                        <a href="{{ route('admin.bookings') }}" class="btn btn-outline-secondary me-2" title="Bookings">
                             <i class="fas fa-envelope"></i>
-                        </button>
-                        <button class="btn btn-outline-secondary me-3">
+                        </a>
+                        <a href="{{ route('admin.bookings') }}" class="btn btn-outline-secondary me-3" title="View Bookings">
                             <i class="fas fa-bell"></i>
-                        </button>
+                        </a>
                         <div class="dropdown">
                             <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#"
-                                role="button" data-bs-toggle="dropdown">
-                                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
-                                    alt="Profile" class="rounded-circle me-2" width="40" height="40">
+                                role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="rounded-circle me-2 bg-success d-flex align-items-center justify-content-center text-white fw-bold"
+                                    style="width:40px;height:40px;font-size:1.1rem;">
+                                    {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
+                                </div>
                                 <div class="text-start">
-                                    <div class="fw-semibold">John Manager</div>
-                                    <div class="small text-muted">admin@bookingpro.com</div>
+                                    <div class="fw-semibold">{{ auth()->user()->name ?? 'Admin' }}</div>
+                                    <div class="small text-muted">{{ auth()->user()->email ?? '' }}</div>
                                 </div>
                             </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#">Profile</a></li>
-                                <li><a class="dropdown-item" href="#">Settings</a></li>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><span class="dropdown-item-text small text-muted">Signed in as <strong>{{ ucfirst(auth()->user()->role ?? 'admin') }}</strong></span></li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <hr class="dropdown-divider">
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                        </button>
+                                    </form>
                                 </li>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item text-danger">
-                                        <i class="fas fa-sign-out-alt me-2"></i> Logout
-                                    </button>
-                                </form>
                             </ul>
                         </div>
                     </div>
                 </header>
 
+                <main id="main-content">
+                    {{ $slot ?? '' }}
+                </main>
             </div>
         </div>
-        <!-- Main Content -->
-        <main class="main-content">
-            {{ $slot ?? '' }}
-        </main>
     </div>
 </body>
 
@@ -739,25 +742,25 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Sidebar toggle functionality
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const mainContent = document.getElementById('main-content');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarToggle = document.querySelector('[data-bs-target=".sidebar"]');
 
-        sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('show');
-        });
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('show');
+            });
 
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            if (window.innerWidth <= 991.98) {
-                const isClickInsideSidebar = sidebar.contains(event.target);
-                const isClickOnToggle = sidebarToggle.contains(event.target);
-
-                if (!isClickInsideSidebar && !isClickOnToggle) {
-                    sidebar.classList.remove('show');
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 991.98) {
+                    const isClickInsideSidebar = sidebar.contains(event.target);
+                    const isClickOnToggle = sidebarToggle.contains(event.target);
+                    if (!isClickInsideSidebar && !isClickOnToggle) {
+                        sidebar.classList.remove('show');
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // Prevent dropdown from closing when clicking inside forms
         document.querySelectorAll('.dropdown-menu form').forEach(form => {
@@ -765,16 +768,6 @@
                 e.stopPropagation();
             });
         });
-
-        // Responsive adjustments
-        function handleResize() {
-            if (window.innerWidth > 991.98) {
-                sidebar.classList.remove('show');
-            }
-        }
-
-        window.addEventListener('resize', handleResize);
-        handleResize();
     });
 </script>
 

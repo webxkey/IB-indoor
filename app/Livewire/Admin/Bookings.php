@@ -77,17 +77,17 @@ class Bookings extends Component
             $this->todayBookingsCount = BookingBooking::whereDate('booking_date', Carbon::today())->count();
             
             // Canceled bookings
-            $this->canceledBookingsCount = BookingBooking::where('status', 'canceled')
+            $this->canceledBookingsCount = BookingBooking::where('status', 'Cancelled')
                 ->whereBetween('booking_date', [$this->startDate, $this->endDate])
                 ->count();
-                
+
             // Pending bookings
-            $this->pendingBookingsCount = BookingBooking::where('status', 'pending')
+            $this->pendingBookingsCount = BookingBooking::where('status', 'Pending')
                 ->whereBetween('booking_date', [$this->startDate, $this->endDate])
                 ->count();
-                
+
             // Total revenue
-            $this->totalRevenue = BookingBooking::where('status', 'confirmed')
+            $this->totalRevenue = BookingBooking::where('status', 'Completed')
                 ->whereBetween('booking_date', [$this->startDate, $this->endDate])
                 ->sum('price');
                 
@@ -134,10 +134,10 @@ class Bookings extends Component
             $venueStats = [];
             
             foreach ($venues as $venue) {
-                $confirmed = $venue->bookings->where('status', 'confirmed')->count();
-                $pending = $venue->bookings->where('status', 'pending')->count();
-                $canceled = $venue->bookings->where('status', 'canceled')->count();
-                $revenue = $venue->bookings->where('status', 'confirmed')->sum('total');
+                $confirmed = $venue->bookings->where('status', 'Confirmed')->count();
+                $pending = $venue->bookings->where('status', 'Pending')->count();
+                $canceled = $venue->bookings->where('status', 'Cancelled')->count();
+                $revenue = $venue->bookings->where('status', 'Completed')->sum('price');
                 
                 $venueStats[] = [
                     'id' => $venue->id,

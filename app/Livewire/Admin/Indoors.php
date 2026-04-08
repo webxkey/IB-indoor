@@ -41,7 +41,7 @@ class Indoors extends Component
     public $contact_number;
     public $email_address;
     public $website;
-    public $status = 'active';
+    public $status = 'Active';
     public $opening_hours = [];
     public $amenities = [];
     public $cover_image;
@@ -54,7 +54,7 @@ class Indoors extends Component
     public $width;
     public $terms = false;
 
-    public $availableStatuses = ['active', 'inactive', 'maintenance', 'new'];
+    public $availableStatuses = ['Active', 'Inactive', 'Maintenance', 'New'];
     public $availableCounties = [];
     public $availableAmenities = [
         'parking',
@@ -90,7 +90,7 @@ class Indoors extends Component
         'contact_number' => 'required|max:20',
         'email_address' => 'nullable|email',
         'website' => 'nullable|url',
-        'status' => 'required|in:active,inactive,maintenance,new',
+        'status' => 'required|in:Active,Inactive,Maintenance,New',
         'opening_hours' => 'required|array',
         'amenities' => 'array',
         'cover_image' => 'nullable|image|max:2048',
@@ -149,10 +149,10 @@ class Indoors extends Component
           
 
         $stats = [
-            'active' => BookingVenue::where('status', 'active')->count(),
-            'inactive' => BookingVenue::where('status', 'inactive')->count(),
-            'maintenance' => BookingVenue::where('status', 'maintenance')->count(),
-            'new' => BookingVenue::where('status', 'new')->count(),
+            'active' => BookingVenue::where('status', 'Active')->count(),
+            'inactive' => BookingVenue::where('status', 'Inactive')->count(),
+            'maintenance' => BookingVenue::where('status', 'Maintenance')->count(),
+            'new' => BookingVenue::where('status', 'New')->count(),
             'total' => BookingVenue::count(),
         ];
 
@@ -436,9 +436,6 @@ class Indoors extends Component
     }
     public function exportData()
     {
-
-
-        dd('Export functionality is not implemented yet.');
-        // Placeholder for export functionality
+        session()->flash('message', 'Export functionality coming soon.');
     }
 }

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"webhook\\\\|mobile\\\\|app\" /c/Users/MY/Desktop/indoor/routes/*.php)",
+      "Bash(php -l \"C:\\\\Users\\\\MY\\\\Desktop\\\\indoor\\\\resources\\\\views\\\\livewire\\\\staff\\\\staff-setting.blade.php\")",
+      "Bash(php artisan:*)",
+      "Bash(php -r ':*)",
+      "Bash(grep -E \"\\\\.php$\")",
+      "Bash(grep -l \"public function\" /c/Users/MY/Desktop/indoor/app/Livewire/**/*.php)",
+      "Bash(find:*)"
+    ]
+  }
+}

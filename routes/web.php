@@ -87,18 +87,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     });
 
 
-    //!! Staff routes
-    Route::middleware('role:staff')->prefix('staff')->name('staff.')->group(function () {
-        Route::get('/dashboard', StaffDashboard::class)->name('dashboard');
-        Route::get('/sports', SportsManagement::class)->name('sports');
-        Route::get('/bookings', BookingsManagement::class)->name('bookings');
-        Route::get('/reports', StaffReport::class)->name('reports');
-        Route::get('/feedbacks', StaffFeedbacks::class)->name('feedbacks');
-        Route::get('/setting', StaffSetting::class)->name('setting');
-        Route::get('/help', StaffHelp::class)->name('help');
-    });
-
-    Route::middleware('role:facility_owner')->prefix('facility_owner')->name('staff.')->group(function () {
+    //!! Staff & Facility Owner routes (both roles share the same URLs and route names)
+    Route::middleware('role:staff,facility_owner')->prefix('staff')->name('staff.')->group(function () {
         Route::get('/dashboard', StaffDashboard::class)->name('dashboard');
         Route::get('/sports', SportsManagement::class)->name('sports');
         Route::get('/bookings', BookingsManagement::class)->name('bookings');

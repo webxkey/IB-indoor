@@ -79,12 +79,26 @@
                         <div>
                             <h6 class="card-title text-muted">Pending Requests</h6>
                             <h2 class="mb-0">{{ $pendingRequests }}</h2>
-                            <small class="text-muted">
-                                On Discussion
-                            </small>
+                            <small class="text-muted">On Discussion</small>
                         </div>
                         <div class="stat-icon">
                             <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title opacity-75">Total Revenue</h6>
+                            <h2 class="mb-0">LKR {{ number_format($totalRevenue, 2) }}</h2>
+                            <small class="opacity-75">From completed bookings</small>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-money-bill-wave"></i>
                         </div>
                     </div>
                 </div>

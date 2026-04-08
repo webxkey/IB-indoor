@@ -39,6 +39,6 @@ class CustomLogin extends Component
             }
         }
 
-        return redirect()->route('login');
+        $this->addError('email', 'These credentials do not match our records.');
     }
 }

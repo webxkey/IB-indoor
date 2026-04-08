@@ -12,10 +12,10 @@ class RoleMiddleware
     /**
      * Handle an incoming request.
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (!Auth::check() || Auth::user()->role !== $role) {
-            return redirect()->route('/');
+        if (!Auth::check() || !in_array(Auth::user()->role, $roles)) {
+            return redirect('/');
         }
 
         return $next($request);

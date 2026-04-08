@@ -252,10 +252,10 @@ class BookingsManagement extends Component
     {
         $this->validate();
 
-        // Find sport
-        $sport = BookingSport::where('name', $this->selectedGame)
+        // Find sport (case-insensitive to handle lowercase game names from calendar)
+        $sport = BookingSport::whereRaw('LOWER(name) = ?', [strtolower($this->selectedGame)])
             ->where('venue_id', $this->complex_id)
-            ->where('status', 'Active')
+            ->whereRaw('LOWER(status) = ?', ['active'])
             ->first();
 
         if (!$sport) {
@@ -269,12 +269,8 @@ class BookingsManagement extends Component
             return;
         }
 
-        // Find or create corresponding users_user record
+        // Find corresponding users_user record (may not exist for admin-created accounts)
         $userUser = UserUser::where('email', $staffUser->email)->first();
-        if (!$userUser) {
-            $this->addError('general', 'User account not found in system.');
-            return;
-        }
 
         // Normalize time format
         $startTime = $this->selectedTime;
@@ -285,7 +281,7 @@ class BookingsManagement extends Component
         $endTime = Carbon::parse($startTime)->addMinutes(60)->format('H:i:s');
 
         $bookingData = [
-            'user_id_id' => $userUser->id, // Use users_user ID
+            'user_id_id' => $userUser?->id, // null if no users_user record
             'complex_id_id' => $this->complex_id,
             'game_id_id' => $sport->id,
             'game_name' => $this->selectedGame,

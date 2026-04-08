@@ -886,7 +886,12 @@
                                         <label class="form-label">Status</label>
                                         <select class="form-select @error('status') is-invalid @enderror"
                                             wire:model="status">
+                                            <option value="Confirmed">Confirmed</option>
                                             <option value="Pending">Pending</option>
+                                            <option value="Completed">Completed</option>
+                                            <option value="Cancelled">Cancelled</option>
+                                            <option value="No-Show">No-Show</option>
+                                            <option value="Playing">Playing</option>
                                         </select>
                                         @error('status')
                                         <div class="invalid-feedback">{{ $message }}</div>

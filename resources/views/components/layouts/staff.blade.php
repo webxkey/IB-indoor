@@ -187,7 +187,9 @@
                        
                     </div>
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-outline-secondary me-3"><i class="fas fa-bell"></i></button>
+                        <a href="{{ route('staff.setting') }}?section=notifications" class="btn btn-outline-secondary me-3" title="Notifications">
+                            <i class="fas fa-bell"></i>
+                        </a>
 
                         <div class="dropdown">
                             <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" data-bs-toggle="dropdown">
@@ -203,7 +205,7 @@
                                     <div class="fw-semibold">{{ Auth::user()->name ?? 'Staff Member' }}</div>
                                     <div class="small text-muted">{{ Auth::user()->email ?? 'staff@example.com' }}</div>
                                 </li>
-                                <li><a class="dropdown-item" href="#">Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ route('staff.setting') }}"><i class="fas fa-user me-2"></i>My Profile</a></li>
                                 <li><a class="dropdown-item" href="{{ route('staff.setting') }}">Settings</a></li>
                                 <li>
                                     <hr class="dropdown-divider">
@@ -232,24 +234,24 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
+            const sidebar = document.querySelector('.sidebar');
             const sidebarToggle = document.getElementById('sidebarToggle');
 
-            if (sidebarToggle) {
+            if (sidebarToggle && sidebar) {
                 sidebarToggle.addEventListener('click', function() {
                     sidebar.classList.toggle('show');
                 });
-            }
 
-            document.addEventListener('click', function(event) {
-                if (window.innerWidth <= 991.98) {
-                    const isClickInsideSidebar = sidebar.contains(event.target);
-                    const isClickOnToggle = sidebarToggle && sidebarToggle.contains(event.target);
-                    if (!isClickInsideSidebar && !isClickOnToggle) {
-                        sidebar.classList.remove('show');
+                document.addEventListener('click', function(event) {
+                    if (window.innerWidth <= 991.98) {
+                        const isClickInsideSidebar = sidebar.contains(event.target);
+                        const isClickOnToggle = sidebarToggle.contains(event.target);
+                        if (!isClickInsideSidebar && !isClickOnToggle) {
+                            sidebar.classList.remove('show');
+                        }
                     }
-                }
-            });
+                });
+            }
         });
     </script>
     @stack('scripts')

@@ -50,7 +50,8 @@ class Register extends Component
     public $amenities = [];
     public $cover_image;
     public $gallery_images = [];
-    public $sport_type;
+    public $sport_types = []; // array to allow multiple sports
+    public $sport_type;       // kept for backward compatibility
     public $capacity;
     public $hourly_rate;
     public $length;
@@ -152,7 +153,7 @@ class Register extends Component
             'amenities' => 'array',
             'cover_image' => 'nullable|image|max:2048',
             'gallery_images.*' => 'nullable|image|max:2048',
-            'sport_type' => 'required',
+            'sport_types' => 'required|array|min:1',
             'capacity' => 'required|integer|min:1',
             'hourly_rate' => 'required|numeric|min:0',
             'length' => 'required|numeric|min:1',
@@ -289,19 +290,22 @@ class Register extends Component
                     'reviews' => 0,
                 ]);
 
-                // Create sport
-                BookingSport::create([
-                    'name' => $this->sport_type ?? 'Football',
-                    'price' => $this->hourly_rate,
-                    'available' => $this->status === 'Active',
-                    'game_type' => $this->gameType ?? 'Indoor',
-                    'rate_type' => 'Per hour',
-                    'venue_id' => $venue->id,
-                    'description' => $this->description,
-                    'image' => $base_image_url,
-                    'maximum_court' =>1,
-                    'status' => 'Active',
-                ]);
+                // Create sports (one per selected type)
+                $sportsToCreate = !empty($this->sport_types) ? $this->sport_types : [$this->sport_type ?? 'Football'];
+                foreach ($sportsToCreate as $sportName) {
+                    BookingSport::create([
+                        'name' => ucfirst($sportName),
+                        'price' => $this->hourly_rate,
+                        'available' => $this->status === 'Active',
+                        'game_type' => $this->gameType ?? 'Indoor',
+                        'rate_type' => 'Per hour',
+                        'venue_id' => $venue->id,
+                        'description' => $this->description,
+                        'image' => $base_image_url,
+                        'maximum_court' => 1,
+                        'status' => 'Active',
+                    ]);
+                }
 
                 // Create gallery images
                 foreach ($galleryImagePaths as $path) {

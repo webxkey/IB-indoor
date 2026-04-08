@@ -35,10 +35,14 @@ class StaffHelp extends Component
             'message' => $this->contact_message,
         ];
 
-        // Send email to admin
-        Mail::to('mohammedrifam2624@gmail.com')->send(new ContactMessageMail($contactData));
-
-        session()->flash('contact_message', '✅ Thank you! Your message has been sent successfully.');
+        try {
+            // Send email to admin
+            Mail::to('mohammedrifam2624@gmail.com')->send(new ContactMessageMail($contactData));
+            session()->flash('contact_message', 'Thank you! Your message has been sent successfully.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Contact email failed: ' . $e->getMessage());
+            session()->flash('contact_message', 'Your message has been received. We will get back to you soon.');
+        }
 
         $this->reset(['contact_subject', 'contact_message']);
     }

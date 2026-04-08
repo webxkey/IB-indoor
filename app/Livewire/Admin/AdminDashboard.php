@@ -20,6 +20,7 @@ class AdminDashboard extends Component
     public $totalBookings;
     public $totalUsers;
     public $pendingRequests;
+    public $totalRevenue;
     public $bookingAnalytics;
     public $upcomingBookings;
 
@@ -35,7 +36,10 @@ class AdminDashboard extends Component
         $this->totalUsers = User::count();
 
         // Get pending requests (bookings with pending status)
-        $this->pendingRequests = BookingBooking::where('status', 'pending')->count();
+        $this->pendingRequests = BookingBooking::where('status', 'Pending')->count();
+
+        // Get total revenue from completed bookings
+        $this->totalRevenue = BookingBooking::where('status', 'Completed')->sum('price');
 
         // Get booking analytics data (last 6 months)
         $this->bookingAnalytics = $this->getBookingAnalytics();
@@ -100,6 +104,7 @@ class AdminDashboard extends Component
             'totalBookings' => $this->totalBookings,
             'totalUsers' => $this->totalUsers,
             'pendingRequests' => $this->pendingRequests,
+            'totalRevenue' => $this->totalRevenue,
             'bookingAnalytics' => $this->bookingAnalytics,
             'upcomingBookings' => $this->upcomingBookings
         ]);

@@ -61,9 +61,9 @@ class StaffReport extends Component
     {
         // Get the current user's complex
         $complex = BookingVenue::find($this->complex_id);
-        $this->complexName = $complex->complex_name ?? 'Default Complex';
+        $this->complexName = $complex->name ?? 'Default Complex';
         $this->complexAddress = $complex->address ?? 'N/A';
-        $this->complexPhoto = $complex->game_image ? asset('storage/' . $complex->game_image) : asset('fd.jpg');
+        $this->complexPhoto = $complex->cover_image ? asset('storage/' . $complex->cover_image) : asset('fd.jpg');
     }
 
     private function loadReportData()
@@ -102,8 +102,7 @@ class StaffReport extends Component
         $this->reportData = $query->get();
 
         $this->bookingDetails = BookingBooking::where('complex_id_id', $this->complex_id)->get();
-        // dd(Booking::all());
-        $this->bookingDetailModel = $query->clone()->get();
+        $this->bookingDetailModel = $query->clone()->with('sport')->get();
         $this->upcomingBooked = $query->clone()->whereIn('status', ['Confirmed'])->get();
 
         $this->totalUpcomingBookings = $this->upcomingBooked->count();
@@ -226,6 +225,40 @@ class StaffReport extends Component
 
 
 
+
+    public function exportReport()
+    {
+        try {
+            $data = BookingBooking::where('complex_id_id', $this->complex_id)
+                ->whereBetween('booking_date', [$this->start_date, $this->end_date])
+                ->with('sport')
+                ->get();
+
+            $csvContent = "Booking ID,Player Name,Court,Sport,Date,Start Time,End Time,Status,Payment Status,Revenue\n";
+            foreach ($data as $booking) {
+                $csvContent .= implode(',', [
+                    $booking->id,
+                    '"' . ($booking->user_name ?? 'N/A') . '"',
+                    '"' . ($booking->court_number ?? 'N/A') . '"',
+                    '"' . ($booking->sport->name ?? $booking->game_name ?? 'N/A') . '"',
+                    $booking->booking_date,
+                    $booking->start_time,
+                    $booking->end_time,
+                    $booking->status,
+                    $booking->payment_status,
+                    $booking->price ?? 0,
+                ]) . "\n";
+            }
+
+            $filename = 'booking_report_' . $this->start_date . '_to_' . $this->end_date . '.csv';
+
+            return response()->streamDownload(function () use ($csvContent) {
+                echo $csvContent;
+            }, $filename, ['Content-Type' => 'text/csv']);
+        } catch (\Exception $e) {
+            session()->flash('error', 'Export failed: ' . $e->getMessage());
+        }
+    }
 
     public function resetFilters()
     {

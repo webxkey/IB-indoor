@@ -869,9 +869,9 @@
                             @error('status') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
-                            <label for="county" class="form-label"><i class="fas fa-map me-2"></i>County </label>
+                            <label for="county" class="form-label"><i class="fas fa-map me-2"></i>District / City </label>
                             <select class="form-input @error('county') is-invalid @enderror" id="county" wire:model="county" required>
-                                <option value="">Select County</option>
+                                <option value="">Select District / City</option>
                                 @foreach($availableCity as $c)<option value="{{ $c }}">{{ $c }}</option>@endforeach
                             </select>
                             @error('county') <div class="error-message">{{ $message }}</div> @enderror
@@ -922,15 +922,18 @@
                             <h3><i class="fas fa-running me-2"></i>Sport & Facility Details</h3>
                         </div>
                         <div class="form-grid">
-                            <div class="form-group">
-                                <label for="sport_type" class="form-label">Primary Sport Type </label>
-                                <select class="form-input @error('sport_type') is-invalid @enderror" id="sport_type" wire:model="sport_type" required>
-                                    <option value="">Select sport</option>
+                            <div class="form-group full-width">
+                                <label class="form-label">Sport Types <span style="color:#dc3545">*</span> <small style="color:var(--gray)">(select all that apply)</small></label>
+                                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.75rem;margin-top:0.5rem;">
                                     @foreach($availableSportTypes as $sport)
-                                    <option value="{{ $sport }}">{{ ucfirst($sport) }}</option>
+                                    <label class="amenity-checkbox">
+                                        <input type="checkbox" value="{{ $sport }}" wire:model="sport_types">
+                                        <span class="amenity-checkmark"></span>
+                                        <span class="amenity-label">{{ ucfirst($sport) }}</span>
+                                    </label>
                                     @endforeach
-                                </select>
-                                @error('sport_type') <div class="error-message">{{ $message }}</div> @enderror
+                                </div>
+                                @error('sport_types') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="form-group">
                                 <label for="capacity" class="form-label">Capacity </label>
@@ -1032,7 +1035,7 @@
                     <div class="section-card">
                         <div class="section-header">
                             <h3><i class="fas fa-list me-2"></i>Amenities</h3>
-                            <span class="selected-count">{{ count(array_filter($amenities)) }} selected</span>
+                            <span class="selected-count">{{ count($amenities) }} selected</span>
                         </div>
                         <div class="amenities-grid">
                             @foreach($availableAmenities as $amenity)

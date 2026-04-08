@@ -269,6 +269,14 @@
                                 <textarea class="form-control" wire:model="description" rows="3"></textarea>
                                 @error('description') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
+
+                            <div class="col-md-12">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="edit_advance_required"
+                                        wire:model="advance_required">
+                                    <label class="form-check-label fw-semibold" for="edit_advance_required">Advance Payment Required</label>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

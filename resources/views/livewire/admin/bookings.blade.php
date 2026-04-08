@@ -89,7 +89,7 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <h6 class="card-title text-muted">Total Revenue</h6>
-                            <h2 class="mb-0">${{ number_format($totalRevenue, 2) }}</h2>
+                            <h2 class="mb-0">LKR {{ number_format($totalRevenue, 2) }}</h2>
                             <small class="text-success">
                                 <i class="fas fa-arrow-up me-1"></i>
                                 <!-- This would require comparison with previous period data -->
@@ -122,9 +122,12 @@
                     <label for="statusFilter" class="form-label">Status</label>
                     <select class="form-select" id="statusFilter" wire:model="statusFilter">
                         <option value="" selected>All Status</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="pending">Pending</option>
-                        <option value="canceled">Canceled</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Completed">Completed</option>
+                        <option value="No-Show">No-Show</option>
+                        <option value="Playing">Playing</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -185,7 +188,7 @@
                             <td><span class="badge bg-success">{{ $venue['confirmed'] }}</span></td>
                             <td><span class="badge bg-warning">{{ $venue['pending'] }}</span></td>
                             <td><span class="badge bg-danger">{{ $venue['canceled'] }}</span></td>
-                            <td class="text-success fw-bold">${{ number_format($venue['revenue'], 2) }}</td>
+                            <td class="text-success fw-bold">LKR {{ number_format($venue['revenue'], 2) }}</td>
                             <td>
 
                                 <button class="btn btn-sm btn-outline-primary"
@@ -231,17 +234,20 @@
                             <td>{{ $booking->user_name }}</td>
                             <td>{{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}, {{
                                 $booking->start_time }} - {{ $booking->end_time }}</td>
-                            <td>${{ number_format($booking->total, 2) }}</td>
+                            <td>LKR {{ number_format($booking->price, 2) }}</td>
                             <td>
-                                @if($booking->status == 'confirmed')
-                                <span class="badge bg-success">Confirmed</span>
-                                @elseif($booking->status == 'pending')
-                                <span class="badge bg-warning">Pending</span>
-                                @elseif($booking->status == 'canceled')
-                                <span class="badge bg-danger">Canceled</span>
-                                @else
-                                <span class="badge bg-secondary">{{ $booking->status }}</span>
-                                @endif
+                                @php
+                                    $statusColors = [
+                                        'Confirmed' => 'success',
+                                        'Pending'   => 'warning',
+                                        'Cancelled' => 'danger',
+                                        'Completed' => 'primary',
+                                        'No-Show'   => 'dark',
+                                        'Playing'   => 'info',
+                                    ];
+                                    $badgeColor = $statusColors[$booking->status] ?? 'secondary';
+                                @endphp
+                                <span class="badge bg-{{ $badgeColor }}">{{ $booking->status }}</span>
                             </td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary me-1" disabled>

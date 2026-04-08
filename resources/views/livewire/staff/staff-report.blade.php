@@ -485,12 +485,12 @@
                 </button>
             </div>
             <div class="col-md-3 mb-2">
-                <button class="btn btn-customer w-100" wire:click="">
+                <button class="btn btn-customer w-100" type="button" data-bs-toggle="modal" data-bs-target="#customerReportModal">
                     <i class="fas fa-users me-2"></i> Customer Reports
                 </button>
             </div>
             <div class="col-md-3 mb-2">
-                <button class="btn btn-performance w-100" wire:click="">
+                <button class="btn btn-performance w-100" type="button" data-bs-toggle="modal" data-bs-target="#performanceReportModal">
                     <i class="fas fa-chart-bar me-2"></i> Performance & Utilization
                 </button>
             </div>
@@ -499,7 +499,7 @@
         <!-- Booking Report Modal -->
         <div class="modal fade" id="bookingReportModal" tabindex="-1" aria-labelledby="bookingReportModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                <div class="modal-content">
+                <div class="modal-content print-section">
                     <div class="modal-header">
                         <h5 class="modal-title" id="bookingReportModalLabel">Comprehensive Booking Details Report - Indoor Booking System</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -532,7 +532,7 @@
                             <tbody>
                                 @forelse($bookingDetailModel as $booking)
                                     <tr>
-                                        <td>{{ $booking->booking_id }}</td>
+                                        <td>{{ $booking->id }}</td>
                                         <td>{{ $booking->user_name ?? 'N/A' }}</td>
                                         <td>{{ $booking->court_number ?? 'N/A' }}</td>
                                         <td>{{ $booking->sport->name ?? 'N/A' }}</td>
@@ -570,7 +570,7 @@
         <!-- Revenue Report Modal -->
         <div class="modal fade" id="revenueReportModal" tabindex="-1" aria-labelledby="revenueReportModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                <div class="modal-content">
+                <div class="modal-content print-section">
                     <div class="modal-header">
                         <h5 class="modal-title" id="revenueReportModalLabel">Comprehensive Revenue Report - Indoor Booking System</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -633,6 +633,145 @@
                         <button class="btn btn-primary btn-print" onclick="window.print()">
                             <i class="bi bi-printer"></i> Print Report
                         </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Customer Report Modal -->
+        <div class="modal fade" id="customerReportModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content print-section">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Customer Report</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-4">
+                            <h3>{{ $complexName }}</h3>
+                            <p>{{ $complexAddress }}</p>
+                        </div>
+                        <p><strong>Period:</strong> {{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} to {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</p>
+                        <hr>
+                        <h4>CUSTOMER BOOKING SUMMARY</h4>
+                        <table class="table table-bordered table-striped">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>Player Name</th>
+                                    <th>Phone</th>
+                                    <th>Total Bookings</th>
+                                    <th>Total Spent (LKR)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @php
+                                    $customerData = $bookingDetails->groupBy('user_name')->map(function($bookings, $name) {
+                                        return (object)[
+                                            'name' => $name ?: 'N/A',
+                                            'phone' => $bookings->first()->user_number ?? 'N/A',
+                                            'total' => $bookings->count(),
+                                            'spent' => $bookings->sum('price'),
+                                        ];
+                                    })->sortByDesc('total')->values();
+                                @endphp
+                                @forelse($customerData as $customer)
+                                    <tr>
+                                        <td>{{ $customer->name }}</td>
+                                        <td>{{ $customer->phone }}</td>
+                                        <td>{{ $customer->total }}</td>
+                                        <td>LKR {{ number_format($customer->spent, 2) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4" class="text-center text-muted">No customer data available.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print me-1"></i> Print</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance & Utilization Modal -->
+        <div class="modal fade" id="performanceReportModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content print-section">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Performance & Utilization Report</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-4">
+                            <h3>{{ $complexName }}</h3>
+                            <p>{{ $complexAddress }}</p>
+                        </div>
+                        <p><strong>Period:</strong> {{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} to {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</p>
+                        <hr>
+                        <div class="row mb-4">
+                            <div class="col-md-3 text-center">
+                                <div class="card bg-primary text-white p-3">
+                                    <h4>{{ $totalBookings }}</h4>
+                                    <small>Total Bookings</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="card bg-success text-white p-3">
+                                    <h4>LKR {{ number_format($totalRevenue, 0) }}</h4>
+                                    <small>Total Revenue</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="card bg-warning text-dark p-3">
+                                    <h4>{{ $cancelledBookings }}</h4>
+                                    <small>Cancelled Bookings</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="card bg-info text-white p-3">
+                                    <h4>{{ number_format($occupancyRate, 1) }}%</h4>
+                                    <small>Occupancy Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                        <h4>SPORT PERFORMANCE</h4>
+                        <table class="table table-bordered table-striped">
+                            <thead class="table-warning">
+                                <tr>
+                                    <th>Sport</th>
+                                    <th>Total Bookings</th>
+                                    <th>Total Revenue (LKR)</th>
+                                    <th>Cancellations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @php
+                                    $sportPerf = $bookingDetails->groupBy('game_name')->map(function($bks, $name) {
+                                        return (object)[
+                                            'name' => $name ?: 'N/A',
+                                            'total' => $bks->count(),
+                                            'revenue' => $bks->sum('price'),
+                                            'cancelled' => $bks->where('status', 'Cancelled')->count(),
+                                        ];
+                                    })->values();
+                                @endphp
+                                @forelse($sportPerf as $sp)
+                                    <tr>
+                                        <td>{{ $sp->name }}</td>
+                                        <td>{{ $sp->total }}</td>
+                                        <td>LKR {{ number_format($sp->revenue, 2) }}</td>
+                                        <td>{{ $sp->cancelled }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4" class="text-center text-muted">No data available.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print me-1"></i> Print</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>

@@ -43,7 +43,7 @@ class BookingBooking extends Model
     // Relationships
     public function sport()
     {
-        return $this->belongsTo(BookingSport::class, 'sport_id');
+        return $this->belongsTo(BookingSport::class, 'game_id_id');
     }
 
     public function user()
