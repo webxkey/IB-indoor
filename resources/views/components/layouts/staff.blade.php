@@ -84,16 +84,20 @@
 
             .main-content {
                 margin-left: 0 !important;
-                padding: 1rem;
+                padding: 0.25rem;
             }
 
             .header {
-                margin: 0 -1rem 1rem -1rem;
-                padding: 1rem;
+                margin: 0 -0.25rem 0.5rem -0.25rem;
+                padding: 0.6rem 1rem;
             }
 
             .text-start.d-md-block {
                 display: none !important;
+            }
+
+            .main-content {
+                padding-bottom: 70px;
             }
         }
     </style>
@@ -103,7 +107,7 @@
     <div class="container-fluid">
         <div class="d-flex flex-column flex-md-row">
             <!-- Sidebar -->
-            <nav id="sidebar" class="sidebar d-none d-md-block">
+            <nav id="sidebar" class="sidebar">
                 <div class="position-sticky pt-1">
                     <div class="sidebar-brand p-3 border-bottom">
                         <div class="d-flex align-items-center gap-0" style="font-size: 1.8rem;">
@@ -177,6 +181,27 @@
                 </div>
             </nav>
 
+            <!-- Mobile Bottom Navigation Bar -->
+            <nav class="d-md-none fixed-bottom bg-white border-top py-1" style="z-index:1050;">
+                <div class="d-flex justify-content-around align-items-center">
+                    <a href="{{ route('staff.dashboard') }}" class="d-flex flex-column align-items-center text-decoration-none {{ request()->routeIs('staff.dashboard') ? 'text-success' : 'text-muted' }}" style="font-size:0.65rem;">
+                        <i class="fas fa-th-large mb-1" style="font-size:1.1rem;"></i>Home
+                    </a>
+                    <a href="{{ route('staff.bookings') }}" class="d-flex flex-column align-items-center text-decoration-none {{ request()->routeIs('staff.bookings') ? 'text-success' : 'text-muted' }}" style="font-size:0.65rem;">
+                        <i class="fas fa-calendar-check mb-1" style="font-size:1.1rem;"></i>Bookings
+                    </a>
+                    <a href="{{ route('staff.sports') }}" class="d-flex flex-column align-items-center text-decoration-none {{ request()->routeIs('staff.sports') ? 'text-success' : 'text-muted' }}" style="font-size:0.65rem;">
+                        <i class="fas fa-map-marked-alt mb-1" style="font-size:1.1rem;"></i>Sports
+                    </a>
+                    <a href="{{ route('staff.reports') }}" class="d-flex flex-column align-items-center text-decoration-none {{ request()->routeIs('staff.reports') ? 'text-success' : 'text-muted' }}" style="font-size:0.65rem;">
+                        <i class="fas fa-chart-bar mb-1" style="font-size:1.1rem;"></i>Reports
+                    </a>
+                    <a href="{{ route('staff.setting') }}" class="d-flex flex-column align-items-center text-decoration-none {{ request()->routeIs('staff.setting') ? 'text-success' : 'text-muted' }}" style="font-size:0.65rem;">
+                        <i class="fas fa-cog mb-1" style="font-size:1.1rem;"></i>Settings
+                    </a>
+                </div>
+            </nav>
+
             <!-- Main Content -->
             <div class="main-content flex-grow-1">
                 <header class="header d-flex justify-content-between align-items-center">
@@ -187,9 +212,53 @@
                        
                     </div>
                     <div class="d-flex align-items-center">
-                        <a href="{{ route('staff.setting') }}?section=notifications" class="btn btn-outline-secondary me-3" title="Notifications">
-                            <i class="fas fa-bell"></i>
-                        </a>
+                        @php
+                            $unreadCount = 0;
+                            $recentNotifications = [];
+                            if (auth()->check()) {
+                                $unreadCount = \App\Models\BookingNotification::where('user_id', auth()->id())->where('is_read', false)->count();
+                                $recentNotifications = \App\Models\BookingNotification::where('user_id', auth()->id())->orderByDesc('created_at')->limit(5)->get();
+                            }
+                        @endphp
+                        <div class="dropdown me-3">
+                            <button class="btn btn-outline-secondary position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell"></i>
+                                @if($unreadCount > 0)
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;">
+                                    {{ $unreadCount > 9 ? '9+' : $unreadCount }}
+                                </span>
+                                @endif
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:320px;max-height:400px;overflow-y:auto;">
+                                <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                                    <span class="fw-semibold">Notifications</span>
+                                    @if($unreadCount > 0)
+                                    <a href="{{ route('staff.setting') }}?section=notifications" class="small text-success">Mark all read</a>
+                                    @endif
+                                </li>
+                                @forelse($recentNotifications as $notif)
+                                <li>
+                                    <div class="dropdown-item d-block py-2 {{ !$notif->is_read ? 'bg-light' : '' }}">
+                                        <div class="d-flex align-items-start">
+                                            <div class="me-2 mt-1">
+                                                <i class="fas fa-{{ $notif->type === 'booking_created' ? 'calendar-plus text-success' : ($notif->type === 'booking_cancelled' ? 'calendar-times text-danger' : 'bell text-info') }}"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold small">{{ $notif->title }}</div>
+                                                <div class="text-muted small">{{ Str::limit($notif->message, 60) }}</div>
+                                                <div class="text-muted" style="font-size:0.7rem;">{{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                                @empty
+                                <li class="px-3 py-3 text-center text-muted small">No notifications yet</li>
+                                @endforelse
+                                <li class="border-top px-3 py-2 text-center">
+                                    <a href="{{ route('staff.setting') }}?section=notifications" class="small text-success">View all notifications</a>
+                                </li>
+                            </ul>
+                        </div>
 
                         <div class="dropdown">
                             <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" data-bs-toggle="dropdown">

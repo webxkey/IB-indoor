@@ -158,6 +158,13 @@
 
 
 <div class="container-fluid main">
+    @if(session()->has('message'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ session('message') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
     <!-- Header -->
     <div class="feedback-header">
         <h2>Reviews</h2>
@@ -215,10 +222,51 @@
                             on {{ $review->venue->name ?? 'Venue' }}
                         </p>
                         <p>{{ $review->comment }}</p>
-                        <div class="review-actions mt-2">
-                            <button class="btn btn-feedback btn-sm">Public Comment</button>
-                            <button class="btn btn-message btn-sm">Direct Message <i class="fas fa-envelope"></i></button>
+
+                        {{-- Owner Reply Section --}}
+                        @if($review->owner_reply)
+                        <div class="mt-2 p-3 bg-light border-start border-success border-3 rounded-end">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <small class="text-success fw-semibold"><i class="fas fa-reply me-1"></i>Your Reply</small>
+                                    <p class="mb-0 small mt-1">{{ $review->owner_reply }}</p>
+                                    @if($review->owner_replied_at)
+                                    <small class="text-muted">{{ \Carbon\Carbon::parse($review->owner_replied_at)->diffForHumans() }}</small>
+                                    @endif
+                                </div>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-outline-primary" wire:click="startReply({{ $review->id }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" wire:click="deleteReply({{ $review->id }})">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+                        @else
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-success" wire:click="startReply({{ $review->id }})">
+                                <i class="fas fa-reply me-1"></i> Reply to Review
+                            </button>
+                        </div>
+                        @endif
+
+                        @if($replyingToReviewId === $review->id)
+                        <div class="mt-2 p-3 bg-white border rounded shadow-sm">
+                            <label class="form-label small fw-semibold">Your Response</label>
+                            <textarea class="form-control form-control-sm" wire:model="replyText" rows="3"
+                                placeholder="Write a professional response to this review..."></textarea>
+                            @error('replyText') <span class="text-danger small">{{ $message }}</span> @enderror
+                            <div class="mt-2 d-flex gap-2">
+                                <button class="btn btn-sm btn-success" wire:click="submitReply" wire:loading.attr="disabled">
+                                    <span wire:loading wire:target="submitReply" class="spinner-border spinner-border-sm me-1"></span>
+                                    Post Reply
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" wire:click="cancelReply">Cancel</button>
+                            </div>
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>

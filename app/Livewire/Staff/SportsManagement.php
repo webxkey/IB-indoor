@@ -33,6 +33,16 @@ class SportsManagement extends Component
     public $advance_required = false;
     public $existingImage;
 
+    public $pricingRules = [
+        'peak_price' => '',
+        'offpeak_price' => '',
+        'weekend_price' => '',
+        'advance_discount' => '',  // percentage
+        'advance_days' => '',      // days in advance
+    ];
+    public $showPricingModal = false;
+    public $pricingEditSportId = null;
+
     public function mount()
     {
         $this->loadSports();
@@ -165,6 +175,150 @@ class SportsManagement extends Component
         $this->status = 'Active';
         $this->advance_required = false;
         $this->additional_charges = [];
+    }
+
+    public function openPricingModal($sportId)
+    {
+        $sport = BookingSport::find($sportId);
+        if (!$sport) return;
+        $this->pricingEditSportId = $sportId;
+        $rules = $sport->pricing_rules ?? [];
+        $this->pricingRules = array_merge([
+            'peak_price' => '',
+            'offpeak_price' => '',
+            'weekend_price' => '',
+            'advance_discount' => '',
+            'advance_days' => '',
+        ], $rules);
+        $this->showPricingModal = true;
+    }
+
+    public function closePricingModal()
+    {
+        $this->showPricingModal = false;
+        $this->pricingEditSportId = null;
+        $this->pricingRules = ['peak_price'=>'','offpeak_price'=>'','weekend_price'=>'','advance_discount'=>'','advance_days'=>''];
+    }
+
+    public function savePricingRules()
+    {
+        $this->validate([
+            'pricingRules.peak_price' => 'nullable|numeric|min:0',
+            'pricingRules.offpeak_price' => 'nullable|numeric|min:0',
+            'pricingRules.weekend_price' => 'nullable|numeric|min:0',
+            'pricingRules.advance_discount' => 'nullable|numeric|min:0|max:100',
+            'pricingRules.advance_days' => 'nullable|integer|min:1',
+        ]);
+
+        $sport = BookingSport::find($this->pricingEditSportId);
+        if ($sport) {
+            $sport->update(['pricing_rules' => array_filter($this->pricingRules, fn($v) => $v !== '')]);
+            session()->flash('message', 'Pricing rules saved!');
+        }
+        $this->closePricingModal();
+        $this->loadSports();
+    }
+
+    // ==========================================
+    // Slot Blocking (Sports Page)
+    // ==========================================
+
+    public $showSlotBlockModal = false;
+    public $slotBlockSportId = null;
+    public $slotBlockSportName = '';
+    public $slotBlockDate = '';
+    public $slotBlockTime = '';
+    public $slotBlockEndTime = '';
+    public $slotBlockCourt = '1';
+    public $slotBlockReason = 'Maintenance';
+    public $existingBlocks = [];
+
+    public function openSlotBlockModal($sportId)
+    {
+        $sport = BookingSport::find($sportId);
+        if (!$sport) return;
+        $this->slotBlockSportId = $sportId;
+        $this->slotBlockSportName = $sport->name;
+        $this->slotBlockDate = now()->format('Y-m-d');
+        $this->slotBlockTime = '09:00:00';
+        $this->slotBlockEndTime = '10:00:00';
+        $this->slotBlockCourt = '1';
+        $this->slotBlockReason = 'Maintenance';
+        $this->loadExistingBlocks($sport);
+        $this->showSlotBlockModal = true;
+    }
+
+    private function loadExistingBlocks(BookingSport $sport): void
+    {
+        $raw = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        $list = [];
+        foreach ($raw as $date => $times) {
+            foreach ($times as $time => $courts) {
+                foreach ($courts as $court => $value) {
+                    // Support both old string format and new array format
+                    if (is_array($value)) {
+                        $reason   = $value['reason'] ?? 'Unavailable';
+                        $end_time = $value['end_time'] ?? '';
+                    } else {
+                        $reason   = $value;
+                        $end_time = '';
+                    }
+                    $list[] = compact('date', 'time', 'end_time', 'court', 'reason');
+                }
+            }
+        }
+        // Sort by date desc then time
+        usort($list, fn($a, $b) => strcmp($b['date'] . $b['time'], $a['date'] . $a['time']));
+        $this->existingBlocks = $list;
+    }
+
+    public function closeSlotBlockModal()
+    {
+        $this->showSlotBlockModal = false;
+        $this->slotBlockSportId = null;
+        $this->existingBlocks = [];
+    }
+
+    public function addSlotBlock()
+    {
+        $this->validate([
+            'slotBlockDate'    => 'required|date',
+            'slotBlockTime'    => 'required',
+            'slotBlockEndTime' => 'required',
+            'slotBlockCourt'   => 'required',
+            'slotBlockReason'  => 'required|string',
+        ]);
+
+        $sport = BookingSport::find($this->slotBlockSportId);
+        if (!$sport) return;
+
+        $slots    = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        $time     = strlen($this->slotBlockTime) === 5 ? $this->slotBlockTime . ':00' : $this->slotBlockTime;
+        $endTime  = strlen($this->slotBlockEndTime) === 5 ? $this->slotBlockEndTime . ':00' : $this->slotBlockEndTime;
+
+        $slots[$this->slotBlockDate][$time][$this->slotBlockCourt] = [
+            'reason'   => $this->slotBlockReason,
+            'end_time' => $endTime,
+        ];
+        $sport->update(['blocked_slots' => $slots]);
+
+        $this->loadExistingBlocks($sport->fresh());
+        session()->flash('message', 'Slot blocked successfully.');
+    }
+
+    public function removeSlotBlock($date, $time, $court)
+    {
+        $sport = BookingSport::find($this->slotBlockSportId);
+        if (!$sport) return;
+
+        $slots = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        unset($slots[$date][$time][$court]);
+        if (empty($slots[$date][$time])) unset($slots[$date][$time]);
+        if (empty($slots[$date]))        unset($slots[$date]);
+        $sport->update(['blocked_slots' => $slots]);
+
+        $this->loadExistingBlocks($sport->fresh());
+        session()->flash('message', 'Block removed.');
     }
 
     public function render()

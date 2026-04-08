@@ -7,7 +7,14 @@
       "Bash(php -r ':*)",
       "Bash(grep -E \"\\\\.php$\")",
       "Bash(grep -l \"public function\" /c/Users/MY/Desktop/indoor/app/Livewire/**/*.php)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(grep -n \"revenueChart\\\\|statusChart\\\\|sportChart\\\\|occupancyChart\\\\|backtick\\\\|\\\\`\" \"C:/Users/MY/Desktop/indoor/resources/views/livewire/admin/admin-dashboard.blade.php\")",
+      "Bash(ls \"C:/Users/MY/Desktop/indoor/app/Models/Venue\"*)",
+      "Bash(ls \"C:/Users/MY/Desktop/indoor/database/migrations/2026_04_08\"*)",
+      "Bash(php -l app/Livewire/Staff/BookingsManagement.php)",
+      "Bash(php -l app/Models/BookingWaitlist.php)",
+      "Bash(php -l app/Models/BookingSport.php)",
+      "Bash(php -l database/migrations/2026_04_08_000004_create_booking_waitlist_table.php)"
     ]
   }
 }

@@ -22,6 +22,8 @@ class StaffFeedbacks extends Component
     public $imageUrl;
     public $complex_id;
     public $profile_picture_url;
+    public $replyingToReviewId = null;
+    public $replyText = '';
 
     public function mount()
     {
@@ -60,6 +62,47 @@ class StaffFeedbacks extends Component
         $this->totalReviews = $reviews->count();
         $this->averageRating = round($reviews->avg('rating'), 1);
         $this->reviews = $reviews;
+    }
+
+    public function startReply($reviewId)
+    {
+        $this->replyingToReviewId = $reviewId;
+        $review = BookingVenueReview::find($reviewId);
+        $this->replyText = $review?->owner_reply ?? '';
+    }
+
+    public function cancelReply()
+    {
+        $this->replyingToReviewId = null;
+        $this->replyText = '';
+    }
+
+    public function submitReply()
+    {
+        $this->validate([
+            'replyText' => 'required|string|min:5|max:1000',
+        ]);
+
+        BookingVenueReview::where('id', $this->replyingToReviewId)
+            ->where('venue_id', $this->complex_id)
+            ->update([
+                'owner_reply' => $this->replyText,
+                'owner_replied_at' => now(),
+            ]);
+
+        $this->cancelReply();
+        $this->loadFeedbacks();
+        session()->flash('message', 'Reply posted successfully!');
+    }
+
+    public function deleteReply($reviewId)
+    {
+        BookingVenueReview::where('id', $reviewId)
+            ->where('venue_id', $this->complex_id)
+            ->update(['owner_reply' => null, 'owner_replied_at' => null]);
+
+        $this->loadFeedbacks();
+        session()->flash('message', 'Reply removed.');
     }
 
     public function render()

@@ -1,22 +1,113 @@
-<div class="container">
+<style>
+    /* Settings page mobile fixes */
+    .settings-nav-mobile {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 6px;
+        padding: 10px 12px;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        scrollbar-width: none;
+    }
+    .settings-nav-mobile::-webkit-scrollbar { display: none; }
+    .settings-nav-mobile .nav-pill {
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        padding: 7px 14px;
+        border-radius: 20px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        text-decoration: none;
+        border: 1.5px solid #e2e8f0;
+        color: #374151;
+        background: #f9fafb;
+        flex-shrink: 0;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .settings-nav-mobile .nav-pill.active {
+        background: #19722d;
+        border-color: #19722d;
+        color: #fff;
+    }
+    .settings-nav-mobile .nav-pill i { margin-right: 5px; }
+
+    @media (max-width: 767px) {
+        .settings-sidebar-desktop { display: none !important; }
+        .settings-nav-mobile { display: flex !important; }
+        .settings-content { padding: 14px 12px !important; border-radius: 0 !important; box-shadow: none !important; }
+        .settings-wrapper { padding: 0 !important; gap: 0 !important; background: #f8f9fa; min-height: 100vh; }
+
+        /* Profile image smaller */
+        .settings-content img.rounded-2 { width: 64px !important; height: 64px !important; }
+
+        /* Row → stack on mobile */
+        .settings-content .row.g-3 > [class*="col-md"] { margin-bottom: 0; }
+
+        /* Reduce card body padding */
+        .settings-content .card-body { padding: 14px; }
+
+        /* Fix flex header wrapping */
+        .settings-content .d-flex.justify-content-between.align-items-center {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* Form fields full width */
+        .settings-content .form-control,
+        .settings-content .form-select { font-size: 0.9rem; }
+
+        /* Modals full screen on mobile */
+        .modal-dialog { margin: 0 !important; max-width: 100% !important; }
+        .modal-content { border-radius: 0 !important; min-height: 100vh; }
+    }
+    @media (min-width: 768px) {
+        .settings-nav-mobile { display: none !important; }
+        .settings-sidebar-desktop { display: block !important; }
+    }
+</style>
+
+<div class="container-fluid px-0 px-md-3">
 
     @if(session()->has('message'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <div class="alert alert-success alert-dismissible fade show mx-2 mx-md-0 mt-2" role="alert">
         {{ session('message') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     @endif
     @if(session()->has('error'))
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show mx-2 mx-md-0 mt-2" role="alert">
         {{ session('error') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     @endif
 
-    <div class="container-fluid bg-light min-vh-100 p-4 d-flex gap-4">
+    {{-- Mobile horizontal tab bar (visible only on mobile) --}}
+    <div class="settings-nav-mobile">
+        @php
+        $sections = [
+            'profile'      => ['icon' => 'fa-user-circle',  'label' => 'Profile'],
+            'security'     => ['icon' => 'fa-shield-alt',   'label' => 'Security'],
+            'notifications'=> ['icon' => 'fa-bell',         'label' => 'Notifications'],
+            'team'         => ['icon' => 'fa-users',        'label' => 'Team'],
+            'opening_time' => ['icon' => 'fa-clock',        'label' => 'Hours'],
+            'cctv'         => ['icon' => 'fa-video',        'label' => 'CCTV'],
+        ];
+        @endphp
+        @foreach($sections as $key => $sec)
+        <a href="#" wire:click.prevent="showSection('{{ $key }}')"
+            class="nav-pill {{ $activeSection === $key ? 'active' : '' }}">
+            <i class="fas {{ $sec['icon'] }}"></i>{{ $sec['label'] }}
+        </a>
+        @endforeach
+    </div>
 
-        <!-- Sidebar Navigation -->
-        <div class="bg-white rounded-3 shadow-sm p-4 w-25">
+    <div class="d-flex gap-4 p-3 p-md-4 bg-light min-vh-100 settings-wrapper align-items-start">
+
+        {{-- Desktop sidebar (hidden on mobile) --}}
+        <div class="bg-white rounded-3 shadow-sm p-3 settings-sidebar-desktop" style="min-width:200px;width:220px;flex-shrink:0;">
             <nav class="nav flex-column">
                 <a href="#" class="nav-link {{ $activeSection === 'profile' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('profile')">
                     <i class="fas fa-user-circle me-2"></i>My Profile
@@ -31,13 +122,16 @@
                     <i class="fas fa-users me-2"></i>Team Member
                 </a>
                 <a href="#" class="nav-link {{ $activeSection === 'opening_time' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('opening_time')">
-                    <i class="fas fa-clock me-2"></i>Opening time 
+                    <i class="fas fa-clock me-2"></i>Opening time
+                </a>
+                <a href="#" class="nav-link {{ $activeSection === 'cctv' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('cctv')">
+                    <i class="fas fa-video me-2"></i>CCTV Cameras
                 </a>
             </nav>
         </div>
 
         <!-- Main Content -->
-        <div class="bg-white rounded-3 shadow-sm p-4 w-75">
+        <div class="bg-white rounded-3 shadow-sm p-3 p-md-4 flex-grow-1 settings-content" style="min-width:0;width:100%;">
 
             @if($activeSection === 'profile')
             @if($complexes)
@@ -485,255 +579,97 @@
                 </div>
             </div>
             @elseif($activeSection === 'team')
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="card-title fw-semibold mb-0 d-flex align-items-center">
-                            <i class="fas fa-users text-primary me-2"></i>
-                            Facility Staff
-                        </h5>
-                        <button class="btn btn-sm btn-primary rounded-2 px-3" data-bs-toggle="modal" data-bs-target="#addStaffModal">
-                            <i class="fas fa-plus me-1"></i> Add Staff
-                        </button>
-                    </div>
-
-                    <!-- Staff Filters -->
-                    <div class="row mb-4">
-                        <div class="col-md-4 mb-2">
-                            <div class="input-group">
-                                <span class="input-group-text bg-transparent"><i class="fas fa-search"></i></span>
-                                <input type="text" class="form-control" placeholder="Search staff...">
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <select class="form-select">
-                                <option selected>All Roles</option>
-                                <option>Reception</option>
-                                <option>Game Supervisor</option>
-                                <option>Maintenance</option>
-                                <option>Manager</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <select class="form-select">
-                                <option selected>All Shifts</option>
-                                <option>Morning (8AM-4PM)</option>
-                                <option>Evening (4PM-12AM)</option>
-                                <option>Night (12AM-8AM)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Staff Grid -->
-                    <div class="row">
-                        <!-- Staff Member 1 - Reception -->
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="position-relative mb-3">
-                                        <img src="https://randomuser.me/api/portraits/women/45.jpg"
-                                            class="rounded-circle shadow"
-                                            width="100" height="100"
-                                            alt="Sarah Johnson">
-                                        <span class="badge bg-success position-absolute bottom-0 end-0 rounded-circle p-2">
-                                            <i class="fas fa-check"></i>
-                                        </span>
-                                    </div>
-                                    <h6 class="fw-semibold mb-1">Sarah Johnson</h6>
-                                    <p class="small text-muted mb-2">Reception Staff</p>
-                                    <div class="d-flex justify-content-center gap-2 mb-3">
-                                        <span class="badge bg-primary">Shift: Morning</span>
-                                    </div>
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <button class="btn btn-sm btn-outline-primary rounded-circle p-0" style="width: 32px; height: 32px;">
-                                            <i class="fas fa-calendar"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info rounded-circle p-0" style="width: 32px; height: 32px;">
-                                            <i class="fas fa-phone"></i>
-                                        </button>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary rounded-circle p-0"
-                                                style="width: 32px; height: 32px;"
-                                                data-bs-toggle="dropdown">
-                                                <i class="fas fa-ellipsis-h"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i>Edit</a></li>
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-trash me-2"></i>Remove</a></li>
-                                                <li>
-                                                    <hr class="dropdown-divider">
-                                                </li>
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-clock me-2"></i>View Schedule</a></li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-footer bg-transparent border-0 pt-0">
-                                    <small class="text-muted">Currently: On Duty</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Staff Member 2 - Game Supervisor -->
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="position-relative mb-3">
-                                        <img src="https://randomuser.me/api/portraits/men/32.jpg"
-                                            class="rounded-circle shadow"
-                                            width="100" height="100"
-                                            alt="Michael Chen">
-                                        <span class="badge bg-danger position-absolute bottom-0 end-0 rounded-circle p-2">
-                                            <i class="fas fa-times"></i>
-                                        </span>
-                                    </div>
-                                    <h6 class="fw-semibold mb-1">Michael Chen</h6>
-                                    <p class="small text-muted mb-2">Bowling Alley Supervisor</p>
-                                    <div class="d-flex justify-content-center gap-2 mb-3">
-                                        <span class="badge bg-warning text-dark">Shift: Evening</span>
-                                    </div>
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <button class="btn btn-sm btn-outline-primary rounded-circle p-0" style="width: 32px; height: 32px;">
-                                            <i class="fas fa-calendar"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info rounded-circle p-0" style="width: 32px; height: 32px;">
-                                            <i class="fas fa-phone"></i>
-                                        </button>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary rounded-circle p-0"
-                                                style="width: 32px; height: 32px;"
-                                                data-bs-toggle="dropdown">
-                                                <i class="fas fa-ellipsis-h"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i>Edit</a></li>
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-trash me-2"></i>Remove</a></li>
-                                                <li>
-                                                    <hr class="dropdown-divider">
-                                                </li>
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-clock me-2"></i>View Schedule</a></li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-footer bg-transparent border-0 pt-0">
-                                    <small class="text-muted">Currently: Off Duty (Starts at 4PM)</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Staff Member 3 - Maintenance -->
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="position-relative mb-3">
-                                        <img src="https://randomuser.me/api/portraits/men/75.jpg"
-                                            class="rounded-circle shadow"
-                                            width="100" height="100"
-                                            alt="David Wilson">
-                                        <span class="badge bg-success position-absolute bottom-0 end-0 rounded-circle p-2">
-                                            <i class="fas fa-check"></i>
-                                        </span>
-                                    </div>
-                                    <h6 class="fw-semibold mb-1">David Wilson</h6>
-                                    <p class="small text-muted mb-2">Facility Maintenance</p>
-                                    <div class="d-flex justify-content-center gap-2 mb-3">
-                                        <span class="badge bg-info text-dark">Shift: Flexible</span>
-                                    </div>
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <button class="btn btn-sm btn-outline-primary rounded-circle p-0" style="width: 32px; height: 32px;">
-                                            <i class="fas fa-calendar"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info rounded-circle p-0" style="width: 32px; height: 32px;">
-                                            <i class="fas fa-phone"></i>
-                                        </button>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary rounded-circle p-0"
-                                                style="width: 32px; height: 32px;"
-                                                data-bs-toggle="dropdown">
-                                                <i class="fas fa-ellipsis-h"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i>Edit</a></li>
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-trash me-2"></i>Remove</a></li>
-                                                <li>
-                                                    <hr class="dropdown-divider">
-                                                </li>
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-clock me-2"></i>View Schedule</a></li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-footer bg-transparent border-0 pt-0">
-                                    <small class="text-muted">Currently: On Duty (Equipment Check)</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Staff Member 4 - Manager -->
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <div class="position-relative mb-3">
-                                        <img src="https://randomuser.me/api/portraits/women/68.jpg"
-                                            class="rounded-circle shadow"
-                                            width="100" height="100"
-                                            alt="Emma Rodriguez">
-                                        <span class="badge bg-success position-absolute bottom-0 end-0 rounded-circle p-2">
-                                            <i class="fas fa-check"></i>
-                                        </span>
-                                    </div>
-                                    <h6 class="fw-semibold mb-1">Emma Rodriguez</h6>
-                                    <p class="small text-muted mb-2">Facility Manager</p>
-                                    <div class="d-flex justify-content-center gap-2 mb-3">
-                                        <span class="badge bg-dark">Shift: Full-time</span>
-                                    </div>
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <button class="btn btn-sm btn-outline-primary rounded-circle p-0" style="width: 32px; height: 32px;">
-                                            <i class="fas fa-calendar"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-info rounded-circle p-0" style="width: 32px; height: 32px;">
-                                            <i class="fas fa-phone"></i>
-                                        </button>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary rounded-circle p-0"
-                                                style="width: 32px; height: 32px;"
-                                                data-bs-toggle="dropdown">
-                                                <i class="fas fa-ellipsis-h"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i>Edit</a></li>
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-trash me-2"></i>Remove</a></li>
-                                                <li>
-                                                    <hr class="dropdown-divider">
-                                                </li>
-                                                <li><a class="dropdown-item" href="#"><i class="fas fa-clock me-2"></i>View Schedule</a></li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-footer bg-transparent border-0 pt-0">
-                                    <small class="text-muted">Currently: In Meeting</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Pagination -->
-                    <nav aria-label="Staff pagination" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item disabled">
-                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
-                            </li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item">
-                                <a class="page-link" href="#">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold">Team Members</h4>
+                    <button class="btn btn-success" wire:click="openStaffForm()">
+                        <i class="fas fa-plus me-1"></i> Add Member
+                    </button>
                 </div>
+
+                @if($showStaffForm)
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h6 class="fw-semibold mb-3">{{ $editingStaffId ? 'Edit' : 'Add' }} Staff Member</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Name *</label>
+                                <input type="text" class="form-control" wire:model="staffForm.name">
+                                @error('staffForm.name') <span class="text-danger small">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Role</label>
+                                <input type="text" class="form-control" wire:model="staffForm.role" placeholder="e.g. Receptionist">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone</label>
+                                <input type="text" class="form-control" wire:model="staffForm.phone">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" wire:model="staffForm.email">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Shift</label>
+                                <select class="form-select" wire:model="staffForm.shift">
+                                    <option value="morning">Morning</option>
+                                    <option value="evening">Evening</option>
+                                    <option value="night">Night</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" wire:model="staffForm.status">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-success" wire:click="saveStaff" wire:loading.attr="disabled">
+                                <span wire:loading wire:target="saveStaff" class="spinner-border spinner-border-sm me-1"></span>
+                                Save
+                            </button>
+                            <button class="btn btn-outline-secondary" wire:click="closeStaffForm">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(count($staffMembers) > 0)
+                <div class="row g-3">
+                    @foreach($staffMembers as $member)
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="fw-semibold mb-1">{{ $member['name'] }}</h6>
+                                        <span class="badge bg-primary mb-1">{{ $member['role'] ?? 'Staff' }}</span>
+                                        <p class="small text-muted mb-1"><i class="fas fa-phone me-1"></i>{{ $member['phone'] ?? 'N/A' }}</p>
+                                        <p class="small text-muted mb-1"><i class="fas fa-clock me-1"></i>{{ ucfirst($member['shift'] ?? '') }} shift</p>
+                                        <span class="badge bg-{{ $member['status'] === 'active' ? 'success' : 'secondary' }}">{{ ucfirst($member['status']) }}</span>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-primary" wire:click="openStaffForm({{ $member['id'] }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" wire:click="deleteStaff({{ $member['id'] }})" onclick="return confirm('Remove this staff member?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-users fa-3x mb-3 opacity-25"></i>
+                    <p>No staff members yet. Click "Add Member" to get started.</p>
+                </div>
+                @endif
             </div>
 
             @elseif($activeSection === 'opening_time')
@@ -819,6 +755,92 @@
                 </div>
 
             </div>
+            @elseif($activeSection === 'cctv')
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold">CCTV Cameras</h4>
+                    <button class="btn btn-success" wire:click="openCameraForm()">
+                        <i class="fas fa-plus me-1"></i> Add Camera
+                    </button>
+                </div>
+
+                @if($showCameraForm)
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h6 class="fw-semibold mb-3">{{ $editingCameraId ? 'Edit' : 'Add' }} Camera</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Camera Name *</label>
+                                <input type="text" class="form-control" wire:model="cameraForm.name" placeholder="e.g. Main Entrance">
+                                @error('cameraForm.name') <span class="text-danger small">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Location</label>
+                                <input type="text" class="form-control" wire:model="cameraForm.location" placeholder="e.g. Front Gate">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Stream URL (HLS/RTSP)</label>
+                                <input type="url" class="form-control" wire:model="cameraForm.stream_url" placeholder="https://...">
+                                @error('cameraForm.stream_url') <span class="text-danger small">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" wire:model="cameraForm.status">
+                                    <option value="online">Online</option>
+                                    <option value="offline">Offline</option>
+                                    <option value="maintenance">Maintenance</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-success" wire:click="saveCamera" wire:loading.attr="disabled">Save</button>
+                            <button class="btn btn-outline-secondary" wire:click="closeCameraForm">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if(count($cameras) > 0)
+                <div class="row g-3">
+                    @foreach($cameras as $camera)
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="fw-semibold mb-1">{{ $camera['name'] }}</h6>
+                                        <p class="small text-muted mb-1"><i class="fas fa-map-marker-alt me-1"></i>{{ $camera['location'] ?? 'No location' }}</p>
+                                        <span class="badge bg-{{ $camera['status'] === 'online' ? 'success' : ($camera['status'] === 'offline' ? 'danger' : 'warning') }}">
+                                            {{ ucfirst($camera['status']) }}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-primary" wire:click="openCameraForm({{ $camera['id'] }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" wire:click="deleteCamera({{ $camera['id'] }})" onclick="return confirm('Remove this camera?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                @if(!empty($camera['stream_url']))
+                                <div class="mt-2">
+                                    <small class="text-muted">Stream: <a href="{{ $camera['stream_url'] }}" target="_blank" class="text-truncate d-inline-block" style="max-width:200px">{{ $camera['stream_url'] }}</a></small>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-video fa-3x mb-3 opacity-25"></i>
+                    <p>No cameras configured yet. Click "Add Camera" to get started.</p>
+                </div>
+                @endif
+            </div>
+
             <!-- Add Staff Modal (moved outside conditional - see below) -->
             @php /* placeholder removed */ @endphp
             @if(false) {{-- old modal placeholder --}}
@@ -1291,8 +1313,9 @@
         </style>
         @endif
         @endif {{-- end activeSection block --}}
-    </div>
-</div>
+        </div>{{-- /settings-content --}}
+    </div>{{-- /settings-wrapper --}}
+</div>{{-- /container-fluid --}}
 
 <!-- Include Bootstrap JS and dependencies -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

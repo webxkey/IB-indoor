@@ -87,11 +87,19 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent">
-                    <button class="btn btn-sm btn-primary w-100"
-                        wire:click="editSport({{ $sport->id ?? $sport->id }})" data-bs-toggle="modal"
-                        data-bs-target="#editSportModal">
-                        <i class="fas fa-edit me-1"></i> Manage
-                    </button>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-sm btn-primary flex-fill"
+                            wire:click="editSport({{ $sport->id ?? $sport->id }})" data-bs-toggle="modal"
+                            data-bs-target="#editSportModal">
+                            <i class="fas fa-edit me-1"></i> Manage
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" wire:click="openPricingModal({{ $sport->id }})" title="Set Pricing Rules">
+                            <i class="fas fa-tags"></i> Pricing
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" wire:click="openSlotBlockModal({{ $sport->id }})" title="Manage blocked slots">
+                            <i class="fas fa-ban"></i> Blocked Slots
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -198,6 +206,177 @@
             </div>
         </div>
     </div>
+
+    <!-- Pricing Rules Modal -->
+    @if($showPricingModal)
+    <div class="modal show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-tags me-2"></i>Dynamic Pricing Rules</h5>
+                    <button type="button" class="btn-close" wire:click="closePricingModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Leave blank to use the base price. These override the default price per hour.</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Peak Hour Price (LKR/hr)</label>
+                            <input type="number" class="form-control" wire:model="pricingRules.peak_price" placeholder="e.g. 2500">
+                            <small class="text-muted">Weekdays 6–10AM, 4–9PM</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Off-Peak Price (LKR/hr)</label>
+                            <input type="number" class="form-control" wire:model="pricingRules.offpeak_price" placeholder="e.g. 1500">
+                            <small class="text-muted">All other hours</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Weekend Price (LKR/hr)</label>
+                            <input type="number" class="form-control" wire:model="pricingRules.weekend_price" placeholder="e.g. 3000">
+                            <small class="text-muted">Saturday & Sunday</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Advance Booking Discount (%)</label>
+                            <input type="number" class="form-control" wire:model="pricingRules.advance_discount" placeholder="e.g. 10" min="0" max="100">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Book X Days in Advance</label>
+                            <input type="number" class="form-control" wire:model="pricingRules.advance_days" placeholder="e.g. 3">
+                            <small class="text-muted">Discount applies if booked this many days early</small>
+                        </div>
+                    </div>
+                    @error('pricingRules.peak_price') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                    @error('pricingRules.advance_discount') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" wire:click="closePricingModal">Cancel</button>
+                    <button type="button" class="btn btn-success" wire:click="savePricingRules" wire:loading.attr="disabled">
+                        <span wire:loading wire:target="savePricingRules" class="spinner-border spinner-border-sm me-1"></span>
+                        Save Pricing Rules
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Slot Blocking Modal --}}
+    @if($showSlotBlockModal)
+    <div class="modal show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5);z-index:1060;">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);">
+                    <h5 class="modal-title text-white">
+                        <i class="fas fa-ban me-2"></i>Blocked Slots — {{ $slotBlockSportName }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="closeSlotBlockModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Blocked slots appear as <strong>Unavailable</strong> in the booking calendar and cannot be booked from the mobile app.</p>
+
+                    {{-- Add New Block --}}
+                    <div class="card border-warning mb-4">
+                        <div class="card-header bg-warning bg-opacity-10 fw-semibold small text-uppercase">
+                            <i class="fas fa-plus me-1"></i> Add Blocked Slot
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <label class="form-label small">Date *</label>
+                                    <input type="date" class="form-control form-control-sm" wire:model="slotBlockDate">
+                                    @error('slotBlockDate') <span class="text-danger small">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">Start Time *</label>
+                                    <select class="form-select form-select-sm" wire:model="slotBlockTime">
+                                        @for($h = 6; $h <= 22; $h++)
+                                        <option value="{{ sprintf('%02d', $h) }}:00:00">{{ sprintf('%02d', $h) }}:00</option>
+                                        @endfor
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">End Time *</label>
+                                    <select class="form-select form-select-sm" wire:model="slotBlockEndTime">
+                                        @for($h = 7; $h <= 23; $h++)
+                                        <option value="{{ sprintf('%02d', $h) }}:00:00">{{ sprintf('%02d', $h) }}:00</option>
+                                        @endfor
+                                    </select>
+                                    @error('slotBlockEndTime') <span class="text-danger small">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">Court *</label>
+                                    <input type="text" class="form-control form-control-sm" wire:model="slotBlockCourt" placeholder="1">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Reason *</label>
+                                    <select class="form-select form-select-sm" wire:model="slotBlockReason">
+                                        <option value="Maintenance">Maintenance</option>
+                                        <option value="Private Event">Private Event</option>
+                                        <option value="Tournament">Tournament</option>
+                                        <option value="Staff Training">Staff Training</option>
+                                        <option value="Unavailable">Unavailable</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-warning text-white" wire:click="addSlotBlock" wire:loading.attr="disabled">
+                                    <span wire:loading wire:target="addSlotBlock" class="spinner-border spinner-border-sm me-1"></span>
+                                    <i class="fas fa-plus me-1"></i>Block This Slot
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Existing Blocks --}}
+                    <h6 class="fw-semibold small text-uppercase text-muted mb-2">Current Blocked Slots</h6>
+                    @if(count($existingBlocks) > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time Range</th>
+                                    <th>Court</th>
+                                    <th>Reason</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($existingBlocks as $block)
+                                <tr>
+                                    <td>{{ \Carbon\Carbon::parse($block['date'])->format('D, M d Y') }}</td>
+                                    <td>
+                                        {{ \Carbon\Carbon::parse('2000-01-01 ' . $block['time'])->format('g:i A') }}
+                                        @if(!empty($block['end_time']))
+                                        – {{ \Carbon\Carbon::parse('2000-01-01 ' . $block['end_time'])->format('g:i A') }}
+                                        @endif
+                                    </td>
+                                    <td>Court {{ $block['court'] }}</td>
+                                    <td><span class="badge bg-warning text-dark">{{ $block['reason'] }}</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger py-0 px-1"
+                                            wire:click="removeSlotBlock('{{ $block['date'] }}', '{{ $block['time'] }}', '{{ $block['court'] }}')"
+                                            title="Remove block">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @else
+                    <div class="text-center text-muted py-3 small">
+                        <i class="fas fa-check-circle me-1 text-success"></i>No slots blocked for this sport.
+                    </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" wire:click="closeSlotBlockModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Edit Sport Modal -->
     <div class="modal fade" id="editSportModal" tabindex="-1" aria-labelledby="editSportModalLabel" wire:ignore.self>

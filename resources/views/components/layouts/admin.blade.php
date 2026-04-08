@@ -691,9 +691,53 @@
                         <a href="{{ route('admin.bookings') }}" class="btn btn-outline-secondary me-2" title="Bookings">
                             <i class="fas fa-envelope"></i>
                         </a>
-                        <a href="{{ route('admin.bookings') }}" class="btn btn-outline-secondary me-3" title="View Bookings">
-                            <i class="fas fa-bell"></i>
-                        </a>
+                        @php
+                            $unreadCount = 0;
+                            $recentNotifications = [];
+                            if (auth()->check()) {
+                                $unreadCount = \App\Models\BookingNotification::where('user_id', auth()->id())->where('is_read', false)->count();
+                                $recentNotifications = \App\Models\BookingNotification::where('user_id', auth()->id())->orderByDesc('created_at')->limit(5)->get();
+                            }
+                        @endphp
+                        <div class="dropdown me-3">
+                            <button class="btn btn-outline-secondary position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell"></i>
+                                @if($unreadCount > 0)
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;">
+                                    {{ $unreadCount > 9 ? '9+' : $unreadCount }}
+                                </span>
+                                @endif
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:320px;max-height:400px;overflow-y:auto;">
+                                <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                                    <span class="fw-semibold">Notifications</span>
+                                    @if($unreadCount > 0)
+                                    <a href="{{ route('admin.bookings') }}" class="small text-success">Mark all read</a>
+                                    @endif
+                                </li>
+                                @forelse($recentNotifications as $notif)
+                                <li>
+                                    <div class="dropdown-item d-block py-2 {{ !$notif->is_read ? 'bg-light' : '' }}">
+                                        <div class="d-flex align-items-start">
+                                            <div class="me-2 mt-1">
+                                                <i class="fas fa-{{ $notif->type === 'booking_created' ? 'calendar-plus text-success' : ($notif->type === 'booking_cancelled' ? 'calendar-times text-danger' : 'bell text-info') }}"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold small">{{ $notif->title }}</div>
+                                                <div class="text-muted small">{{ Str::limit($notif->message, 60) }}</div>
+                                                <div class="text-muted" style="font-size:0.7rem;">{{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                                @empty
+                                <li class="px-3 py-3 text-center text-muted small">No notifications yet</li>
+                                @endforelse
+                                <li class="border-top px-3 py-2 text-center">
+                                    <a href="{{ route('admin.bookings') }}" class="small text-success">View all notifications</a>
+                                </li>
+                            </ul>
+                        </div>
                         <div class="dropdown">
                             <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#"
                                 role="button" data-bs-toggle="dropdown" aria-expanded="false">

@@ -11,7 +11,7 @@ class BookingSport extends Model
     protected $fillable = [
         'name','price','image','available','game_type','rate_type',
         'maximum_court','status','description','additional_charges',
-        'advance_required','venue_id','average_rating'
+        'advance_required','venue_id','average_rating','pricing_rules','blocked_slots'
     ];
    protected $attributes = [
         'image' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
@@ -24,6 +24,8 @@ class BookingSport extends Model
         'available' => 'boolean',
         'advance_required' => 'boolean',
         'additional_charges' => 'array',
+        'pricing_rules' => 'array',
+        'blocked_slots' => 'array',
     ];
 
     public function venue()

@@ -10,13 +10,15 @@ class BookingVenueReview extends Model
     protected $table = 'booking_venuereview';
 
     protected $fillable = [
-        'rating','comment','categories','photos','would_recommend','user_id','venue_id'
+        'rating','comment','categories','photos','would_recommend','user_id','venue_id',
+        'owner_reply','owner_replied_at',
     ];
 
     protected $casts = [
         'categories' => 'array',
         'photos' => 'array',
         'would_recommend' => 'boolean',
+        'owner_replied_at' => 'datetime',
     ];
 
     public function venue()

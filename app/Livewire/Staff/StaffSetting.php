@@ -11,6 +11,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\BookingVenue;
+use App\Models\VenueStaff;
+use App\Models\VenueCamera;
 
 #[Title("Staff Dashboard")]
 #[Layout("components.layouts.staff")]
@@ -54,6 +56,18 @@ class StaffSetting extends Component
     public $new_password = '';
     public $new_password_confirmation = '';
 
+    // Team Management
+    public $staffMembers = [];
+    public $staffForm = ['name' => '', 'role' => '', 'phone' => '', 'shift' => 'morning', 'status' => 'active', 'email' => ''];
+    public $editingStaffId = null;
+    public $showStaffForm = false;
+
+    // Camera Management
+    public $cameras = [];
+    public $cameraForm = ['name' => '', 'location' => '', 'stream_url' => '', 'status' => 'online'];
+    public $editingCameraId = null;
+    public $showCameraForm = false;
+
     public function mount()
     {
         try {
@@ -78,6 +92,7 @@ class StaffSetting extends Component
             }
 
             $this->loadComplexData();
+            $this->loadTeamData();
 
             if (request()->has('section')) {
                 $this->activeSection = request('section');
@@ -503,6 +518,113 @@ class StaffSetting extends Component
         } catch (\Exception $e) {
             session()->flash('error', 'Error changing password: ' . $e->getMessage());
         }
+    }
+
+    protected function loadTeamData()
+    {
+        if (!$this->complex_id) return;
+        $this->staffMembers = VenueStaff::where('venue_id', $this->complex_id)->get()->toArray();
+        $this->cameras = VenueCamera::where('venue_id', $this->complex_id)->get()->toArray();
+    }
+
+    public function openStaffForm($staffId = null)
+    {
+        $this->showStaffForm = true;
+        $this->editingStaffId = $staffId;
+        if ($staffId) {
+            $staff = VenueStaff::find($staffId);
+            $this->staffForm = $staff ? $staff->toArray() : ['name'=>'','role'=>'','phone'=>'','shift'=>'morning','status'=>'active','email'=>''];
+        } else {
+            $this->staffForm = ['name'=>'','role'=>'','phone'=>'','shift'=>'morning','status'=>'active','email'=>''];
+        }
+    }
+
+    public function closeStaffForm()
+    {
+        $this->showStaffForm = false;
+        $this->editingStaffId = null;
+        $this->staffForm = ['name'=>'','role'=>'','phone'=>'','shift'=>'morning','status'=>'active','email'=>''];
+    }
+
+    public function saveStaff()
+    {
+        $this->validate([
+            'staffForm.name' => 'required|string|max:255',
+            'staffForm.role' => 'nullable|string|max:100',
+            'staffForm.phone' => 'nullable|string|max:30',
+            'staffForm.shift' => 'nullable|in:morning,evening,night',
+            'staffForm.status' => 'required|in:active,inactive',
+            'staffForm.email' => 'nullable|email|max:255',
+        ]);
+
+        $data = array_merge($this->staffForm, ['venue_id' => $this->complex_id]);
+
+        if ($this->editingStaffId) {
+            VenueStaff::find($this->editingStaffId)?->update($data);
+            session()->flash('message', 'Staff member updated!');
+        } else {
+            VenueStaff::create($data);
+            session()->flash('message', 'Staff member added!');
+        }
+
+        $this->closeStaffForm();
+        $this->loadTeamData();
+    }
+
+    public function deleteStaff($staffId)
+    {
+        VenueStaff::find($staffId)?->delete();
+        $this->loadTeamData();
+        session()->flash('message', 'Staff member removed!');
+    }
+
+    public function openCameraForm($cameraId = null)
+    {
+        $this->showCameraForm = true;
+        $this->editingCameraId = $cameraId;
+        if ($cameraId) {
+            $camera = VenueCamera::find($cameraId);
+            $this->cameraForm = $camera ? $camera->toArray() : ['name'=>'','location'=>'','stream_url'=>'','status'=>'online'];
+        } else {
+            $this->cameraForm = ['name'=>'','location'=>'','stream_url'=>'','status'=>'online'];
+        }
+    }
+
+    public function closeCameraForm()
+    {
+        $this->showCameraForm = false;
+        $this->editingCameraId = null;
+        $this->cameraForm = ['name'=>'','location'=>'','stream_url'=>'','status'=>'online'];
+    }
+
+    public function saveCamera()
+    {
+        $this->validate([
+            'cameraForm.name' => 'required|string|max:255',
+            'cameraForm.location' => 'nullable|string|max:255',
+            'cameraForm.stream_url' => 'nullable|url|max:500',
+            'cameraForm.status' => 'required|in:online,offline,maintenance',
+        ]);
+
+        $data = array_merge($this->cameraForm, ['venue_id' => $this->complex_id]);
+
+        if ($this->editingCameraId) {
+            VenueCamera::find($this->editingCameraId)?->update($data);
+            session()->flash('message', 'Camera updated!');
+        } else {
+            VenueCamera::create($data);
+            session()->flash('message', 'Camera added!');
+        }
+
+        $this->closeCameraForm();
+        $this->loadTeamData();
+    }
+
+    public function deleteCamera($cameraId)
+    {
+        VenueCamera::find($cameraId)?->delete();
+        $this->loadTeamData();
+        session()->flash('message', 'Camera removed!');
     }
 
     public function render()

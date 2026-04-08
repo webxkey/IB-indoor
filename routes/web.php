@@ -49,6 +49,16 @@ Route::get('/security', Security::class)->name('security');
 Route::get('/for-business', ForBusiness::class)->name('for-business');
 Route::get('/privacy', Privacy::class)->name('privacy');
 Route::get('/careers', Careers::class)->name('careers');
+
+// Customer login alias (same CustomLogin component, guest only)
+Route::get('/customer/login', CustomLogin::class)->name('customer.login')->middleware('guest');
+
+// Customer portal
+Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(function () {
+    Route::get('/my-bookings', \App\Livewire\Customer\MyBookings::class)->name('customer.my-bookings');
+    Route::get('/my-bookings/receipt/{bookingId}', [\App\Http\Controllers\CustomerReceiptController::class, 'download'])->name('customer.receipt');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes

@@ -27,6 +27,35 @@
         pointer-events: none !important;
     }
 
+    /* Blocked slot styling */
+    .time-slot.blocked-slot {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%) !important;
+        border: 2px solid #ffc107 !important;
+        color: #856404 !important;
+        cursor: default !important;
+    }
+
+    .time-slot.blocked-slot:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Slot action buttons */
+    .slot-action-btn {
+        padding: 2px 5px;
+        font-size: 0.65rem;
+        border-radius: 4px;
+        border: 1px solid;
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        line-height: 1.2;
+    }
+
+    .slot-action-btn:hover {
+        transform: translateY(-1px);
+    }
+
     /* Booked slot styling */
     .booked-slot {
         @apply flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded-lg;
@@ -289,9 +318,9 @@
     }
 
     .time-slot {
-        margin: 8px;
+        margin: 2px;
         border-radius: var(--small-radius);
-        height: 64px;
+        height: 75px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -632,68 +661,115 @@
     /* Responsive Design */
     @media (max-width: 768px) {
         .container-fluid {
-            padding: 10px;
+            padding: 0 !important;
+        }
+
+        .card.booking-card {
+            margin-bottom: 0;
+            border-radius: 0;
+            box-shadow: none;
         }
 
         .card-header.booking-header {
-            /* padding: 20px; */
+            padding: 12px 10px;
         }
 
         .card-header.booking-header h5 {
-            font-size: 1.5rem;
+            font-size: 1.1rem;
         }
 
         .game-tabs {
-            padding: 0 10px;
+            padding: 0;
             flex-wrap: nowrap;
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .game-tab {
-            padding: 15px 20px;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            min-width: 90px;
+        }
+
+        .game-tab i {
             font-size: 0.9rem;
-            min-width: 120px;
+            margin-right: 5px;
         }
 
         .date-navigation {
-            padding: 20px 15px;
+            padding: 8px 10px;
         }
 
         .current-date {
-            font-size: 1.1rem;
-            margin: 0 20px;
+            font-size: 0.95rem;
+            margin: 0 10px;
         }
 
         .date-btn {
-            width: 45px;
-            height: 45px;
+            width: 36px;
+            height: 36px;
+            font-size: 0.85rem;
+        }
+
+        .table-responsive {
+            padding: 0;
+        }
+
+        .booking-calendar {
+            font-size: 0.75rem;
+        }
+
+        .booking-calendar th {
+            padding: 8px 4px;
+            font-size: 0.7rem;
+            letter-spacing: 0;
+        }
+
+        .booking-calendar .time-column {
+            width: 52px;
+            min-width: 52px;
+            padding: 6px 4px;
+            font-size: 0.68rem;
+            white-space: nowrap;
+            word-break: keep-all;
+        }
+
+        .booking-calendar td {
+            height: 60px;
+            padding: 0;
         }
 
         .time-slot {
             height: 56px;
-            margin: 4px;
+            margin: 2px;
+            font-size: 0.7rem;
         }
 
         .booking-info {
-            padding: 4px;
+            padding: 2px;
         }
 
         .booking-info strong {
-            font-size: 0.8rem;
+            font-size: 0.72rem;
+        }
+
+        .booking-info small {
+            font-size: 0.65rem;
         }
 
         .modal-timer {
             font-size: 2.5rem;
         }
 
-        .table-responsive {
-            padding: 10px;
+        /* Hide avatar image on mobile to save space */
+        .time-slot.booked img {
+            width: 32px !important;
+            height: 32px !important;
         }
 
-        .booking-calendar th,
-        .booking-calendar td.time-column {
-            padding: 10px 8px;
-            font-size: 0.85rem;
+        .slot-action-btn {
+            padding: 1px 4px;
+            font-size: 0.6rem;
         }
     }
 
@@ -744,6 +820,13 @@
         @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        @endif
+
+        @if (session('message'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('message') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         @endif
@@ -938,6 +1021,116 @@
             </div>
         </div>
 
+        {{-- Feature #9: Block Slot Modal --}}
+        @if($showBlockModal)
+        <div class="modal show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5);z-index:1060;">
+            <div class="modal-dialog modal-sm modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                        <h6 class="modal-title text-white"><i class="fas fa-ban me-2"></i>Block Time Slot</h6>
+                        <button type="button" class="btn-close btn-close-white" wire:click="closeBlockModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted mb-2">Block this slot so it cannot be booked from the mobile app.</p>
+                        @if($blockingSlot)
+                        <div class="mb-2 p-2 bg-light rounded small">
+                            <strong>Date:</strong> {{ $blockingSlot['date'] ?? '' }}&nbsp;
+                            <strong>Time:</strong> {{ $blockingSlot['time'] ?? '' }}&nbsp;
+                            <strong>Court:</strong> {{ $blockingSlot['court'] ?? '' }}
+                        </div>
+                        @endif
+                        <label class="form-label small fw-semibold">Reason</label>
+                        <select class="form-select form-select-sm" wire:model="blockReason">
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Private Event">Private Event</option>
+                            <option value="Tournament">Tournament</option>
+                            <option value="Staff Training">Staff Training</option>
+                            <option value="Unavailable">Unavailable</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer" style="background: #f8fafc;">
+                        <button class="btn btn-sm btn-secondary" wire:click="closeBlockModal">Cancel</button>
+                        <button class="btn btn-sm btn-warning" wire:click="blockSlot">
+                            <i class="fas fa-ban me-1"></i>Block Slot
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- Feature #12: Waitlist Modal --}}
+        @if($showWaitlistModal)
+        <div class="modal show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5);z-index:1060;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);">
+                        <h6 class="modal-title text-white"><i class="fas fa-list-ul me-2"></i>Waitlist
+                            @if($waitlistDate)
+                            <small class="ms-2 opacity-75">{{ $waitlistDate }} &bull; {{ $waitlistTime }} &bull; Court {{ $waitlistCourt }}</small>
+                            @endif
+                        </h6>
+                        <button type="button" class="btn-close btn-close-white" wire:click="closeWaitlistModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if(count($waitlistEntries) > 0)
+                        <div class="mb-3">
+                            <h6 class="small fw-semibold mb-2 text-muted text-uppercase">Current Waitlist ({{ count($waitlistEntries) }})</h6>
+                            @foreach($waitlistEntries as $entry)
+                            <div class="d-flex justify-content-between align-items-center p-2 border rounded mb-2 bg-light">
+                                <div>
+                                    <div class="small fw-semibold">{{ $entry['customer_name'] }}</div>
+                                    <div class="text-muted small">{{ $entry['customer_phone'] }}</div>
+                                    <span class="badge bg-{{ $entry['status'] === 'notified' ? 'success' : ($entry['status'] === 'booked' ? 'primary' : 'secondary') }} small">
+                                        {{ ucfirst($entry['status']) }}
+                                    </span>
+                                    @if(!empty($entry['notified_at']))
+                                    <span class="text-muted small ms-1">Notified: {{ \Carbon\Carbon::parse($entry['notified_at'])->format('H:i') }}</span>
+                                    @endif
+                                </div>
+                                <div class="d-flex gap-1">
+                                    @if($entry['status'] === 'waiting')
+                                    <button class="btn btn-sm btn-outline-success slot-action-btn" wire:click="notifyWaitlistNext({{ $entry['id'] }})" title="Notify this person slot is available">
+                                        <i class="fas fa-phone"></i>
+                                    </button>
+                                    @endif
+                                    <button class="btn btn-sm btn-outline-danger slot-action-btn" wire:click="removeFromWaitlist({{ $entry['id'] }})" title="Remove from waitlist">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                        <hr class="my-2">
+                        @else
+                        <div class="text-center text-muted py-2 small mb-3">
+                            <i class="fas fa-inbox me-1"></i>No one on the waitlist yet.
+                        </div>
+                        @endif
+
+                        <h6 class="small fw-semibold mb-2 text-muted text-uppercase">Add to Waitlist</h6>
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm @error('waitlistName') is-invalid @enderror"
+                                wire:model="waitlistName" placeholder="Customer Name">
+                            @error('waitlistName') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm @error('waitlistPhone') is-invalid @enderror"
+                                wire:model="waitlistPhone" placeholder="Phone Number">
+                            @error('waitlistPhone') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="background: #f8fafc;">
+                        <button class="btn btn-sm btn-secondary" wire:click="closeWaitlistModal">Close</button>
+                        <button class="btn btn-sm btn-info text-white" wire:click="addToWaitlist" wire:loading.attr="disabled">
+                            <i class="fas fa-plus me-1"></i>Add to Waitlist
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <div class="modal fade" id="timerModal" tabindex="-1" wire:ignore.self>
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -986,6 +1179,20 @@
         const complexId = @json($complex_id ?? null);
         const openingHours = @json($opening_hours ?? []);
 
+        // Feature #9: Blocked slots per sport { sport_id: { date: { time: { court: reason } } } }
+        let blockedSlotsData = @json(
+            ($sports ?? collect())->mapWithKeys(function($sport) {
+                $bs = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+                return [$sport->id => $bs];
+            })->toArray()
+        );
+        // Map sport name -> sport_id for quick lookup
+        const gameNameToId = @json(
+            ($sports ?? collect())->mapWithKeys(function($sport) {
+                return [strtolower($sport->name) => $sport->id];
+            })->toArray()
+        );
+
         // Debug - log what we received
         console.log('=== DATA RECEIVED FROM BACKEND ===');
         console.log('gamesConfig:', gamesConfig);
@@ -1033,6 +1240,14 @@
 
         // Setup Livewire event listeners for real-time updates
         function setupLivewireListeners() {
+            // Refresh blocked slots after a block/unblock action (instant, no page reload needed)
+            window.addEventListener('refreshBlockedSlots', function() {
+                @this.call('getBlockedSlotsData').then(function(newData) {
+                    blockedSlotsData = newData || {};
+                    updateCalendar();
+                });
+            });
+
             // Listen for booking data changes from Livewire smart polling
             window.addEventListener('bookingDataChanged', function() {
                 console.log('🔔 Booking data changed - refreshing calendar');
@@ -1539,11 +1754,17 @@
             }
 
             timeSlots.forEach(slot => {
-                bodyHtml += `<tr><td class="time-column">${slot.display}</td>`;
+                // Use compact time on mobile (e.g. "9AM" instead of "9:00 AM - 10:00 AM")
+                const isMobile = window.innerWidth <= 768;
+                const displayTime = isMobile ? slot.compact : slot.display;
+                bodyHtml += `<tr><td class="time-column">${displayTime}</td>`;
 
                 courts.forEach(court => {
                     const bookings = gameData[court] || {};
                     const bookingInfo = bookings[slot.time24.substring(0, 5) + ':00'];
+
+                    // Define sportId here so it's available in both booked and available branches
+                    const sportId = gameNameToId[currentGame] || gameNameToId[currentGame.toLowerCase()] || null;
 
                     if (bookingInfo) {
                         const timerId = `${currentGame}-${dateKey}-${court.replace(/\s/g, '')}-${slot.time24.replace(/:/g, '-')}`;
@@ -1608,11 +1829,18 @@
                                     ${timerDisplay}
                                 </div>
 
-                                <!-- Right: Badges -->
-                                <div class="badges d-flex align-items-center gap-1 flex-shrink-0">
+                                <!-- Right: Badges + Waitlist -->
+                                <div class="badges d-flex flex-column align-items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
                                     ${bookingInfo.permanent_source_id ? `<span class="badge bg-dark text-white">P</span>` : ''}
+                                    ${sportId ? `
+                                    <button class="slot-action-btn mt-1"
+                                            style="color:#0369a1;border-color:#0ea5e9;"
+                                            onclick="openWaitlistModalJS(${sportId}, '${dateKey}', '${slot.time24.substring(0,8)}', '${court}')"
+                                            title="View/Add to waitlist">
+                                        <i class="fas fa-list-ul"></i>
+                                    </button>` : ''}
                                 </div>
-                                
+
                             </div>
                         </td>
 
@@ -1625,24 +1853,69 @@
                             parseInt(slot.time24.split(':')[0]), parseInt(slot.time24.split(':')[1]));
                         const isPastSlot = slotDateTime < now;
 
+                        // Feature #9: check if slot is blocked
+                        const slotTimeKey = slot.time24.substring(0, 8); // HH:mm:ss
+                        const rawBlockValue = sportId &&
+                            blockedSlotsData[sportId]?.[dateKey]?.[slotTimeKey]?.[court];
+                        const isBlocked = !!rawBlockValue;
+                        // Support both old string format and new {reason, end_time} object format
+                        const blockReason = isBlocked
+                            ? (typeof rawBlockValue === 'object' ? rawBlockValue.reason : rawBlockValue)
+                            : null;
+                        const blockEndTime = isBlocked && typeof rawBlockValue === 'object'
+                            ? rawBlockValue.end_time : null;
+
                         if (isPastSlot) {
                             // Show past slot as disabled/unavailable
                             bodyHtml += `
                             <td>
-                                <div class="time-slot past-slot" 
+                                <div class="time-slot past-slot"
                                      style="background: #e9ecef; border: 2px dashed #adb5bd; color: #6c757d; cursor: not-allowed; opacity: 0.6;">
                                     <i class="fas fa-lock me-2"></i>Time Past
                                 </div>
                             </td>`;
-                        } else {
-                            // Show available slot as clickable
+                        } else if (isBlocked) {
+                            // Show blocked slot with unblock button
+                            const blockTimeRange = blockEndTime
+                                ? `${slot.display.split(' - ')[0]} – ${blockEndTime.substring(0,5)}`
+                                : '';
                             bodyHtml += `
                             <td>
-                                <div class="time-slot available" 
-                                     data-time="${slot.time24.substring(0, 8)}" 
-                                     data-display="${slot.display}" 
+                                <div class="time-slot blocked-slot d-flex flex-column align-items-center justify-content-center gap-1">
+                                    <div><i class="fas fa-ban me-1"></i><strong>Unavailable</strong></div>
+                                    <div class="small text-muted">${blockReason}${blockTimeRange ? ' · ' + blockTimeRange : ''}</div>
+                                    <button class="slot-action-btn"
+                                            style="color:#856404;border-color:#d97706;"
+                                            onclick="unblockSlotJS(${sportId}, '${dateKey}', '${slotTimeKey}', '${court}')"
+                                            title="Remove block">
+                                        <i class="fas fa-unlock me-1"></i>Unblock
+                                    </button>
+                                </div>
+                            </td>`;
+                        } else {
+                            // Show available slot as clickable with block + waitlist action buttons
+                            bodyHtml += `
+                            <td>
+                                <div class="time-slot available d-flex flex-column align-items-center justify-content-center gap-1"
+                                     data-time="${slotTimeKey}"
+                                     data-display="${slot.display}"
                                      data-court="${court}">
-                                    <i class="fas fa-plus-circle me-2"></i>Available
+                                    <div><i class="fas fa-plus-circle me-1"></i>Available</div>
+                                    <div class="d-flex gap-1" onclick="event.stopPropagation()">
+                                        ${sportId ? `
+                                        <button class="slot-action-btn"
+                                                style="color:#92400e;border-color:#f59e0b;"
+                                                onclick="openBlockModalJS(${sportId}, '${dateKey}', '${slotTimeKey}', '${court}')"
+                                                title="Block this slot">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                        <button class="slot-action-btn"
+                                                style="color:#0369a1;border-color:#0ea5e9;"
+                                                onclick="openWaitlistModalJS(${sportId}, '${dateKey}', '${slotTimeKey}', '${court}')"
+                                                title="Waitlist">
+                                            <i class="fas fa-list-ul"></i>
+                                        </button>` : ''}
+                                    </div>
                                 </div>
                             </td>`;
                         }
@@ -1727,7 +2000,8 @@
 
                 slots.push({
                     time24: `${hour.toString().padStart(2, '0')}:00:00.000000`,
-                    display: `${startHour}:00 ${ampm} - ${nextHour12}:00 ${nextAmpm}`
+                    display: `${startHour}:00 ${ampm} - ${nextHour12}:00 ${nextAmpm}`,
+                    compact: `${startHour}${ampm.toLowerCase()}`
                 });
             }
 
@@ -1923,6 +2197,46 @@
         window.startTimer = startTimer;
         window.pauseTimer = pauseTimer;
         window.resetTimer = resetTimer;
+
+        // =========================================================
+        // Feature #9 + #12: Bridge functions for calendar buttons
+        // =========================================================
+        window.openBlockModalJS = function(sportId, date, time, court) {
+            @this.call('openBlockModal', sportId, date, time, court).catch(e => console.error('openBlockModal error', e));
+        };
+
+        window.unblockSlotJS = function(sportId, date, time, court) {
+            if (!confirm('Remove block from this slot?')) return;
+            @this.call('unblockSlot', sportId, date, time, court).then(() => {
+                // Refresh blocked data and redraw calendar
+                @this.get('sports').then(sportsArr => {
+                    if (sportsArr) {
+                        sportsArr.forEach(s => {
+                            const bs = s.blocked_slots ? (typeof s.blocked_slots === 'string' ? JSON.parse(s.blocked_slots) : s.blocked_slots) : {};
+                            blockedSlotsData[s.id] = bs;
+                        });
+                    }
+                    updateCalendar();
+                }).catch(() => updateCalendar());
+            }).catch(e => console.error('unblockSlot error', e));
+        };
+
+        window.openWaitlistModalJS = function(sportId, date, time, court) {
+            @this.call('openWaitlistModal', sportId, date, time, court).catch(e => console.error('openWaitlistModal error', e));
+        };
+
+        // After a slot is blocked, refresh blocked data and redraw
+        window.addEventListener('livewire:updated', function() {
+            // Re-read blocked slots from Livewire's sports property
+            @this.get('sports').then(sportsArr => {
+                if (sportsArr && Array.isArray(sportsArr)) {
+                    sportsArr.forEach(s => {
+                        const bs = s.blocked_slots ? (typeof s.blocked_slots === 'string' ? JSON.parse(s.blocked_slots) : s.blocked_slots) : {};
+                        blockedSlotsData[s.id] = bs;
+                    });
+                }
+            }).catch(() => {});
+        });
 
         // ========================================
         // REAL-TIME WEBSOCKET BOOKING UPDATES

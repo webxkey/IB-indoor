@@ -9,6 +9,7 @@ use Livewire\Attributes\On;
 use Carbon\Carbon;
 use App\Models\BookingBooking;
 use App\Models\BookingSport;
+use App\Models\BookingWaitlist;
 use App\Models\UserUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -40,6 +41,21 @@ class BookingsManagement extends Component
     // Last known booking count and latest ID for change detection
     public $lastBookingCount = 0;
     public $lastBookingId = 0;
+
+    // Slot blocking
+    public $blockingSlot = null; // ['sportId'=>, 'date'=>, 'time'=>, 'court'=>]
+    public $blockReason = 'Maintenance';
+    public $showBlockModal = false;
+
+    // Waitlist
+    public $waitlistEntries = [];
+    public $showWaitlistModal = false;
+    public $waitlistSportId = null;
+    public $waitlistDate = '';
+    public $waitlistTime = '';
+    public $waitlistCourt = '';
+    public $waitlistName = '';
+    public $waitlistPhone = '';
 
     protected $rules = [
         'selectedGame' => 'required|string',
@@ -325,6 +341,21 @@ class BookingsManagement extends Component
             ]));
         }
 
+        // Write notification
+        try {
+            \App\Models\BookingNotification::create([
+                'user_id' => auth()->id(),
+                'type' => 'booking_created',
+                'title' => 'New Booking Created',
+                'message' => "Booking for {$this->selectedGame} on {$this->selectedDate} at {$this->selectedTime} by {$this->playerName}",
+                'data' => ['game' => $this->selectedGame, 'date' => $this->selectedDate],
+                'is_read' => false,
+                'created_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to write notification: ' . $e->getMessage());
+        }
+
         // Refresh data and close modal
         $this->loadSports();
         $this->resetFields();
@@ -376,6 +407,30 @@ class BookingsManagement extends Component
         if ($booking) {
             $booking->status = 'Cancelled';
             $booking->save();
+
+            // Notify waitlist on cancellation
+            try {
+                $waitlisted = BookingWaitlist::where('sport_id', $booking->game_id_id)
+                    ->where('booking_date', \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d'))
+                    ->where('time_slot', $booking->start_time)
+                    ->where('status', 'waiting')
+                    ->first();
+                if ($waitlisted) {
+                    $waitlisted->update(['status' => 'notified', 'notified_at' => now()]);
+                }
+            } catch (\Exception $e) {}
+
+            try {
+                \App\Models\BookingNotification::create([
+                    'user_id' => auth()->id(),
+                    'type' => 'booking_cancelled',
+                    'title' => 'Booking Cancelled',
+                    'message' => "Booking #{$booking->id} for {$booking->game_name} on {$booking->booking_date} was cancelled",
+                    'data' => ['booking_id' => $booking->id],
+                    'is_read' => false,
+                    'created_at' => now(),
+                ]);
+            } catch (\Exception $e) { }
 
             $this->dispatch('bookingCancelled');
             $this->loadSports();
@@ -555,13 +610,173 @@ class BookingsManagement extends Component
         ]);
     }
 
+    // =========================================================
+    // Feature #9: Slot Blocking
+    // =========================================================
+
+    /**
+     * Get blocked slots for a sport on a given date.
+     * blocked_slots format: { "2026-04-08": { "09:00:00": { "court_1": "Maintenance" } } }
+     */
+    public function getBlockedSlots($sportId, $date)
+    {
+        $sport = BookingSport::find($sportId);
+        if (!$sport || !$sport->blocked_slots) return [];
+        $slots = is_array($sport->blocked_slots) ? $sport->blocked_slots : json_decode($sport->blocked_slots, true);
+        return $slots[$date] ?? [];
+    }
+
+    public function openBlockModal($sportId, $date, $time, $court)
+    {
+        $this->blockingSlot = compact('sportId', 'date', 'time', 'court');
+        $this->blockReason = 'Maintenance';
+        $this->showBlockModal = true;
+    }
+
+    public function closeBlockModal()
+    {
+        $this->showBlockModal = false;
+        $this->blockingSlot = null;
+        $this->blockReason = 'Maintenance';
+    }
+
+    public function blockSlot()
+    {
+        if (!$this->blockingSlot) return;
+
+        $sport = BookingSport::find($this->blockingSlot['sportId']);
+        if (!$sport) return;
+
+        $slots = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        $date  = $this->blockingSlot['date'];
+        $time  = $this->blockingSlot['time'];
+        $court = $this->blockingSlot['court'];
+
+        $slots[$date][$time][$court] = $this->blockReason;
+        $sport->update(['blocked_slots' => $slots]);
+
+        $this->closeBlockModal();
+        $this->loadSports();
+        $this->dispatch('refreshBlockedSlots');
+        session()->flash('message', 'Slot blocked successfully.');
+    }
+
+    public function unblockSlot($sportId, $date, $time, $court)
+    {
+        $sport = BookingSport::find($sportId);
+        if (!$sport) return;
+
+        $slots = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        unset($slots[$date][$time][$court]);
+        if (empty($slots[$date][$time])) unset($slots[$date][$time]);
+        if (empty($slots[$date]))        unset($slots[$date]);
+
+        $sport->update(['blocked_slots' => $slots]);
+        $this->loadSports();
+        $this->dispatch('refreshBlockedSlots');
+        session()->flash('message', 'Slot unblocked.');
+    }
+
+    /**
+     * Return current blocked slots map for all sports — used by JS after block/unblock.
+     */
+    public function getBlockedSlotsData(): array
+    {
+        return ($this->sports ?? collect())->mapWithKeys(function ($sport) {
+            $bs = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+            return [$sport->id => $bs];
+        })->toArray();
+    }
+
+    // =========================================================
+    // Feature #12: Waitlist / Queue System
+    // =========================================================
+
+    public function openWaitlistModal($sportId, $date, $time, $court)
+    {
+        $this->waitlistSportId = $sportId;
+        $this->waitlistDate    = $date;
+        $this->waitlistTime    = $time;
+        $this->waitlistCourt   = $court;
+        $this->waitlistEntries = BookingWaitlist::where('sport_id', $sportId)
+            ->where('booking_date', $date)
+            ->where('time_slot', $time)
+            ->orderBy('created_at')
+            ->get()
+            ->toArray();
+        $this->showWaitlistModal = true;
+    }
+
+    public function closeWaitlistModal()
+    {
+        $this->showWaitlistModal = false;
+        $this->waitlistName  = '';
+        $this->waitlistPhone = '';
+    }
+
+    public function addToWaitlist()
+    {
+        $this->validate([
+            'waitlistName'  => 'required|string|max:255',
+            'waitlistPhone' => 'required|string|max:30',
+        ]);
+
+        BookingWaitlist::create([
+            'sport_id'      => $this->waitlistSportId,
+            'booking_date'  => $this->waitlistDate,
+            'time_slot'     => $this->waitlistTime,
+            'court_number'  => $this->waitlistCourt,
+            'customer_name' => $this->waitlistName,
+            'customer_phone'=> $this->waitlistPhone,
+            'status'        => 'waiting',
+        ]);
+
+        $this->waitlistName  = '';
+        $this->waitlistPhone = '';
+        session()->flash('message', 'Added to waitlist successfully.');
+        $this->openWaitlistModal(
+            $this->waitlistSportId,
+            $this->waitlistDate,
+            $this->waitlistTime,
+            $this->waitlistCourt
+        );
+    }
+
+    public function notifyWaitlistNext($waitlistId)
+    {
+        $entry = BookingWaitlist::find($waitlistId);
+        if ($entry) {
+            $entry->update(['status' => 'notified', 'notified_at' => now()]);
+            session()->flash('message', "Notified {$entry->customer_name} ({$entry->customer_phone}) — slot is available.");
+            $this->openWaitlistModal(
+                $this->waitlistSportId,
+                $this->waitlistDate,
+                $this->waitlistTime,
+                $this->waitlistCourt
+            );
+        }
+    }
+
+    public function removeFromWaitlist($waitlistId)
+    {
+        BookingWaitlist::find($waitlistId)?->delete();
+        session()->flash('message', 'Removed from waitlist.');
+        $this->openWaitlistModal(
+            $this->waitlistSportId,
+            $this->waitlistDate,
+            $this->waitlistTime,
+            $this->waitlistCourt
+        );
+    }
+
     public function render()
     {
         return view('livewire.staff.bookings-management', [
-            'games' => $this->games ?? [],
+            'games'          => $this->games ?? [],
             'bookingdetails' => $this->bookingdetails ?? [],
-            'complex_id' => $this->complex_id,
-            'opening_hours' => $this->opening_hours ?? [],
+            'complex_id'     => $this->complex_id,
+            'opening_hours'  => $this->opening_hours ?? [],
+            'sports'         => $this->sports ?? collect(),
         ]);
     }
 }
