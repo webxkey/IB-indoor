@@ -99,6 +99,7 @@
             .main-content {
                 margin-left: 0 !important;
                 padding: 0.25rem;
+                padding-bottom: 90px !important;
             }
 
             .header {
