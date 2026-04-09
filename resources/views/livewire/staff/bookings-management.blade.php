@@ -42,17 +42,21 @@
 
     /* Slot action buttons */
     .slot-action-btn {
-        padding: 2px 5px;
-        font-size: 0.65rem;
-        border-radius: 4px;
-        border: 1px solid;
+        padding: 3px 8px;
+        font-size: 0.75rem;
+        border-radius: 5px;
+        border: 1.5px solid;
         background: transparent;
         cursor: pointer;
-        transition: all 0.2s ease;
-        line-height: 1.2;
+        transition: all 0.15s ease;
+        line-height: 1.4;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-weight: 500;
     }
-
     .slot-action-btn:hover {
+        opacity: 0.85;
         transform: translateY(-1px);
     }
 
@@ -1834,10 +1838,10 @@
                                     ${bookingInfo.permanent_source_id ? `<span class="badge bg-dark text-white">P</span>` : ''}
                                     ${sportId ? `
                                     <button class="slot-action-btn mt-1"
-                                            style="color:#0369a1;border-color:#0ea5e9;"
+                                            style="background:#0ea5e9;color:#fff;border-color:#0369a1;"
                                             onclick="openWaitlistModalJS(${sportId}, '${dateKey}', '${slot.time24.substring(0,8)}', '${court}')"
                                             title="View/Add to waitlist">
-                                        <i class="fas fa-list-ul"></i>
+                                        <i class="fas fa-list-ul"></i> Wait
                                     </button>` : ''}
                                 </div>
 
@@ -1904,16 +1908,16 @@
                                     <div class="d-flex gap-1" onclick="event.stopPropagation()">
                                         ${sportId ? `
                                         <button class="slot-action-btn"
-                                                style="color:#92400e;border-color:#f59e0b;"
+                                                style="background:#f59e0b;color:#fff;border-color:#d97706;"
                                                 onclick="openBlockModalJS(${sportId}, '${dateKey}', '${slotTimeKey}', '${court}')"
                                                 title="Block this slot">
-                                            <i class="fas fa-ban"></i>
+                                            <i class="fas fa-ban"></i> Block
                                         </button>
                                         <button class="slot-action-btn"
-                                                style="color:#0369a1;border-color:#0ea5e9;"
+                                                style="background:#0ea5e9;color:#fff;border-color:#0369a1;"
                                                 onclick="openWaitlistModalJS(${sportId}, '${dateKey}', '${slotTimeKey}', '${court}')"
-                                                title="Waitlist">
-                                            <i class="fas fa-list-ul"></i>
+                                                title="Add to waitlist">
+                                            <i class="fas fa-list-ul"></i> Wait
                                         </button>` : ''}
                                     </div>
                                 </div>

@@ -33,6 +33,17 @@
         color: #fff;
     }
     .settings-nav-mobile .nav-pill i { margin-right: 5px; }
+    .settings-nav-mobile button.nav-pill {
+        background: #f9fafb;
+        border: 1.5px solid #e2e8f0;
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+    .settings-nav-mobile button.nav-pill.active {
+        background: #19722d;
+        border-color: #19722d;
+        color: #fff;
+    }
 
     @media (max-width: 767px) {
         .settings-sidebar-desktop { display: none !important; }
@@ -97,10 +108,12 @@
         ];
         @endphp
         @foreach($sections as $key => $sec)
-        <a href="#" wire:click.prevent="showSection('{{ $key }}')"
-            class="nav-pill {{ $activeSection === $key ? 'active' : '' }}">
+        <button type="button"
+            onclick="settingNav('{{ $key }}')"
+            class="nav-pill {{ $activeSection === $key ? 'active' : '' }}"
+            data-section="{{ $key }}">
             <i class="fas {{ $sec['icon'] }}"></i>{{ $sec['label'] }}
-        </a>
+        </button>
         @endforeach
     </div>
 
@@ -109,24 +122,22 @@
         {{-- Desktop sidebar (hidden on mobile) --}}
         <div class="bg-white rounded-3 shadow-sm p-3 settings-sidebar-desktop" style="min-width:200px;width:220px;flex-shrink:0;">
             <nav class="nav flex-column">
-                <a href="#" class="nav-link {{ $activeSection === 'profile' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('profile')">
-                    <i class="fas fa-user-circle me-2"></i>My Profile
-                </a>
-                <a href="#" class="nav-link {{ $activeSection === 'security' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('security')">
-                    <i class="fas fa-shield-alt me-2"></i>Security
-                </a>
-                <a href="#" class="nav-link {{ $activeSection === 'notifications' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('notifications')">
-                    <i class="fas fa-bell me-2"></i>Notifications
-                </a>
-                <a href="#" class="nav-link {{ $activeSection === 'team' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('team')">
-                    <i class="fas fa-users me-2"></i>Team Member
-                </a>
-                <a href="#" class="nav-link {{ $activeSection === 'opening_time' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('opening_time')">
-                    <i class="fas fa-clock me-2"></i>Opening time
-                </a>
-                <a href="#" class="nav-link {{ $activeSection === 'cctv' ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1" wire:click.prevent="showSection('cctv')">
-                    <i class="fas fa-video me-2"></i>CCTV Cameras
-                </a>
+                @foreach([
+                    'profile'       => ['fa-user-circle',  'My Profile'],
+                    'security'      => ['fa-shield-alt',   'Security'],
+                    'notifications' => ['fa-bell',         'Notifications'],
+                    'team'          => ['fa-users',        'Team Member'],
+                    'opening_time'  => ['fa-clock',        'Opening Time'],
+                    'cctv'          => ['fa-video',        'CCTV Cameras'],
+                ] as $sec => [$icon, $label])
+                <button type="button"
+                    onclick="settingNav('{{ $sec }}')"
+                    data-section="{{ $sec }}"
+                    class="nav-link btn btn-link text-start w-100 {{ $activeSection === $sec ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1"
+                    style="text-decoration:none;">
+                    <i class="fas {{ $icon }} me-2"></i>{{ $label }}
+                </button>
+                @endforeach
             </nav>
         </div>
 
@@ -1340,4 +1351,23 @@
             console.error('Validation Errors:', data.errors);
         });
     });
+
+    // Settings nav — works on both mobile and desktop
+    function settingNav(section) {
+        // Update active state immediately (no flicker waiting for server)
+        document.querySelectorAll('[data-section]').forEach(function(el) {
+            el.classList.remove('active', 'bg-success', 'text-white');
+            el.classList.add('text-dark');
+            if (el.dataset.section === section) {
+                el.classList.add('active', 'bg-success', 'text-white');
+                el.classList.remove('text-dark');
+                // mobile pill active
+                if (el.classList.contains('nav-pill')) {
+                    el.classList.add('active');
+                }
+            }
+        });
+        // Tell Livewire to switch the section (re-renders content)
+        @this.call('showSection', section);
+    }
 </script>

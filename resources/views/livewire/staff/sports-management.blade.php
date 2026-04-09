@@ -122,11 +122,13 @@
                             <div class="col-md-6">
                                 <label for="game_name" class="form-label fw-semibold">Game Name*</label>
                                 <select class="form-select" id="game_name" wire:model="game_name" required>
-                                    <option value="" >Select Sport</option>
+                                    <option value="">Select Sport</option>
+                                    <option value="Football">Football</option>
                                     <option value="Cricket">Cricket</option>
                                     <option value="Badminton">Badminton</option>
+                                    <option value="Basketball">Basketball</option>
                                     <option value="Pools">Pools</option>
-                                    <option value="Pooltable">Pooltable</option>
+                                    <option value="Pooltable">Pool Table</option>
                                 </select>
                                 @error('game_name') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>

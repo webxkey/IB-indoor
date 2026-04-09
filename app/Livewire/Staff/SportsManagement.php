@@ -82,7 +82,7 @@ class SportsManagement extends Component
         $this->complex_id = auth()->user()->complex_id;
 
         $validated = $this->validate([
-            'game_name' => 'required|string|in:Cricket,Badminton,Pools,Pooltable',
+            'game_name' => 'required|string|in:Football,Cricket,Badminton,Basketball,Pools,Pooltable',
             'game_type' => 'required|string',
             'rate_type' => 'required|string',
             'price' => 'required|numeric|min:0',
@@ -432,21 +432,26 @@ class SportsManagement extends Component
     protected function getDefaultImageForName($name)
     {
         $n = strtolower((string) $name);
+
+        if (str_contains($n, 'football')) {
+            return asset('images/sports_images/football.jpg');
+        }
         if (str_contains($n, 'cricket')) {
             return asset('images/sports_images/cricket.jpg');
         }
         if (str_contains($n, 'badminton')) {
             return asset('images/sports_images/badminton.jpg');
         }
+        if (str_contains($n, 'basketball')) {
+            return asset('images/sports_images/basketball.jpeg');
+        }
+        if (str_contains($n, 'pooltable') || str_contains($n, 'pool table')) {
+            return asset('images/sports_images/pooltable.jpg');
+        }
         if (str_contains($n, 'pool') || str_contains($n, 'swim')) {
-            // pooltable vs pool
-            if (str_contains($n, 'table') || str_contains($n, 'pooltable')) {
-                return asset('images/sports_images/pooltable.jpg');
-            }
             return asset('images/sports_images/pools.jpg');
         }
 
-        // Generic fallback
         return asset('images/sports_images/default.jpg');
     }
 }
