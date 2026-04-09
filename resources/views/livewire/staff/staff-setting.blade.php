@@ -95,25 +95,24 @@
     </div>
     @endif
 
+    @php
+    $navSections = [
+        'profile'       => ['fa-user-circle', 'Profile',      'My Profile'],
+        'security'      => ['fa-shield-alt',  'Security',     'Security'],
+        'notifications' => ['fa-bell',        'Notifications','Notifications'],
+        'team'          => ['fa-users',       'Team',         'Team Member'],
+        'opening_time'  => ['fa-clock',       'Hours',        'Opening Time'],
+        'cctv'          => ['fa-video',       'CCTV',         'CCTV Cameras'],
+    ];
+    @endphp
+
     {{-- Mobile horizontal tab bar (visible only on mobile) --}}
     <div class="settings-nav-mobile">
-        @php
-        $sections = [
-            'profile'      => ['icon' => 'fa-user-circle',  'label' => 'Profile'],
-            'security'     => ['icon' => 'fa-shield-alt',   'label' => 'Security'],
-            'notifications'=> ['icon' => 'fa-bell',         'label' => 'Notifications'],
-            'team'         => ['icon' => 'fa-users',        'label' => 'Team'],
-            'opening_time' => ['icon' => 'fa-clock',        'label' => 'Hours'],
-            'cctv'         => ['icon' => 'fa-video',        'label' => 'CCTV'],
-        ];
-        @endphp
-        @foreach($sections as $key => $sec)
-        <button type="button"
-            onclick="settingNav('{{ $key }}')"
-            class="nav-pill {{ $activeSection === $key ? 'active' : '' }}"
-            data-section="{{ $key }}">
-            <i class="fas {{ $sec['icon'] }}"></i>{{ $sec['label'] }}
-        </button>
+        @foreach($navSections as $key => [$icon, $shortLabel, $fullLabel])
+        <a href="{{ route('staff.setting') }}?section={{ $key }}"
+           class="nav-pill {{ $activeSection === $key ? 'active' : '' }}">
+            <i class="fas {{ $icon }}"></i>{{ $shortLabel }}
+        </a>
         @endforeach
     </div>
 
@@ -122,21 +121,12 @@
         {{-- Desktop sidebar (hidden on mobile) --}}
         <div class="bg-white rounded-3 shadow-sm p-3 settings-sidebar-desktop" style="min-width:200px;width:220px;flex-shrink:0;">
             <nav class="nav flex-column">
-                @foreach([
-                    'profile'       => ['fa-user-circle',  'My Profile'],
-                    'security'      => ['fa-shield-alt',   'Security'],
-                    'notifications' => ['fa-bell',         'Notifications'],
-                    'team'          => ['fa-users',        'Team Member'],
-                    'opening_time'  => ['fa-clock',        'Opening Time'],
-                    'cctv'          => ['fa-video',        'CCTV Cameras'],
-                ] as $sec => [$icon, $label])
-                <button type="button"
-                    onclick="settingNav('{{ $sec }}')"
-                    data-section="{{ $sec }}"
-                    class="nav-link btn btn-link text-start w-100 {{ $activeSection === $sec ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1"
-                    style="text-decoration:none;">
-                    <i class="fas {{ $icon }} me-2"></i>{{ $label }}
-                </button>
+                @foreach($navSections as $key => [$icon, $shortLabel, $fullLabel])
+                <a href="{{ route('staff.setting') }}?section={{ $key }}"
+                   class="nav-link {{ $activeSection === $key ? 'active bg-success text-white' : 'text-dark' }} rounded-2 mb-1"
+                   style="text-decoration:none;">
+                    <i class="fas {{ $icon }} me-2"></i>{{ $fullLabel }}
+                </a>
                 @endforeach
             </nav>
         </div>
@@ -1352,22 +1342,4 @@
         });
     });
 
-    // Settings nav — works on both mobile and desktop
-    function settingNav(section) {
-        // Update active state immediately (no flicker waiting for server)
-        document.querySelectorAll('[data-section]').forEach(function(el) {
-            el.classList.remove('active', 'bg-success', 'text-white');
-            el.classList.add('text-dark');
-            if (el.dataset.section === section) {
-                el.classList.add('active', 'bg-success', 'text-white');
-                el.classList.remove('text-dark');
-                // mobile pill active
-                if (el.classList.contains('nav-pill')) {
-                    el.classList.add('active');
-                }
-            }
-        });
-        // Tell Livewire to switch the section (re-renders content)
-        @this.call('showSection', section);
-    }
 </script>
