@@ -16,7 +16,10 @@
       "Bash(php -l app/Models/BookingSport.php)",
       "Bash(php -l database/migrations/2026_04_08_000004_create_booking_waitlist_table.php)",
       "Bash(curl:*)",
-      "Bash(dir \"C:\\\\Users\\\\MY\\\\Desktop\\\\indoor\\\\public\\\\images\")"
+      "Bash(dir \"C:\\\\Users\\\\MY\\\\Desktop\\\\indoor\\\\public\\\\images\")",
+      "Bash(grep -n \"manage.staff\\\\|ManageStaff\" /c/Users/MY/Desktop/indoor/resources/views/livewire/admin/*.blade.php)",
+      "Bash(php -l \"app/Livewire/Staff/TournamentManagement.php\")",
+      "Bash(php -l \"resources/views/livewire/staff/tournament-management.blade.php\")"
     ]
   }
 }

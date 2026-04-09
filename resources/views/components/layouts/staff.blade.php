@@ -189,6 +189,11 @@
                                     <i class="fa-solid fa-rss me-2"></i> Feedback
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.tournament') ? 'active' : '' }}" href="{{ route('staff.tournament') }}">
+                                    <i class="fas fa-trophy me-2"></i> Tournament
+                                </a>
+                            </li>
                         </ul>
                     </div>
 
@@ -219,11 +224,11 @@
                 <div class="d-flex justify-content-around align-items-center">
                     @php
                     $navItems = [
-                        ['route' => 'staff.dashboard', 'icon' => 'fa-th-large',       'label' => 'Home'],
-                        ['route' => 'staff.bookings',  'icon' => 'fa-calendar-check', 'label' => 'Bookings'],
-                        ['route' => 'staff.sports',    'icon' => 'fa-futbol',         'label' => 'Sports'],
-                        ['route' => 'staff.reports',   'icon' => 'fa-chart-bar',      'label' => 'Reports'],
-                        ['route' => 'staff.setting',   'icon' => 'fa-cog',            'label' => 'Settings'],
+                        ['route' => 'staff.dashboard',   'icon' => 'fa-th-large',       'label' => 'Home'],
+                        ['route' => 'staff.bookings',    'icon' => 'fa-calendar-check', 'label' => 'Bookings'],
+                        ['route' => 'staff.sports',      'icon' => 'fa-futbol',         'label' => 'Sports'],
+                        ['route' => 'staff.tournament',  'icon' => 'fa-trophy',         'label' => 'Tournament'],
+                        ['route' => 'staff.setting',     'icon' => 'fa-cog',            'label' => 'Settings'],
                     ];
                     @endphp
                     @foreach($navItems as $item)

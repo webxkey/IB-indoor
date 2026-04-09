@@ -16,6 +16,7 @@ use App\Livewire\Staff\StaffFeedbacks;
 use App\Livewire\Staff\StaffHelp;
 use App\Livewire\Staff\StaffReport;
 use App\Livewire\Staff\StaffSetting;
+use App\Livewire\Staff\TournamentManagement;
 use App\Livewire\LandingPage\Home;
 use App\Livewire\LandingPage\About;
 use App\Livewire\LandingPage\Contact;
@@ -113,6 +114,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/reports', StaffReport::class)->name('reports');
         Route::get('/feedbacks', StaffFeedbacks::class)->name('feedbacks');
         Route::get('/setting', StaffSetting::class)->name('setting');
+        Route::get('/tournament', TournamentManagement::class)->name('tournament');
         Route::get('/help', StaffHelp::class)->name('help');
 
         // Global notification polling endpoint
