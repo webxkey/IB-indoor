@@ -334,6 +334,24 @@ Route::middleware('auth:sanctum')->group(function () {
         // Broadcast to staff dashboard
         try { broadcast(new BookingCreated($booking))->toOthers(); } catch (\Exception $e) {}
 
+        // Notify all staff users for this venue
+        try {
+            $staffUsers = \App\Models\User::whereIn('role', ['staff', 'facility_owner'])
+                ->where('complex_id', $request->venue_id)
+                ->pluck('id');
+            foreach ($staffUsers as $staffId) {
+                \App\Models\BookingNotification::create([
+                    'user_id'    => $staffId,
+                    'type'       => 'booking_created',
+                    'title'      => 'New Booking (Mobile)',
+                    'message'    => "New booking for {$sport->name} on {$request->booking_date} at {$timeKey} — {$request->user_name}",
+                    'data'       => ['booking_id' => $booking->id, 'source' => 'mobile'],
+                    'is_read'    => false,
+                    'created_at' => now(),
+                ]);
+            }
+        } catch (\Exception $e) {}
+
         return response()->json(['booking' => $booking], 201);
     });
 

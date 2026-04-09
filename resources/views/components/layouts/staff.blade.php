@@ -374,6 +374,141 @@
     </script>
     @stack('scripts')
 
+    {{-- Global Booking Notification Poller --}}
+    <div id="global-notif-container" style="position:fixed;top:70px;right:16px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none;max-width:360px;width:calc(100vw - 32px);"></div>
+
+    <script>
+    (function () {
+        var pollUrl   = '{{ route("staff.notifications.poll") }}';
+        var markUrl   = '{{ route("staff.notifications.mark-read") }}';
+        var csrfToken = '{{ csrf_token() }}';
+        var lastSeen  = new Date().toISOString();
+        var bellBadge = document.querySelector('.badge.bg-danger.rounded-pill');
+
+        function iconFor(type) {
+            if (type === 'booking_created')   return 'fa-calendar-plus';
+            if (type === 'booking_cancelled') return 'fa-calendar-times';
+            if (type === 'booking_updated')   return 'fa-calendar-check';
+            return 'fa-bell';
+        }
+        function colorFor(type) {
+            if (type === 'booking_created')   return '#19722d';
+            if (type === 'booking_cancelled') return '#dc3545';
+            return '#0ea5e9';
+        }
+
+        function showToast(notif) {
+            var container = document.getElementById('global-notif-container');
+            if (!container) return;
+
+            var toast = document.createElement('div');
+            toast.style.cssText = [
+                'background:#fff',
+                'border-radius:12px',
+                'box-shadow:0 4px 20px rgba(0,0,0,0.15)',
+                'padding:14px 16px',
+                'display:flex',
+                'align-items:flex-start',
+                'gap:12px',
+                'pointer-events:auto',
+                'border-left:4px solid ' + colorFor(notif.type),
+                'animation:slideInRight 0.3s ease',
+                'max-width:360px',
+                'width:100%',
+            ].join(';');
+
+            toast.innerHTML =
+                '<div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:' + colorFor(notif.type) + '22;display:flex;align-items:center;justify-content:center;">' +
+                    '<i class="fas ' + iconFor(notif.type) + '" style="color:' + colorFor(notif.type) + ';font-size:0.95rem;"></i>' +
+                '</div>' +
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-weight:700;font-size:0.88rem;color:#1e293b;margin-bottom:2px;">' + notif.title + '</div>' +
+                    '<div style="font-size:0.8rem;color:#64748b;word-break:break-word;">' + notif.message + '</div>' +
+                    '<div style="font-size:0.72rem;color:#94a3b8;margin-top:4px;">Just now</div>' +
+                '</div>' +
+                '<button onclick="this.closest(\'div[style]\').remove()" style="background:none;border:none;cursor:pointer;padding:0;color:#94a3b8;font-size:1rem;line-height:1;flex-shrink:0;">&#x2715;</button>';
+
+            container.prepend(toast);
+
+            // Auto-remove after 8 seconds
+            setTimeout(function () {
+                if (toast.parentNode) {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.4s';
+                    setTimeout(function () { if (toast.parentNode) toast.remove(); }, 400);
+                }
+            }, 8000);
+        }
+
+        function updateBadge(count) {
+            // Try to find or create badge on the bell button
+            var bell = document.querySelector('#global-notif-container ~ * .fa-bell, .fa-bell')
+                    || document.querySelector('[data-bs-toggle="dropdown"] .fa-bell');
+            if (!bell) return;
+            var btn = bell.closest('button');
+            if (!btn) return;
+
+            var badge = btn.querySelector('.badge.bg-danger');
+            if (count > 0) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger';
+                    badge.style.fontSize = '0.55rem';
+                    btn.style.position = 'relative';
+                    btn.appendChild(badge);
+                }
+                badge.textContent = count > 9 ? '9+' : count;
+            } else if (badge) {
+                badge.remove();
+            }
+        }
+
+        function poll() {
+            fetch(pollUrl + '?since=' + encodeURIComponent(lastSeen), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data) return;
+                lastSeen = new Date().toISOString();
+                updateBadge(data.unread_count);
+                if (data.notifications && data.notifications.length > 0) {
+                    data.notifications.forEach(function (n) { showToast(n); });
+                }
+            })
+            .catch(function () {});
+        }
+
+        // Add animation keyframes
+        var style = document.createElement('style');
+        style.textContent = '@keyframes slideInRight{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}';
+        document.head.appendChild(style);
+
+        // Start polling after 10 s, then every 20 s
+        setTimeout(function () {
+            poll();
+            setInterval(poll, 20000);
+        }, 10000);
+
+        // Also mark notifications as read when bell dropdown is opened
+        document.addEventListener('shown.bs.dropdown', function (e) {
+            var toggle = e.relatedTarget;
+            if (toggle && toggle.querySelector && toggle.querySelector('.fa-bell')) {
+                fetch(markUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                }).then(function () { updateBadge(0); }).catch(function () {});
+            }
+        });
+    })();
+    </script>
+
     {{-- PWA Service Worker + Install Prompt --}}
     <script>
         // Register service worker

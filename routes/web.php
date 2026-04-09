@@ -114,6 +114,42 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/feedbacks', StaffFeedbacks::class)->name('feedbacks');
         Route::get('/setting', StaffSetting::class)->name('setting');
         Route::get('/help', StaffHelp::class)->name('help');
+
+        // Global notification polling endpoint
+        Route::get('/notifications/poll', function (Request $request) {
+            $since = $request->query('since'); // ISO timestamp or null
+            $userId = auth()->id();
+
+            $query = \App\Models\BookingNotification::where('user_id', $userId)
+                ->where('is_read', false)
+                ->orderByDesc('created_at')
+                ->limit(10);
+
+            if ($since) {
+                $query->where('created_at', '>', $since);
+            }
+
+            $notifications = $query->get()->map(fn($n) => [
+                'id'         => $n->id,
+                'type'       => $n->type,
+                'title'      => $n->title,
+                'message'    => $n->message,
+                'created_at' => $n->created_at,
+            ]);
+
+            return response()->json([
+                'notifications' => $notifications,
+                'unread_count'  => \App\Models\BookingNotification::where('user_id', $userId)->where('is_read', false)->count(),
+            ]);
+        })->name('notifications.poll');
+
+        // Mark all notifications as read
+        Route::post('/notifications/mark-read', function () {
+            \App\Models\BookingNotification::where('user_id', auth()->id())
+                ->where('is_read', false)
+                ->update(['is_read' => true]);
+            return response()->json(['ok' => true]);
+        })->name('notifications.mark-read');
     });
 
 
