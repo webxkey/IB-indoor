@@ -211,7 +211,7 @@ Route::get('/slot/available', function (Request $request) {
     }
 
     // 2. Check already booked
-    $booked = BookingBooking::where('game_id', $request->sport_id)
+    $booked = BookingBooking::where('game_id_id', $request->sport_id)
         ->where('booking_date', $request->date)
         ->where('start_time', $timeKey)
         ->where('court_number', $court)
@@ -246,7 +246,7 @@ Route::get('/slot/available-courts', function (Request $request) {
     for ($c = 1; $c <= $sport->maximum_court; $c++) {
         $court    = (string) $c;
         $slotData = $blocked[$request->date][$timeKey][$court] ?? null;
-        $isBooked = BookingBooking::where('game_id', $request->sport_id)
+        $isBooked = BookingBooking::where('game_id_id', $request->sport_id)
             ->where('booking_date', $request->date)
             ->where('start_time', $timeKey)
             ->where('court_number', $court)
@@ -305,7 +305,7 @@ Route::middleware('auth:sanctum')->group(function () {
         }
 
         // Double-booking check
-        $exists = BookingBooking::where('game_id', $request->sport_id)
+        $exists = BookingBooking::where('game_id_id', $request->sport_id)
             ->where('booking_date', $request->booking_date)
             ->where('start_time', $timeKey)
             ->where('court_number', $court)
@@ -314,7 +314,7 @@ Route::middleware('auth:sanctum')->group(function () {
         if ($exists) return response()->json(['message' => 'Slot already booked'], 409);
 
         $booking = BookingBooking::create([
-            'game_id'        => $request->sport_id,
+            'game_id_id'     => $request->sport_id,
             'game_name'      => $sport->name,
             'complex_id_id'  => $request->venue_id,
             'booking_date'   => $request->booking_date,
