@@ -1411,7 +1411,7 @@
                             }
 
                             const newWindow = window.open(
-                                '/storage/staff/timer_window.html',
+                                '/staff/timer_window.html',
                                 activeModalTimerId,
                                 'width=500,height=450,resizable=yes,scrollbars=no'
                             );
