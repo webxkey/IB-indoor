@@ -107,7 +107,7 @@
             }
 
             .main-content {
-                padding-bottom: 70px;
+                padding-bottom: 90px;
             }
 
             /* Notification dropdown: full-width-ish on mobile */
@@ -214,23 +214,30 @@
             </nav>
 
             <!-- Mobile Bottom Navigation Bar -->
-            <nav class="d-md-none fixed-bottom bg-white border-top py-1" style="z-index:1050;">
+            <nav class="d-md-none fixed-bottom bg-white border-top" style="z-index:1050;padding:6px 0 env(safe-area-inset-bottom, 6px);">
                 <div class="d-flex justify-content-around align-items-center">
-                    <a href="{{ route('staff.dashboard') }}" class="d-flex flex-column align-items-center text-decoration-none {{ request()->routeIs('staff.dashboard') ? 'text-success' : 'text-muted' }}" style="font-size:0.65rem;">
-                        <i class="fas fa-th-large mb-1" style="font-size:1.1rem;"></i>Home
+                    @php
+                    $navItems = [
+                        ['route' => 'staff.dashboard', 'icon' => 'fa-th-large',       'label' => 'Home'],
+                        ['route' => 'staff.bookings',  'icon' => 'fa-calendar-check', 'label' => 'Bookings'],
+                        ['route' => 'staff.sports',    'icon' => 'fa-futbol',         'label' => 'Sports'],
+                        ['route' => 'staff.reports',   'icon' => 'fa-chart-bar',      'label' => 'Reports'],
+                        ['route' => 'staff.setting',   'icon' => 'fa-cog',            'label' => 'Settings'],
+                    ];
+                    @endphp
+                    @foreach($navItems as $item)
+                    @php $active = request()->routeIs($item['route']); @endphp
+                    <a href="{{ route($item['route']) }}"
+                       class="d-flex flex-column align-items-center text-decoration-none position-relative"
+                       style="flex:1;padding:6px 4px;color:{{ $active ? '#19722d' : '#94a3b8' }};">
+                        @if($active)
+                        <span style="position:absolute;top:0;left:50%;transform:translateX(-50%);
+                            width:32px;height:3px;background:#19722d;border-radius:0 0 4px 4px;"></span>
+                        @endif
+                        <i class="fas {{ $item['icon'] }}" style="font-size:1.4rem;margin-bottom:3px;"></i>
+                        <span style="font-size:0.7rem;font-weight:{{ $active ? '700' : '500' }};">{{ $item['label'] }}</span>
                     </a>
-                    <a href="{{ route('staff.bookings') }}" class="d-flex flex-column align-items-center text-decoration-none {{ request()->routeIs('staff.bookings') ? 'text-success' : 'text-muted' }}" style="font-size:0.65rem;">
-                        <i class="fas fa-calendar-check mb-1" style="font-size:1.1rem;"></i>Bookings
-                    </a>
-                    <a href="{{ route('staff.sports') }}" class="d-flex flex-column align-items-center text-decoration-none {{ request()->routeIs('staff.sports') ? 'text-success' : 'text-muted' }}" style="font-size:0.65rem;">
-                        <i class="fas fa-map-marked-alt mb-1" style="font-size:1.1rem;"></i>Sports
-                    </a>
-                    <a href="{{ route('staff.reports') }}" class="d-flex flex-column align-items-center text-decoration-none {{ request()->routeIs('staff.reports') ? 'text-success' : 'text-muted' }}" style="font-size:0.65rem;">
-                        <i class="fas fa-chart-bar mb-1" style="font-size:1.1rem;"></i>Reports
-                    </a>
-                    <a href="{{ route('staff.setting') }}" class="d-flex flex-column align-items-center text-decoration-none {{ request()->routeIs('staff.setting') ? 'text-success' : 'text-muted' }}" style="font-size:0.65rem;">
-                        <i class="fas fa-cog mb-1" style="font-size:1.1rem;"></i>Settings
-                    </a>
+                    @endforeach
                 </div>
             </nav>
 
