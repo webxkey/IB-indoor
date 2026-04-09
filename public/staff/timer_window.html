@@ -244,7 +244,7 @@
     </div>
 
     <div class="alert-overtime" id="overtimeAlert">
-        ⚠️ Session time is up! Please notify the player.
+        ⚠️ Session time is up! Booking marked as <strong>Played</strong>.
     </div>
 
     <div class="btn-row">
@@ -335,6 +335,19 @@
         return (seconds < 0 ? '-' : '') +
                String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
     }
+
+    // Called by parent when booking is marked as played
+    window.onTimerComplete = function() {
+        document.getElementById('overtimeAlert').style.display = 'block';
+        document.getElementById('statusDot').className = 'status-dot ended';
+        document.getElementById('statusText').textContent = 'Marked as Played';
+        document.getElementById('timerLabel').textContent = 'PLAYED';
+        document.getElementById('timerDisplay').style.color = '#4ade80';
+        document.getElementById('toggleBtn').disabled = true;
+        document.getElementById('toggleBtn').textContent = 'Played ✓';
+        document.getElementById('toggleBtn').style.background = '#166534';
+        document.title = '✅ Session Complete — IndoorB';
+    };
 
     // If opened directly (not via parent), show placeholder
     if (!window.opener) {

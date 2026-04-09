@@ -467,15 +467,27 @@ class BookingsManagement extends Component
     {
         $booking = BookingBooking::find($bookingId);
 
-        if ($booking && $booking->status === 'Playing') {
-            $booking->status = 'Completed';
+        if ($booking && in_array($booking->status, ['Playing', 'confirmed', 'Confirmed'])) {
+            $booking->status = 'played';
             $booking->save();
 
-            $this->loadSports();
+            $this->refreshBookings();
             return true;
         }
 
         return false;
+    }
+
+    public function markAsPlayed($bookingId)
+    {
+        $booking = BookingBooking::find($bookingId);
+        if (!$booking) return false;
+
+        $booking->status = 'played';
+        $booking->save();
+
+        $this->refreshBookings();
+        return true;
     }
 
     /**

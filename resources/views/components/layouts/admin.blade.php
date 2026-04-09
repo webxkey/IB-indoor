@@ -7,6 +7,12 @@
     <meta name="description" content="Indoor Booking Admin - Manage sports venues, bookings, users, and analytics with a professional dashboard for indoor facility operations.">
     <title>{{ $title ?? 'Page Title' }}</title>
     <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#198754">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IndoorB">
+    <link rel="apple-touch-icon" href="{{ asset('images/icons/icon-192.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

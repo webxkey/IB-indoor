@@ -2105,13 +2105,17 @@
                     updateTimerButtons(false, timerIdToControl);
                     updateTimerDisplay(timerIdToControl);
 
-                    // Auto-complete the booking when timer ends
+                    // Auto-mark as played when timer ends
                     if (timerState.bookingId) {
-                        @this.call('completeBooking', timerState.bookingId).then(success => {
+                        @this.call('markAsPlayed', timerState.bookingId).then(success => {
                             if (success) {
-                                timerState.status = 'Completed';
-                                console.log('Booking auto-completed');
+                                timerState.status = 'played';
+                                showNotification('✅ Session Complete', `${timerState.player}'s session is over — marked as Played.`);
                                 refreshBookingData().then(() => updateCalendar());
+                                // Notify popup window too
+                                if (timerState.popupWindow && !timerState.popupWindow.closed) {
+                                    try { timerState.popupWindow.onTimerComplete && timerState.popupWindow.onTimerComplete(); } catch(e) {}
+                                }
                             }
                         });
                     }

@@ -7,6 +7,20 @@
     <title>{{ $title ?? 'Staff Dashboard' }}</title>
     <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
 
+    {{-- PWA --}}
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#19722d">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IndoorB">
+    <link rel="apple-touch-icon" href="{{ asset('images/icons/icon-192.png') }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ asset('images/icons/icon-152.png') }}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{{ asset('images/icons/icon-144.png') }}">
+    <link rel="apple-touch-icon" sizes="128x128" href="{{ asset('images/icons/icon-128.png') }}">
+    <meta name="msapplication-TileImage" content="{{ asset('images/icons/icon-144.png') }}">
+    <meta name="msapplication-TileColor" content="#19722d">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
@@ -106,6 +120,22 @@
 </head>
 
 <body>
+
+    {{-- PWA Install Banner --}}
+    <div id="pwa-install-banner" style="display:none;position:fixed;bottom:80px;left:12px;right:12px;z-index:9999;
+        background:#19722d;color:#fff;border-radius:12px;padding:12px 16px;
+        align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+        <img src="{{ asset('images/icons/icon-72.png') }}" width="40" height="40" style="border-radius:8px;flex-shrink:0;">
+        <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:0.9rem;">Install IndoorB</div>
+            <div style="font-size:0.75rem;opacity:0.85;">Add to home screen for quick access</div>
+        </div>
+        <button onclick="installPWA()" style="background:#fff;color:#19722d;border:none;border-radius:8px;
+            padding:8px 14px;font-weight:700;font-size:0.82rem;cursor:pointer;flex-shrink:0;">Install</button>
+        <button onclick="dismissPWA()" style="background:transparent;border:none;color:#fff;
+            font-size:1.2rem;cursor:pointer;padding:0 4px;flex-shrink:0;">✕</button>
+    </div>
+
     <div class="container-fluid">
         <div class="d-flex flex-column flex-md-row">
             <!-- Sidebar -->
@@ -335,6 +365,55 @@
         });
     </script>
     @stack('scripts')
+
+    {{-- PWA Service Worker + Install Prompt --}}
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.log('SW error:', err));
+            });
+        }
+
+        // Install prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.style.display = 'flex';
+        });
+
+        function installPWA() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(result => {
+                deferredPrompt = null;
+                document.getElementById('pwa-install-banner').style.display = 'none';
+            });
+        }
+
+        function dismissPWA() {
+            document.getElementById('pwa-install-banner').style.display = 'none';
+            localStorage.setItem('pwa-dismissed', '1');
+        }
+
+        // Hide banner if already dismissed
+        window.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('pwa-dismissed')) {
+                const banner = document.getElementById('pwa-install-banner');
+                if (banner) banner.remove();
+            }
+        });
+
+        // Hide banner if already installed
+        window.addEventListener('appinstalled', () => {
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.style.display = 'none';
+        });
+    </script>
 </body>
 
 </html>

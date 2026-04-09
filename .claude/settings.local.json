@@ -15,7 +15,8 @@
       "Bash(php -l app/Models/BookingWaitlist.php)",
       "Bash(php -l app/Models/BookingSport.php)",
       "Bash(php -l database/migrations/2026_04_08_000004_create_booking_waitlist_table.php)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(dir \"C:\\\\Users\\\\MY\\\\Desktop\\\\indoor\\\\public\\\\images\")"
     ]
   }
 }
