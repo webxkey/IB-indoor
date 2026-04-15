@@ -22,7 +22,15 @@
       "Bash(php -l \"resources/views/livewire/staff/tournament-management.blade.php\")",
       "Bash(php -l app/Livewire/Admin/TournamentApprovals.php)",
       "Bash(php -l resources/views/livewire/admin/tournament-approvals.blade.php)",
-      "Bash(php -l resources/views/components/layouts/admin.blade.php)"
+      "Bash(php -l resources/views/components/layouts/admin.blade.php)",
+      "Bash(php -l app/Livewire/Admin/Bookings.php)",
+      "Bash(php -l app/Events/BookingCreated.php)",
+      "Bash(php -l app/Events/SlotStateChanged.php)",
+      "Bash(php -l app/Jobs/ProcessDjangoWebhookEvent.php)",
+      "Bash(php -l app/Http/Controllers/DjangoWebhookController.php)",
+      "Bash(python -c \"import json,sys; m=json.load\\(sys.stdin\\); print\\([k for k in m.keys\\(\\)][:5]\\)\")",
+      "Bash(python:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

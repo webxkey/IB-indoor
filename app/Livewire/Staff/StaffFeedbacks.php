@@ -53,7 +53,7 @@ class StaffFeedbacks extends Component
             }
 
             $review->profile_picture_url = $imgFilename
-                ? 'https://api.indoorbooking.com/media/' . ltrim($imgFilename, '/')
+                ? 'https://api.sportynix.com/media/' . ltrim($imgFilename, '/')
                 : null;
         }
 

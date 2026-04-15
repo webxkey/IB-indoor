@@ -73,9 +73,9 @@ return [
                     'use_ssl' => env('REVERB_SCHEME') === 'https',
                 ],
                 'allowed_origins' => [
-                    'indoorbooking.com',
-                    'www.indoorbooking.com',
-                    'https://indoorbooking.com',
+                    'sportynix.com',
+                    'www.sportynix.com',
+                    'https://sportynix.com',
                     '*'
                 ],
                 'max_message_size' => 10000,

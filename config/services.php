@@ -31,4 +31,8 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'django_webhook' => [
+        'secret' => env('DJANGO_LARAVEL_WEBHOOK_SECRET'),
+    ],
+
 ];

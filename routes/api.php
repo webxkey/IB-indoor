@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\BookingStreamController;
+use App\Http\Controllers\DjangoWebhookController;
 use App\Models\BookingBooking;
 use App\Models\BookingSport;
 use App\Models\BookingVenue;
@@ -537,6 +538,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/bookings/stream/{complexId}', [BookingStreamController::class, 'stream'])
     ->name('bookings.stream');
+
+// =========================================================================
+// DJANGO -> LARAVEL WEBHOOK  (no auth — verified by HMAC signature)
+// =========================================================================
+
+Route::post('/integration/webhooks/django-events', [DjangoWebhookController::class, 'receive'])
+    ->name('webhook.django');
+
+// =========================================================================
 
 Route::get('/booking/refresh', function (Request $request) {
     $bookings = BookingBooking::where('booking_date', '>=', now()->subDays(1)->format('Y-m-d'))->get();

@@ -40,6 +40,22 @@
         box-shadow: none !important;
     }
 
+    /* Held slot styling (mobile user in checkout) */
+    .time-slot.held-slot {
+        background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%) !important;
+        border: 2px dashed #f97316 !important;
+        color: #c2410c !important;
+        cursor: default !important;
+        animation: held-pulse 2s ease-in-out infinite;
+    }
+    .time-slot.held-slot:hover {
+        transform: none !important;
+    }
+    @keyframes held-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.75; }
+    }
+
     /* Slot action buttons */
     .slot-action-btn {
         padding: 3px 8px;
@@ -857,6 +873,18 @@
         {{-- Real-time WebSocket updates via Laravel Reverb + Laravel Echo --}}
         {{-- No polling! Updates come instantly via persistent WebSocket connection --}}
 
+        {{-- TEMP DEBUG: remove after fixing --}}
+        <div id="php-debug" style="background:#1e293b;color:#7dd3fc;padding:10px 16px;font-size:0.82rem;margin-bottom:8px;border-radius:8px;">
+            <strong>PHP Debug:</strong>
+            games={{ json_encode($games) }} |
+            complex_id={{ $complex_id }} |
+            opening_hours_wed={{ json_encode($opening_hours['wednesday'] ?? 'MISSING') }} |
+            sports_count={{ count($sports ?? []) }}
+        </div>
+        <div id="js-debug" style="background:#134e4a;color:#6ee7b7;padding:10px 16px;font-size:0.82rem;margin-bottom:8px;border-radius:8px;">
+            JS Debug: <span id="js-debug-msg">waiting for JS...</span>
+        </div>
+
         <div class="card booking-card">
             <div class="card-header booking-header">
                 <h5 class="mb-0 text-white">
@@ -1234,7 +1262,22 @@
                 console.error('No games configured!');
             }
 
-            // Always call updateCalendar to display slots
+            // If all today's slots have passed, auto-advance to tomorrow
+            const todaySlots = generateTimeSlots();
+            if (todaySlots.length > 0) {
+                const now = new Date();
+                // Advance after the last slot ENDS (last slot start + 1 hour)
+                const lastSlotHour = parseInt(todaySlots[todaySlots.length - 1].time24.split(':')[0], 10);
+                const lastSlotEnds = new Date(now.getFullYear(), now.getMonth(), now.getDate(), lastSlotHour + 1, 0);
+                if (now >= lastSlotEnds) {
+                    // All slots have ended — show tomorrow
+                    currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+                }
+            } else {
+                // Venue is closed today — show tomorrow
+                const now = new Date();
+                currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+            }
 
             updateCalendar();
 
@@ -1670,16 +1713,22 @@
         }
 
         function updateCalendar() {
+            const calendarBodyEl  = document.getElementById('calendarBody');
+            const calendarHeaderEl = document.getElementById('calendarHeader');
+            if (!calendarBodyEl || !calendarHeaderEl) {
+                console.warn('Calendar DOM not ready yet, skipping update.');
+                return;
+            }
             if (!currentGame) {
                 console.warn('No current game selected, skipping calendar update.');
-                document.getElementById('calendarBody').innerHTML = `
+                calendarBodyEl.innerHTML = `
                 <tr>
                     <td colspan="100%" class="text-center py-4">
                         <i class="fas fa-info-circle me-2"></i>Please select a game to view the calendar.
                     </td>
                 </tr>
             `;
-                document.getElementById('calendarHeader').innerHTML = '<th class="time-column">Time</th>';
+                calendarHeaderEl.innerHTML = '<th class="time-column">Time</th>';
                 return;
             }
 
@@ -1688,11 +1737,11 @@
             const dateKey = formatDateKey(currentDate);
             
             // FIX: Try both lowercase and exact case for game name
-            let gameData = sportData[currentGame]?.[dateKey];
+            let gameData = (sportData[currentGame] ? sportData[currentGame][dateKey] : undefined);
             if (!gameData) {
                 // Try lowercase version
                 const lowerGame = currentGame.toLowerCase();
-                gameData = sportData[lowerGame]?.[dateKey] || {};
+                gameData = (sportData[lowerGame] ? sportData[lowerGame][dateKey] : undefined) || {};
                 console.log('Using lowercase game key:', lowerGame);
             } else {
                 console.log('Using exact game key:', currentGame);
@@ -1737,7 +1786,7 @@
 
             console.log('DEBUG - headerHtml:', headerHtml);
 
-            document.getElementById('calendarHeader').innerHTML = headerHtml;
+            calendarHeaderEl.innerHTML = headerHtml;
 
             let bodyHtml = '';
             const timeSlots = generateTimeSlots();
@@ -1746,14 +1795,15 @@
 
             if (!timeSlots || timeSlots.length === 0) {
                 // Venue closed today or no available slots
-                document.getElementById('calendarBody').innerHTML = `
+                calendarBodyEl.innerHTML = `
                     <tr>
                         <td colspan="${numberOfCourts + 1}" class="text-center py-4">
                             <i class="fas fa-times-circle me-2"></i>
                             No available slots for ${formatDate(currentDate)} (venue may be closed)
                         </td>
                     </tr>`;
-                document.getElementById('currentDate').textContent = formatDate(currentDate);
+                const currentDateEl = document.getElementById('currentDate');
+                if (currentDateEl) currentDateEl.textContent = formatDate(currentDate);
                 return;
             }
 
@@ -1860,7 +1910,10 @@
                         // Feature #9: check if slot is blocked
                         const slotTimeKey = slot.time24.substring(0, 8); // HH:mm:ss
                         const rawBlockValue = sportId &&
-                            blockedSlotsData[sportId]?.[dateKey]?.[slotTimeKey]?.[court];
+                            blockedSlotsData[sportId] &&
+                            blockedSlotsData[sportId][dateKey] &&
+                            blockedSlotsData[sportId][dateKey][slotTimeKey] &&
+                            blockedSlotsData[sportId][dateKey][slotTimeKey][court];
                         const isBlocked = !!rawBlockValue;
                         // Support both old string format and new {reason, end_time} object format
                         const blockReason = isBlocked
@@ -1868,6 +1921,14 @@
                             : null;
                         const blockEndTime = isBlocked && typeof rawBlockValue === 'object'
                             ? rawBlockValue.end_time : null;
+
+                        // Check if slot is on hold (mobile user in checkout via Django webhook)
+                        const isHeld = !!(sportId &&
+                            window.heldSlots &&
+                            window.heldSlots[sportId] &&
+                            window.heldSlots[sportId][dateKey] &&
+                            window.heldSlots[sportId][dateKey][slotTimeKey] &&
+                            window.heldSlots[sportId][dateKey][slotTimeKey][court]);
 
                         if (isPastSlot) {
                             // Show past slot as disabled/unavailable
@@ -1894,6 +1955,15 @@
                                             title="Remove block">
                                         <i class="fas fa-unlock me-1"></i>Unblock
                                     </button>
+                                </div>
+                            </td>`;
+                        } else if (isHeld) {
+                            // Slot is temporarily held by a mobile user in checkout
+                            bodyHtml += `
+                            <td>
+                                <div class="time-slot held-slot d-flex flex-column align-items-center justify-content-center gap-1">
+                                    <div><i class="fas fa-hourglass-half me-1"></i><strong>On Hold</strong></div>
+                                    <div class="small">Mobile checkout in progress</div>
                                 </div>
                             </td>`;
                         } else {
@@ -1933,8 +2003,9 @@
             console.log('DEBUG - bodyHtml length:', bodyHtml.length);
             console.log('DEBUG - First 200 chars of bodyHtml:', bodyHtml.substring(0, 200));
 
-            document.getElementById('calendarBody').innerHTML = bodyHtml;
-            document.getElementById('currentDate').textContent = formatDate(currentDate);
+            calendarBodyEl.innerHTML = bodyHtml;
+            const currentDateEl = document.getElementById('currentDate');
+            if (currentDateEl) currentDateEl.textContent = formatDate(currentDate);
 
             console.log('DEBUG - Calendar body updated!');
 
@@ -2021,7 +2092,11 @@
         }
 
         function formatDateKey(date) {
-            return date.toISOString().split('T')[0];
+            // Use local date parts to avoid UTC timezone shift (e.g. Asia/Colombo UTC+5:30)
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
         }
 
         function calculateDurationInSeconds(startTimeStr, endTimeStr) {
@@ -2250,9 +2325,20 @@
         // REAL-TIME WEBSOCKET BOOKING UPDATES
         // ========================================
         const channelName = `bookings.complex.${complexId}`;
-        
+
         // Subscribe to real-time booking updates via WebSocket
-        const channel = window.Echo.channel(channelName);
+        // Wrapped in try-catch so a connection failure doesn't crash the calendar
+        let channel = null;
+        try {
+            channel = window.Echo && complexId ? window.Echo.channel(channelName) : null;
+        } catch(e) {
+            console.warn('Echo channel setup failed:', e);
+        }
+        if (!channel) {
+            console.warn('Real-time updates unavailable (Reverb not connected). Calendar still works.');
+        }
+        // Fallback: if Echo unavailable, make channel a no-op so .listen() calls don't crash
+        if (!channel) { channel = { listen: function() { return this; } }; }
 
         /**
          * Listen for new bookings created from mobile app
@@ -2334,6 +2420,73 @@
                 }
             }, 500);
         });
+
+        // ========================================
+        // SLOT STATE CHANGES FROM DJANGO WEBHOOK
+        // (slot holds, blocks, booking confirmed/cancelled from mobile)
+        // ========================================
+        window.heldSlots = window.heldSlots || {};
+
+        @foreach($sports ?? collect() as $sport)
+        // subscribe to slot state changes for sport {{ $sport->id }}
+        try {
+            if (window.Echo) {
+                window.Echo.channel('slots.venue.{{ $complex_id }}.sport.{{ $sport->id }}').listen('.slot_state_changed', function(data) {
+                    var sportId = data.sport_id;
+                    var date    = data.date;
+                    var time    = data.start_time;
+                    var court   = (data.court !== null && data.court !== undefined) ? data.court : '1';
+
+                    if (!sportId || !date || !time) return;
+
+                    if (data.event_type === 'slot.hold.created') {
+                        window.heldSlots[sportId] = window.heldSlots[sportId] || {};
+                        window.heldSlots[sportId][date] = window.heldSlots[sportId][date] || {};
+                        window.heldSlots[sportId][date][time] = window.heldSlots[sportId][date][time] || {};
+                        window.heldSlots[sportId][date][time][court] = true;
+                        showNotification('warning', 'Slot On Hold',
+                            data.date + ' ' + data.start_time + ' Court ' + court + ' — mobile checkout in progress', 4000);
+                        if (typeof updateCalendar === 'function') updateCalendar();
+
+                    } else if (data.event_type === 'slot.hold.released') {
+                        if (window.heldSlots[sportId] && window.heldSlots[sportId][date] && window.heldSlots[sportId][date][time]) {
+                            delete window.heldSlots[sportId][date][time][court];
+                        }
+                        if (typeof updateCalendar === 'function') updateCalendar();
+
+                    } else if (data.event_type === 'booking.created') {
+                        if (window.heldSlots[sportId] && window.heldSlots[sportId][date] && window.heldSlots[sportId][date][time]) {
+                            delete window.heldSlots[sportId][date][time][court];
+                        }
+                        showNotification('success', 'Booking Confirmed',
+                            data.date + ' ' + data.start_time + ' Court ' + court + ' booked via mobile', 4000);
+                        Livewire.dispatch('refreshBookings');
+                        refreshBookingData().then(function() {
+                            if (typeof updateCalendar === 'function') updateCalendar();
+                        });
+
+                    } else if (data.event_type === 'booking.cancelled') {
+                        showNotification('warning', 'Booking Cancelled',
+                            data.date + ' ' + data.start_time + ' Court ' + court, 3500);
+                        Livewire.dispatch('refreshBookings');
+                        refreshBookingData().then(function() {
+                            if (typeof updateCalendar === 'function') updateCalendar();
+                        });
+
+                    } else if (data.event_type === 'slot.blocked') {
+                        showNotification('info', 'Slot Blocked',
+                            data.date + ' ' + data.start_time + ' — ' + (data.reason || ''), 3000);
+                        Livewire.dispatch('refreshBookings');
+
+                    } else if (data.event_type === 'slot.unblocked') {
+                        showNotification('info', 'Slot Unblocked',
+                            data.date + ' ' + data.start_time, 3000);
+                        Livewire.dispatch('refreshBookings');
+                    }
+                });
+            }
+        } catch(e) { console.warn('Sport Echo subscription failed:', e); }
+        @endforeach
     });
 
     // Also listen for Livewire update event

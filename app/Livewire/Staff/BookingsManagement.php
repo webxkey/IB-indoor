@@ -176,7 +176,9 @@ class BookingsManagement extends Component
                 $date = Carbon::parse($booking->booking_date)->format('Y-m-d');
                 $court = $booking->court_number ?? '1';
                 $startTime = Carbon::parse($booking->start_time);
-                $endTime = Carbon::parse($booking->end_time);
+                $endTime = $booking->end_time
+                    ? Carbon::parse($booking->end_time)
+                    : $startTime->copy()->addHour();
 
                 $hours = max(1, $startTime->diffInHours($endTime));
 

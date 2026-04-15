@@ -189,6 +189,12 @@ class Bookings extends Component
         }
     }
 
+    public function refreshData(): void
+    {
+        $this->loadStats();
+        $this->resetPage();
+    }
+
     public function render()
     {
         return view('livewire.admin.bookings', [

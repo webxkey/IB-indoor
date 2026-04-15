@@ -1,19 +1,19 @@
 <div class="container-fluid">
     <!-- Flash Messages -->
     @if (session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="fas fa-check-circle me-2"></i>
-        {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     @endif
 
     @if (session('error'))
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="fas fa-exclamation-circle me-2"></i>
-        {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     @endif
 
     <!-- Stats Cards Row -->
@@ -170,49 +170,49 @@
                     </thead>
                     <tbody>
                         @foreach($users as $user)
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <img src="{{ $user->profile_picture ? (strpos($user->profile_picture, 'http') === 0 ? $user->profile_picture : 'https://api.indoorbooking.com/media/'.$user->profile_picture) : 'https://ui-avatars.com/api/?name='.urlencode($user->first_name.'+'.$user->last_name).'&background=random' }}"
-                                        class="rounded-circle me-3" width="40" height="40"
-                                        alt="{{ $user->first_name }} {{ $user->last_name }}">
-                                    <div>
-                                        <h6 class="mb-0">{{ $user->first_name }} {{ $user->last_name }}</h6>
-                                        <small class="text-muted">{{ $user->email }}</small>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ $user->profile_picture ? (strpos($user->profile_picture, 'http') === 0 ? $user->profile_picture : 'https://api.sportynix.com/media/' . $user->profile_picture) : 'https://ui-avatars.com/api/?name=' . urlencode($user->first_name . '+' . $user->last_name) . '&background=random' }}"
+                                            class="rounded-circle me-3" width="40" height="40"
+                                            alt="{{ $user->first_name }} {{ $user->last_name }}">
+                                        <div>
+                                            <h6 class="mb-0">{{ $user->first_name }} {{ $user->last_name }}</h6>
+                                            <small class="text-muted">{{ $user->email }}</small>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div>{{ $user->email }}</div>
-                                <small class="text-muted">{{ $user->phone_number ?? 'No phone' }}</small>
-                            </td>
-                            <td>{{ $user->last_login ? $user->last_login->format('d M Y') : 'Never' }}</td>
-                            <td>
-                                @if($user->is_active)
-                                <span class="badge bg-success">Active</span>
-                                @else
-                                <span class="badge bg-secondary">Inactive</span>
-                                @endif
-                                @if($user->points >= 1000)
-                                <span class="badge bg-warning text-dark ms-1">Premium</span>
-                                @endif
-                            </td>
-                            <td>{{ $user->points }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary me-1" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-info me-1" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button
-                                    class="btn btn-sm {{ $user->is_active ? 'btn-outline-danger' : 'btn-outline-success' }}"
-                                    title="{{ $user->is_active ? 'Deactivate' : 'Activate' }}"
-                                    wire:click="toggleStatus({{ $user->id }})">
-                                    <i class="fas {{ $user->is_active ? 'fa-ban' : 'fa-check' }}"></i>
-                                </button>
-                            </td>
-                        </tr>
+                                </td>
+                                <td>
+                                    <div>{{ $user->email }}</div>
+                                    <small class="text-muted">{{ $user->phone_number ?? 'No phone' }}</small>
+                                </td>
+                                <td>{{ $user->last_login ? $user->last_login->format('d M Y') : 'Never' }}</td>
+                                <td>
+                                    @if($user->is_active)
+                                        <span class="badge bg-success">Active</span>
+                                    @else
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    @endif
+                                    @if($user->points >= 1000)
+                                        <span class="badge bg-warning text-dark ms-1">Premium</span>
+                                    @endif
+                                </td>
+                                <td>{{ $user->points }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-1" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info me-1" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button
+                                        class="btn btn-sm {{ $user->is_active ? 'btn-outline-danger' : 'btn-outline-success' }}"
+                                        title="{{ $user->is_active ? 'Deactivate' : 'Activate' }}"
+                                        wire:click="toggleStatus({{ $user->id }})">
+                                        <i class="fas {{ $user->is_active ? 'fa-ban' : 'fa-check' }}"></i>
+                                    </button>
+                                </td>
+                            </tr>
                         @endforeach
                     </tbody>
                 </table>
@@ -225,7 +225,7 @@
 
     <!-- Add User Modal -->
     <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true" wire:ignore.self @if($showModal)
-        style="display: block; background: rgba(0,0,0,0.5);" @endif>
+    style="display: block; background: rgba(0,0,0,0.5);" @endif>
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
@@ -290,26 +290,26 @@
 
     <!-- Backdrop for modal -->
     @if($showModal)
-    <div class="modal-backdrop fade show" wire:click="closeAddUserModal"></div>
+        <div class="modal-backdrop fade show" wire:click="closeAddUserModal"></div>
     @endif
 
 
 </div>
 @push('scripts')
-        <script>
+    <script>
         // Handle modal show/hide with Livewire
-        document.addEventListener('livewire:init', function() {
+        document.addEventListener('livewire:init', function () {
             // Check if the modal element exists before trying to use it
             const modalElement = document.getElementById('addUserModal');
-            
+
             if (modalElement) {
                 const modal = new bootstrap.Modal(modalElement);
-                
+
                 // Show modal when Livewire triggers it
                 Livewire.on('showModal', () => {
                     modal.show();
                 });
-                
+
                 // Hide modal when Livewire triggers it
                 Livewire.on('closeModal', () => {
                     modal.hide();

@@ -1,4 +1,4 @@
-# IndoorBooking System — Complete Guide
+# sportynix System — Complete Guide
 > For Claude and future developers. Read this before touching any file.
 
 ---
@@ -21,7 +21,7 @@
 
 ## 1. What This System Is
 
-**IndoorBooking** is a dual-platform sports venue booking system:
+**sportynix** is a dual-platform sports venue booking system:
 
 - **Web App** — Laravel 10 + Livewire 3 (this project)
 - **Mobile App** — Django REST API (separate repo)

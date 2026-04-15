@@ -342,6 +342,45 @@
                 
                 modal.show();
             });
+
+            // ── Real-time updates (booking from mobile + slot changes from Django) ──
+            if (window.Echo) {
+                // New booking created from mobile app → refresh stats + table
+                window.Echo.channel('bookings.global')
+                    .listen('.booking.created', () => {
+                        showAdminToast('New booking received from mobile app');
+                        Livewire.dispatch('refreshData');
+                    });
+
+                // Slot state changed (hold/unhold/block/cancel) from Django webhook
+                window.Echo.channel('slots.global')
+                    .listen('.slot_state_changed', (data) => {
+                        const labels = {
+                            'booking.created':    'New booking confirmed',
+                            'booking.cancelled':  'Booking cancelled',
+                            'slot.hold.created':  'Slot on hold (mobile checkout)',
+                            'slot.hold.released': 'Slot hold released',
+                            'slot.blocked':       'Slot blocked by admin',
+                            'slot.unblocked':     'Slot unblocked',
+                        };
+                        const msg = labels[data.event_type] ?? 'Slot state changed';
+                        showAdminToast(`${msg} — Venue #${data.venue_id}`);
+
+                        if (['booking.created', 'booking.cancelled'].includes(data.event_type)) {
+                            Livewire.dispatch('refreshData');
+                        }
+                    });
+            }
         });
+
+        function showAdminToast(message) {
+            const el = document.createElement('div');
+            el.className = 'alert alert-info alert-dismissible fade show position-fixed';
+            el.style.cssText = 'top:80px;right:20px;z-index:9999;min-width:280px;max-width:400px;';
+            el.innerHTML = `<i class="fas fa-bell me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 5000);
+        }
     </script>
     @endpush

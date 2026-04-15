@@ -74,7 +74,9 @@
 
     <!-- Main Privacy Content -->
     <section class="container privacy-section">
-        <p>At <strong>Indoor Booking</strong>, we respect your privacy and are committed to protecting your personal information. This Privacy Policy explains how we collect, use, and safeguard the data you share with us when using our website and services.</p>
+        <p>At <strong>Indoor Booking</strong>, we respect your privacy and are committed to protecting your personal
+            information. This Privacy Policy explains how we collect, use, and safeguard the data you share with us when
+            using our website and services.</p>
 
         <h3>1. Information We Collect</h3>
         <p>We may collect the following types of information:</p>
@@ -94,22 +96,27 @@
         </ul>
 
         <h3>3. Data Security</h3>
-        <p>We implement strong security measures, including SSL encryption and regular audits, to protect your personal and financial information from unauthorized access or misuse.</p>
+        <p>We implement strong security measures, including SSL encryption and regular audits, to protect your personal
+            and financial information from unauthorized access or misuse.</p>
 
         <h3>4. Cookies</h3>
-        <p>We use cookies to enhance your experience, analyze traffic, and remember your preferences. You can manage or disable cookies through your browser settings.</p>
+        <p>We use cookies to enhance your experience, analyze traffic, and remember your preferences. You can manage or
+            disable cookies through your browser settings.</p>
 
         <h3>5. Sharing Information</h3>
-        <p>We do not sell or rent your data. We may share limited information with trusted third-party partners (like payment gateways) to facilitate bookings and payments.</p>
+        <p>We do not sell or rent your data. We may share limited information with trusted third-party partners (like
+            payment gateways) to facilitate bookings and payments.</p>
 
         <h3>6. Your Rights</h3>
-        <p>You have the right to access, correct, or request deletion of your personal information at any time. Contact us for any privacy-related concerns.</p>
+        <p>You have the right to access, correct, or request deletion of your personal information at any time. Contact
+            us for any privacy-related concerns.</p>
 
         <h3>7. Policy Updates</h3>
-        <p>Indoor Booking may update this Privacy Policy from time to time. Any changes will be posted on this page with an updated revision date.</p>
+        <p>Indoor Booking may update this Privacy Policy from time to time. Any changes will be posted on this page with
+            an updated revision date.</p>
 
         <h3>8. Contact Us</h3>
         <p>If you have questions or concerns about this Privacy Policy, please contact us at:</p>
-        <p><strong>Email:</strong> support@indoorbooking.com</p>
+        <p><strong>Email:</strong> support@sportynix.com</p>
     </section>
 </div>

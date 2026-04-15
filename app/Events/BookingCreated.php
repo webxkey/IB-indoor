@@ -35,6 +35,7 @@ class BookingCreated implements ShouldBroadcast
     {
         return [
             new Channel("bookings.complex.{$this->complexId}"),
+            new Channel('bookings.global'),
         ];
     }
 
