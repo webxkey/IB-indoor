@@ -104,9 +104,11 @@
         }
 
         /* Main Content */
-        main {
+        .admin-main-content {
             margin-left: var(--sidebar-width);
             padding: 0 2rem;
+            min-width: 0;
+            width: 100%;
         }
 
         /* Header */
@@ -353,36 +355,32 @@
         @media (max-width: 767.98px) {
             .sidebar {
                 transform: translateX(-100%);
-                transition: transform 0.15s ease-in-out;
+                transition: transform 0.2s ease-in-out;
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 1040;
+                height: 100vh;
+                width: var(--sidebar-width);
             }
 
             .sidebar.show {
                 transform: translateX(0);
             }
 
-            main {
-                margin-left: 0;
+            .admin-main-content {
+                margin-left: 0 !important;
                 padding: 0 1rem;
             }
 
             header {
-                margin: 0 -1rem 2rem -1rem;
+                margin: 0 -1rem 1.5rem -1rem;
                 padding-left: 1rem;
                 padding-right: 1rem;
             }
 
             .search-box .form-control {
-                width: 200px;
-            }
-
-            .d-flex.justify-content-between.align-items-center {
-                flex-direction: column;
-                align-items: stretch !important;
-                gap: 1rem;
-            }
-
-            .d-flex.justify-content-between.align-items-center>div:last-child {
-                text-align: center;
+                width: 180px;
             }
         }
 
@@ -566,10 +564,10 @@
 </head>
 
 <body>
-    <div class="container-fluid">
-        <div class="row">
+    <div class="container-fluid px-0">
+        <div class="d-flex">
             <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+            <nav class="sidebar d-md-block collapse" id="adminSidebar">
                 <div class="position-sticky pt-1">
                     <div class="sidebar-brand mb-2">
                         <div class="d-flex align-items-center gap-0" style="font-size: 1.8rem;">
@@ -637,6 +635,19 @@
                                     Landing Page
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.tournaments') ? 'active' : '' }}"
+                                    href="{{ route('admin.tournaments') }}">
+                                    <i class="fas fa-trophy me-2"></i>
+                                    Tournaments
+                                    @php
+                                        $pendingTournaments = \App\Models\LeagueLeague::where('status','published')->count();
+                                    @endphp
+                                    @if($pendingTournaments > 0)
+                                    <span class="badge bg-warning text-dark ms-auto">{{ $pendingTournaments }}</span>
+                                    @endif
+                                </a>
+                            </li>
 
                         </ul>
                     </div>
@@ -645,7 +656,7 @@
                         <h6 class="sidebar-heading text-muted text-uppercase">GENERAL</h6>
                         <ul class="nav flex-column">
                             <li class="nav-item">
-                                <a class="nav-link" href="#" data-section="settings">
+                                <a class="nav-link {{ request()->routeIs('admin.settings') ? 'active' : '' }}" href="{{ route('admin.settings') }}">
                                     <i class="fas fa-cog me-2"></i>
                                     Settings
                                 </a>
@@ -683,15 +694,13 @@
             </nav>
 
             <!-- Main content -->
-            <div class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="admin-main-content flex-grow-1">
                 <!-- Header -->
                 <header class="d-flex justify-content-between align-items-center py-3 mb-4">
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-outline-secondary d-md-none me-2" type="button" data-bs-toggle="collapse"
-                            data-bs-target=".sidebar">
+                        <button class="btn btn-outline-secondary d-md-none me-2" type="button" id="adminSidebarToggle">
                             <i class="fas fa-bars"></i>
                         </button>
-                       
                     </div>
                     <div class="d-flex align-items-center">
                         <a href="{{ route('admin.bookings') }}" class="btn btn-outline-secondary me-2" title="Bookings">
@@ -790,32 +799,22 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Sidebar toggle functionality
-        const sidebar = document.querySelector('.sidebar');
-        const sidebarToggle = document.querySelector('[data-bs-target=".sidebar"]');
+        const sidebar = document.getElementById('adminSidebar');
+        const toggle  = document.getElementById('adminSidebarToggle');
 
-        if (sidebarToggle && sidebar) {
-            sidebarToggle.addEventListener('click', function() {
+        if (toggle && sidebar) {
+            toggle.addEventListener('click', function() {
                 sidebar.classList.toggle('show');
             });
-
-            // Close sidebar when clicking outside on mobile
-            document.addEventListener('click', function(event) {
-                if (window.innerWidth <= 991.98) {
-                    const isClickInsideSidebar = sidebar.contains(event.target);
-                    const isClickOnToggle = sidebarToggle.contains(event.target);
-                    if (!isClickInsideSidebar && !isClickOnToggle) {
-                        sidebar.classList.remove('show');
-                    }
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth < 768 && !sidebar.contains(e.target) && !toggle.contains(e.target)) {
+                    sidebar.classList.remove('show');
                 }
             });
         }
 
-        // Prevent dropdown from closing when clicking inside forms
         document.querySelectorAll('.dropdown-menu form').forEach(form => {
-            form.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
+            form.addEventListener('click', e => e.stopPropagation());
         });
     });
 </script>
