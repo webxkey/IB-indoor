@@ -12,6 +12,8 @@ use App\Models\BookingSport;
 use App\Models\BookingVenue;
 use App\Models\BookingVenueReview;
 use App\Models\UserUser;
+use App\Http\Controllers\Api\Admin\BookingController;
+use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Events\BookingCreated;
 
 /*
@@ -31,10 +33,13 @@ use App\Events\BookingCreated;
 // AUTH
 // =========================================================================
 
+
+
+
 /**
  * POST /api/auth/login
  * Body: { email, password }
- * Returns: { token, user: { id, name, email, phone_number, profile_picture, points } }
+ * Returns: { token, tokens: { access, refresh }, user: { ... , user_type } }
  */
 Route::post('/auth/login', function (Request $request) {
     $v = Validator::make($request->all(), [
@@ -43,25 +48,109 @@ Route::post('/auth/login', function (Request $request) {
     ]);
     if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
 
-    $user = UserUser::where('email', $request->email)->first();
+    $laravelUser = \App\Models\User::where('email', $request->email)->first();
+    $userUser = UserUser::where('email', $request->email)->first();
 
-    if (!$user || !Hash::check($request->password, $user->password)) {
+    $safePasswordCheck = function (?string $rawPassword, ?string $hashedPassword): bool {
+        if (!$rawPassword || !$hashedPassword) return false;
+        try {
+            return Hash::check($rawPassword, $hashedPassword);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    };
+
+    $verifyDjangoPassword = function (string $password, string $djangoHash): bool {
+        if (!str_starts_with($djangoHash, 'pbkdf2_sha256$')) return false;
+        $parts = explode('$', $djangoHash);
+        if (count($parts) !== 4) return false;
+        list($algorithm, $iterations, $salt, $hash) = $parts;
+        $calc = hash_pbkdf2('sha256', $password, $salt, (int)$iterations, 32, true);
+        return base64_encode($calc) === $hash;
+    };
+
+    $validLaravelPassword = $laravelUser ? $safePasswordCheck($request->password, $laravelUser->password) : false;
+    $validUserUserPassword = $userUser ? $safePasswordCheck($request->password, $userUser->password) : false;
+    
+    // Check for legacy Django hash if standard checks failed
+    $isLegacyLogin = false;
+    if (!$validLaravelPassword && !$validUserUserPassword && $userUser && str_starts_with($userUser->password, 'pbkdf2_sha256$')) {
+        if ($verifyDjangoPassword($request->password, $userUser->password)) {
+            $validUserUserPassword = true;
+            $isLegacyLogin = true;
+        }
+    }
+
+    if (!$validLaravelPassword && !$validUserUserPassword) {
         return response()->json(['message' => 'Invalid credentials'], 401);
     }
 
-    // Use Laravel User model for Sanctum token
-    $laravelUser = \App\Models\User::where('email', $request->email)->first();
-    $token = $laravelUser ? $laravelUser->createToken('mobile')->plainTextToken : null;
+    // If it was a legacy login or if we are missing the Laravel user, 
+    // we should ensure the passwords are synced and use Bcrypt from now on.
+    $newHash = Hash::make($request->password);
+
+    // Ensure we always have a Laravel user for Sanctum token creation.
+    if (!$laravelUser && $userUser) {
+        $fullName = trim(($userUser->first_name ?? '') . ' ' . ($userUser->last_name ?? ''));
+        $laravelUser = \App\Models\User::create([
+            'name' => $fullName ?: $userUser->email,
+            'email' => $userUser->email,
+            'password' => $newHash, // Store as Bcrypt
+            'role' => 'customer',
+            'contact' => $userUser->phone_number ?? '',
+        ]);
+    } elseif ($isLegacyLogin && $laravelUser) {
+        // Upgrade Laravel user to Bcrypt
+        $laravelUser->update(['password' => $newHash]);
+    }
+
+    // Upgrade UserUser to Bcrypt if it was legacy
+    if ($isLegacyLogin && $userUser) {
+        $userUser->update(['password' => $newHash]);
+    }
+
+    if (!$laravelUser) {
+        return response()->json(['message' => 'User account not provisioned'], 500);
+    }
+
+    $token = $laravelUser->createToken('mobile')->plainTextToken;
+
+    // Normalize role naming expected by mobile app.
+    $role = strtolower((string) ($laravelUser->role ?? 'customer'));
+    $userType = match ($role) {
+        'admin', 'superadmin' => 'superadmin',
+        'facility_owner', 'indoor_admin' => 'indoor_admin',
+        'staff' => 'staff',
+        default => 'user',
+    };
+
+    $displayName = trim((string) ($laravelUser->name ?? ''));
+    if (!$displayName && $userUser) {
+        $displayName = trim(($userUser->first_name ?? '') . ' ' . ($userUser->last_name ?? ''));
+    }
+
+    $laravelUser->load('complex');
 
     return response()->json([
         'token' => $token,
+        'tokens' => [
+            'access' => $token,
+            'refresh' => null,
+        ],
+        'access' => $token,
+        'refresh' => null,
         'user'  => [
-            'id'              => $user->id,
-            'name'            => trim($user->first_name . ' ' . $user->last_name),
-            'email'           => $user->email,
-            'phone_number'    => $user->phone_number,
-            'profile_picture' => $user->profile_picture,
-            'points'          => $user->points ?? 0,
+            'id'              => $laravelUser->id,
+            'email'           => $laravelUser->email,
+            'first_name'      => $laravelUser->first_name,
+            'last_name'       => $laravelUser->last_name,
+            'user_type'       => $userType,
+            'is_active'       => true, 
+            'phone_number'    => $userUser?->phone_number ?? $laravelUser->contact,
+            'profile_picture' => $userUser?->profile_picture ?? $laravelUser->profile_photo_url,
+            'venue_id'        => $laravelUser->complex_id,
+            'venue_name'      => $laravelUser->complex?->name,
+            'points'          => $userUser?->points ?? 0,
         ],
     ]);
 });
@@ -75,32 +164,61 @@ Route::post('/auth/register', function (Request $request) {
     $v = Validator::make($request->all(), [
         'first_name'   => 'required|string|max:100',
         'last_name'    => 'nullable|string|max:100',
-        'email'        => 'required|email|unique:users_user,email',
+        'email'        => 'required|email|unique:users_user,email|unique:users,email',
         'password'     => 'required|string|min:6',
         'phone_number' => 'nullable|string|max:20',
     ]);
     if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
 
     $user = UserUser::create([
-        'first_name'   => $request->first_name,
-        'last_name'    => $request->last_name ?? '',
-        'email'        => $request->email,
-        'password'     => Hash::make($request->password),
-        'phone_number' => $request->phone_number,
-        'is_active'    => true,
-        'is_staff'     => false,
-        'is_superuser' => false,
-        'points'       => 0,
-        'referral_code'=> strtoupper(\Illuminate\Support\Str::random(8)),
+        'first_name'       => $request->first_name,
+        'last_name'        => $request->last_name ?? '',
+        'email'            => $request->email,
+        'password'         => Hash::make($request->password),
+        'phone_number'     => $request->phone_number,
+        'is_active'        => true,
+        'is_staff'         => false,
+        'is_superuser'     => false,
+        'points'           => 0,
+        'referral_code'    => strtoupper(\Illuminate\Support\Str::random(8)),
+        'availability'     => '',
+        'is_public_profile'=> false,
+        'is_show_contact'  => false,
     ]);
+
+    $role = 'customer';
+    if ($request->account_type === 'indoor_admin') {
+        $role = 'facility_owner';
+    } elseif ($request->account_type === 'superadmin') {
+        $role = 'admin';
+    } elseif ($request->account_type === 'staff') {
+        $role = 'staff';
+    }
+
+    $venueId = null;
+    if ($request->filled('venue_name')) {
+        $venue = \App\Models\BookingVenue::create([
+            'name'           => $request->venue_name,
+            'address'        => $request->venue_address ?? '',
+            'contact_number' => $request->venue_contact_number ?? '',
+            'email_address'  => $request->venue_email ?? '',
+            'location'       => $request->venue_location ?? '',
+            'complex_type'   => $request->venue_complex_type ?? 'Indoor',
+            'rating'         => '0',
+            'reviews'        => 0,
+            'status'         => 'Active',
+        ]);
+        $venueId = $venue->id;
+    }
 
     // Also create Laravel user for Sanctum
     $laravelUser = \App\Models\User::create([
-        'name'     => trim($request->first_name . ' ' . ($request->last_name ?? '')),
-        'email'    => $request->email,
-        'password' => Hash::make($request->password),
-        'role'     => 'customer',
-        'contact'  => $request->phone_number ?? '',
+        'name'       => trim($request->first_name . ' ' . ($request->last_name ?? '')),
+        'email'      => $request->email,
+        'password'   => Hash::make($request->password),
+        'role'       => $role,
+        'contact'    => $request->phone_number ?? '',
+        'complex_id' => $venueId,
     ]);
     $token = $laravelUser->createToken('mobile')->plainTextToken;
 
@@ -174,7 +292,7 @@ Route::get('/venues/{id}', function ($id) {
 Route::get('/venues/{id}/sports', function ($id) {
     $sports = BookingSport::where('venue_id', $id)
         ->where('status', 'Active')
-        ->get(['id','name','price','rate_type','maximum_court','image','average_rating','description','game_type','pricing_rules']);
+        ->get(['id','name','price','rate_type','maximum_court','image','average_rating','description','game_type']);
 
     return response()->json($sports);
 });
@@ -216,7 +334,7 @@ Route::get('/slot/available', function (Request $request) {
         ->where('booking_date', $request->date)
         ->where('start_time', $timeKey)
         ->where('court_number', $court)
-        ->whereNotIn('status', ['cancelled'])
+        ->whereNotIn('status', ['cancelled', 'Cancelled'])
         ->exists();
 
     if ($booked) return response()->json(['available' => false, 'reason' => 'Already booked']);
@@ -251,7 +369,7 @@ Route::get('/slot/available-courts', function (Request $request) {
             ->where('booking_date', $request->date)
             ->where('start_time', $timeKey)
             ->where('court_number', $court)
-            ->whereNotIn('status', ['cancelled'])
+            ->whereNotIn('status', ['cancelled', 'Cancelled'])
             ->exists();
 
         $courts[] = [
@@ -276,85 +394,7 @@ Route::middleware('auth:sanctum')->group(function () {
      *         user_name, user_number, duration, price, payment_method, notes }
      * Returns: { booking }
      */
-    Route::post('/bookings', function (Request $request) {
-        $v = Validator::make($request->all(), [
-            'sport_id'      => 'required|integer|exists:booking_sport,id',
-            'venue_id'      => 'required|integer|exists:booking_venue,id',
-            'booking_date'  => 'required|date',
-            'start_time'    => 'required',
-            'end_time'      => 'nullable',
-            'court_number'  => 'required|string',
-            'user_name'     => 'required|string|max:255',
-            'user_number'   => 'required|string|max:20',
-            'duration'      => 'nullable|integer',
-            'price'         => 'nullable|numeric',
-            'payment_method'=> 'nullable|string',
-            'notes'         => 'nullable|string',
-        ]);
-        if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
-
-        $sport   = BookingSport::find($request->sport_id);
-        $timeKey = strlen($request->start_time) === 5 ? $request->start_time . ':00' : $request->start_time;
-        $court   = $request->court_number;
-
-        // Block check
-        $blocked  = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
-        $slotData = $blocked[$request->booking_date][$timeKey][$court] ?? null;
-        if ($slotData !== null) {
-            $reason = is_array($slotData) ? ($slotData['reason'] ?? 'Unavailable') : $slotData;
-            return response()->json(['message' => 'Slot is blocked: ' . $reason], 409);
-        }
-
-        // Double-booking check
-        $exists = BookingBooking::where('game_id_id', $request->sport_id)
-            ->where('booking_date', $request->booking_date)
-            ->where('start_time', $timeKey)
-            ->where('court_number', $court)
-            ->whereNotIn('status', ['cancelled'])
-            ->exists();
-        if ($exists) return response()->json(['message' => 'Slot already booked'], 409);
-
-        $booking = BookingBooking::create([
-            'game_id_id'     => $request->sport_id,
-            'game_name'      => $sport->name,
-            'complex_id_id'  => $request->venue_id,
-            'booking_date'   => $request->booking_date,
-            'start_time'     => $timeKey,
-            'end_time'       => $request->end_time,
-            'court_number'   => $court,
-            'user_name'      => $request->user_name,
-            'user_number'    => $request->user_number,
-            'duration'       => $request->duration ?? 60,
-            'price'          => $request->price ?? $sport->price,
-            'payment_method' => $request->payment_method ?? 'cash',
-            'payment_status' => 'pending',
-            'status'         => 'confirmed',
-            'notes'          => $request->notes,
-        ]);
-
-        // Broadcast to staff dashboard
-        try { broadcast(new BookingCreated($booking))->toOthers(); } catch (\Exception $e) {}
-
-        // Notify all staff users for this venue
-        try {
-            $staffUsers = \App\Models\User::whereIn('role', ['staff', 'facility_owner'])
-                ->where('complex_id', $request->venue_id)
-                ->pluck('id');
-            foreach ($staffUsers as $staffId) {
-                \App\Models\BookingNotification::create([
-                    'user_id'    => $staffId,
-                    'type'       => 'booking_created',
-                    'title'      => 'New Booking (Mobile)',
-                    'message'    => "New booking for {$sport->name} on {$request->booking_date} at {$timeKey} — {$request->user_name}",
-                    'data'       => ['booking_id' => $booking->id, 'source' => 'mobile'],
-                    'is_read'    => false,
-                    'created_at' => now(),
-                ]);
-            }
-        } catch (\Exception $e) {}
-
-        return response()->json(['booking' => $booking], 201);
-    });
+    Route::post('/bookings', [BookingController::class, 'create']);
 
     /**
      * GET /api/bookings/my
@@ -414,13 +454,55 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::get('/profile', function (Request $request) {
         $laravelUser = $request->user();
+        $laravelUser->load('complex');
         $userUser    = UserUser::where('email', $laravelUser->email)->first();
+        $role = strtolower((string) ($laravelUser->role ?? 'customer'));
+        $userType = match ($role) {
+            'admin', 'superadmin' => 'superadmin',
+            'facility_owner', 'indoor_admin' => 'indoor_admin',
+            'staff' => 'staff',
+            default => 'user',
+        };
         return response()->json([
-            'id'              => $userUser?->id ?? $laravelUser->id,
-            'name'            => $laravelUser->name,
+            'id'              => $laravelUser->id,
             'email'           => $laravelUser->email,
+            'first_name'      => $laravelUser->first_name,
+            'last_name'       => $laravelUser->last_name,
+            'user_type'       => $userType,
+            'is_active'       => true,
             'phone_number'    => $userUser?->phone_number ?? $laravelUser->contact,
             'profile_picture' => $userUser?->profile_picture ?? $laravelUser->profile_photo_url,
+            'venue_id'        => $laravelUser->complex_id,
+            'venue_name'      => $laravelUser->complex?->name,
+            'points'          => $userUser?->points ?? 0,
+            'bio'             => $userUser?->bio,
+        ]);
+    });
+
+    // Compatibility alias for clients using /api/auth/profile
+    Route::get('/auth/profile', function (Request $request) {
+        $laravelUser = $request->user();
+        $laravelUser->load('complex');
+        $userUser    = UserUser::where('email', $laravelUser->email)->first();
+        $role = strtolower((string) ($laravelUser->role ?? 'customer'));
+        $userType = match ($role) {
+            'admin', 'superadmin' => 'superadmin',
+            'facility_owner', 'indoor_admin' => 'indoor_admin',
+            'staff' => 'staff',
+            default => 'user',
+        };
+
+        return response()->json([
+            'id'              => $laravelUser->id,
+            'email'           => $laravelUser->email,
+            'first_name'      => $laravelUser->first_name,
+            'last_name'       => $laravelUser->last_name,
+            'user_type'       => $userType,
+            'is_active'       => true,
+            'phone_number'    => $userUser?->phone_number ?? $laravelUser->contact,
+            'profile_picture' => $userUser?->profile_picture ?? $laravelUser->profile_photo_url,
+            'venue_id'        => $laravelUser->complex_id,
+            'venue_name'      => $laravelUser->complex?->name,
             'points'          => $userUser?->points ?? 0,
             'bio'             => $userUser?->bio,
         ]);
@@ -454,6 +536,33 @@ Route::middleware('auth:sanctum')->group(function () {
         }
 
         return response()->json(['message' => 'Profile updated']);
+    });
+
+    // Compatibility endpoint for clients posting old/new password payloads
+    Route::post('/auth/password/change', function (Request $request) {
+        $v = Validator::make($request->all(), [
+            'old_password' => 'required|string',
+            'new_password' => 'required|string|min:8',
+            'confirm_password' => 'required|same:new_password',
+        ]);
+        if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+
+        $laravelUser = $request->user();
+        if (!Hash::check($request->old_password, $laravelUser->password)) {
+            return response()->json(['message' => 'Current password is incorrect'], 422);
+        }
+
+        $laravelUser->password = Hash::make($request->new_password);
+        $laravelUser->save();
+
+        // Keep Django-origin mirror table in sync when available.
+        $userUser = UserUser::where('email', $laravelUser->email)->first();
+        if ($userUser) {
+            $userUser->password = Hash::make($request->new_password);
+            $userUser->save();
+        }
+
+        return response()->json(['message' => 'Password updated successfully']);
     });
 
     // =========================================================================
@@ -556,3 +665,337 @@ Route::get('/booking/refresh', function (Request $request) {
     }
     return response()->json(['status' => 'success', 'broadcasted' => $count]);
 });
+
+// =========================================================================
+// INDOOR ADMIN API (for mobile app)
+// =========================================================================
+
+// Public proxy routes for uploaded/local assets.
+// Must remain outside auth middleware because <Image> requests don't include bearer tokens.
+Route::prefix('indoor-admin')->group(function () {
+    Route::get('/local-storage/{path}', function ($path) {
+        $fullPath = storage_path('app/public/' . $path);
+        if (!file_exists($fullPath)) return response()->json(['message' => 'File not found: ' . $path], 404);
+        return response()->file($fullPath);
+    })->where('path', '.*');
+
+    Route::get('/local-images/{path}', function ($path) {
+        $fullPath = public_path('images/' . $path);
+        if (!file_exists($fullPath)) return response()->json(['message' => 'File not found: ' . $path], 404);
+        return response()->file($fullPath);
+    })->where('path', '.*');
+});
+
+Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,indoor_admin'])->prefix('indoor-admin')->group(function () {
+
+    // Dashboard Stats
+    Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
+
+    // Venue Management
+    Route::get('/venue', function (Request $request) {
+        $user = $request->user();
+        $venue = \App\Models\BookingVenue::find($user->complex_id);
+        if (!$venue) return response()->json(['message' => 'Venue not found'], 404);
+        return response()->json($venue);
+    });
+
+    Route::patch('/venue', function (Request $request) {
+        $user = $request->user();
+        $venue = \App\Models\BookingVenue::find($user->complex_id);
+        if (!$venue) return response()->json(['message' => 'Venue not found'], 404);
+
+        $data = $request->only(['name', 'address', 'county', 'location', 'description', 'contact_number', 'opening_hours', 'complex_type']);
+        
+        if ($request->hasFile('cover_image_file')) {
+            if ($venue->cover_image && \Illuminate\Support\Facades\Storage::disk('public')->exists($venue->cover_image)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($venue->cover_image);
+            }
+            $data['cover_image'] = $request->file('cover_image_file')->store('venues', 'public');
+        }
+
+        $venue->update($data);
+        return response()->json($venue);
+    });
+
+
+    // Sports Management
+    Route::get('/sports/', function (Request $request) {
+        $user = $request->user();
+        $sports = \App\Models\BookingSport::where('venue_id', $user->complex_id)->get();
+        return response()->json(['results' => $sports]);
+    });
+
+    Route::post('/sports/', function (Request $request) {
+        $user = $request->user();
+        $v = Validator::make($request->all(), [
+            'name' => 'required|string',
+            'price' => 'required|numeric',
+        ]);
+        if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+
+        $imagePath = null;
+        if ($request->hasFile('image_file')) {
+            $imagePath = $request->file('image_file')->store('sports', 'public');
+        }
+
+        $sport = \App\Models\BookingSport::create([
+            'venue_id' => $user->complex_id,
+            'name' => $request->name,
+            'price' => $request->price,
+            'rate_type' => $request->rate_type ?? 'Hourly',
+            'maximum_court' => $request->maximum_court ?? 1,
+            'description' => $request->description ?? '',
+            'game_type' => $request->game_type ?? 'Other',
+            'status' => $request->status ?? 'Active',
+            'image' => $imagePath,
+            'time_interval' => 60,
+            'availability' => [],
+            'blocked_slots' => [],
+        ]);
+        return response()->json($sport, 201);
+    });
+
+
+    Route::post('/sports/{id}/', function (Request $request, $id) {
+        $user = $request->user();
+        $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
+        if (!$sport) return response()->json(['message' => 'Not found'], 404);
+
+        $data = $request->only(['name', 'price', 'rate_type', 'maximum_court', 'description', 'game_type', 'status']);
+        
+        if ($request->hasFile('image_file')) {
+            if ($sport->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($sport->image)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($sport->image);
+            }
+            $data['image'] = $request->file('image_file')->store('sports', 'public');
+        }
+
+        $sport->update($data);
+        return response()->json($sport);
+    });
+
+    Route::patch('/sports/{id}/', function (Request $request, $id) {
+        $user = $request->user();
+        $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
+        if (!$sport) return response()->json(['message' => 'Not found'], 404);
+
+        $data = $request->only(['name', 'price', 'rate_type', 'maximum_court', 'description', 'game_type', 'status']);
+        
+        if ($request->hasFile('image_file')) {
+            if ($sport->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($sport->image)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($sport->image);
+            }
+            $data['image'] = $request->file('image_file')->store('sports', 'public');
+        }
+
+        $sport->update($data);
+        return response()->json($sport);
+    });
+
+
+    Route::delete('/sports/{id}/', function (Request $request, $id) {
+        $user = $request->user();
+        $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
+        if (!$sport) return response()->json(['message' => 'Not found'], 404);
+
+        $sport->delete();
+        return response()->json(['message' => 'Deleted']);
+    });
+
+    Route::post('/sports/{id}/toggle_status/', function (Request $request, $id) {
+        $user = $request->user();
+        $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
+        if (!$sport) return response()->json(['message' => 'Not found'], 404);
+
+        $newStatus = $sport->status === 'Active' ? 'Inactive' : 'Active';
+        $sport->update(['status' => $newStatus]);
+        return response()->json(['message' => 'Status updated', 'status' => $newStatus]);
+    });
+
+    // Bookings
+    Route::get('/bookings/upcoming/', [BookingController::class, 'upcoming']);
+    Route::get('/bookings/today/', [BookingController::class, 'today']);
+    Route::get('/bookings/slots/', [BookingController::class, 'getSlots']);
+    Route::get('/bookings/permanent/', [BookingController::class, 'permanentList']);
+    Route::post('/bookings/create/', [BookingController::class, 'create']);
+    Route::patch('/bookings/permanent/{id}/cancel-all/', [BookingController::class, 'permanentCancelAll']);
+
+    // Staff Management
+    Route::get('/staff/', function (Request $request) {
+        $user = $request->user();
+        $staff = \App\Models\VenueStaff::where('venue_id', $user->complex_id)->get();
+        return response()->json(['results' => $staff]);
+    });
+
+    Route::post('/staff/', function (Request $request) {
+        $user = $request->user();
+        $v = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'role' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20',
+        ]);
+        if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('staff', 'public');
+        }
+
+        $staff = \App\Models\VenueStaff::create([
+            'venue_id' => $user->complex_id,
+            'name' => $request->name,
+            'role' => $request->role,
+            'phone' => $request->phone,
+            'shift' => $request->shift,
+            'status' => $request->status ?? 'Active',
+            'status_detail' => $request->status_detail,
+            'is_online' => $request->is_online ?? false,
+            'photo' => $photoPath,
+            'email' => $request->email,
+        ]);
+        return response()->json($staff, 201);
+    });
+
+    Route::post('/staff/{id}/', function (Request $request, $id) {
+        $user = $request->user();
+        $staff = \App\Models\VenueStaff::where('venue_id', $user->complex_id)->find($id);
+        if (!$staff) return response()->json(['message' => 'Not found'], 404);
+
+        $data = $request->only(['name', 'role', 'phone', 'shift', 'status', 'is_online', 'email', 'status_detail']);
+        
+        if ($request->hasFile('photo')) {
+            if ($staff->photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($staff->photo)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($staff->photo);
+            }
+            $data['photo'] = $request->file('photo')->store('staff', 'public');
+        }
+
+        $staff->update($data);
+        return response()->json($staff);
+    });
+
+    Route::delete('/staff/{id}/', function (Request $request, $id) {
+        $user = $request->user();
+        $staff = \App\Models\VenueStaff::where('venue_id', $user->complex_id)->find($id);
+        if (!$staff) return response()->json(['message' => 'Not found'], 404);
+
+        if ($staff->photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($staff->photo)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($staff->photo);
+        }
+
+        $staff->delete();
+        return response()->json(['message' => 'Deleted']);
+    });
+
+    // Booking Actions
+    Route::patch('/bookings/{id}/update_status/', [BookingController::class, 'updateStatus']);
+    Route::patch('/bookings/{id}/update_payment/', [BookingController::class, 'updatePayment']);
+    Route::patch('/bookings/{id}/cancel/', [BookingController::class, 'cancel']);
+
+
+    // Reports
+    Route::get('/dashboard/revenue-report/', [DashboardController::class, 'revenueReport']);
+    Route::get('/dashboard/booking-report/', [DashboardController::class, 'bookingReport']);
+    Route::get('/dashboard/sports-revenue/', [DashboardController::class, 'sportsRevenue']);
+    Route::get('/dashboard/performance/', [DashboardController::class, 'performance']);
+    Route::get('/dashboard/export-csv/', [DashboardController::class, 'exportCSV']);
+
+    // Notifications
+    Route::get('/notifications/', function (Request $request) {
+        $user = $request->user();
+        $pageSize = (int)($request->query('page_size', 20));
+        if ($pageSize <= 0) $pageSize = 20;
+        $pageSize = min($pageSize, 100);
+
+        $query = \App\Models\BookingNotification::where('user_id', $user->id);
+        $notifications = $query
+            ->latest()
+            ->paginate($pageSize);
+
+        $results = collect($notifications->items())->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'type' => $item->type,
+                'title' => $item->title,
+                'message' => $item->message,
+                'data' => is_array($item->data) ? $item->data : (json_decode($item->data ?? '{}', true) ?: []),
+                'is_read' => (bool)$item->is_read,
+                'created_at' => optional($item->created_at)->toDateTimeString(),
+            ];
+        })->values();
+
+        return response()->json([
+            'count' => $notifications->total(),
+            'page' => $notifications->currentPage(),
+            'page_size' => $notifications->perPage(),
+            'results' => $results,
+            'unread_count' => (int)$query->where('is_read', false)->count(),
+        ]);
+    });
+
+    Route::get('/notifications/unread-count/', function (Request $request) {
+        $user = $request->user();
+        $unreadCount = \App\Models\BookingNotification::where('user_id', $user->id)
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json([
+            'unread_count' => (int)$unreadCount,
+        ]);
+    });
+
+    Route::post('/notifications/{id}/mark-read/', function (Request $request, $id) {
+        $user = $request->user();
+        $notification = \App\Models\BookingNotification::where('user_id', $user->id)->find($id);
+        if (!$notification) return response()->json(['message' => 'Not found'], 404);
+
+        $notification->update(['is_read' => true]);
+        return response()->json([
+            'message' => 'Marked as read',
+            'notification' => [
+                'id' => $notification->id,
+                'is_read' => (bool)$notification->is_read,
+            ],
+        ]);
+    });
+
+    Route::post('/notifications/mark-all-read/', function (Request $request) {
+        $user = $request->user();
+        $updated = \App\Models\BookingNotification::where('user_id', $user->id)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        return response()->json([
+            'message' => 'All marked as read',
+            'updated_count' => (int)$updated,
+            'unread_count' => 0,
+        ]);
+    });
+
+    Route::delete('/notifications/{id}/', function (Request $request, $id) {
+        $user = $request->user();
+        $notification = \App\Models\BookingNotification::where('user_id', $user->id)->find($id);
+        if (!$notification) return response()->json(['message' => 'Not found'], 404);
+
+        $deletedId = $notification->id;
+        $notification->delete();
+
+        $unreadCount = \App\Models\BookingNotification::where('user_id', $user->id)
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json([
+            'message' => 'Deleted',
+            'deleted_id' => $deletedId,
+            'unread_count' => (int)$unreadCount,
+        ]);
+    });
+
+    // Applications
+    Route::get('/applications/', function (Request $request) {
+        return response()->json(['results' => []]);
+    });
+
+
+});
+

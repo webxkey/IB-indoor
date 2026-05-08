@@ -60,7 +60,25 @@ class User extends Authenticatable
      */
     protected $appends = [
         'profile_photo_url',
+        'first_name',
+        'last_name',
     ];
+
+    public function getFirstNameAttribute()
+    {
+        $parts = explode(' ', $this->name);
+        return $parts[0] ?? '';
+    }
+
+    public function getLastNameAttribute()
+    {
+        $parts = explode(' ', $this->name);
+        if (count($parts) > 1) {
+            array_shift($parts);
+            return implode(' ', $parts);
+        }
+        return '';
+    }
     public function complex()
     {
         // A user belongs to a booking venue (complex) via the user's complex_id
