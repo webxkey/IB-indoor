@@ -3,6 +3,9 @@ APP_ENV=production
 APP_KEY=
 APP_DEBUG=false
 APP_URL=http://sportynix.com
+SANCTUM_STATEFUL_DOMAINS=admin.sportynix.com,sportynix.com,localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=https://admin.sportynix.com,http://localhost:3000,http://127.0.0.1:3000
+CORS_SUPPORTS_CREDENTIALS=true
 
 LOG_CHANNEL=stack
 LOG_DEPRECATIONS_CHANNEL=null
