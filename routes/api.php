@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
-use App\Http\Controllers\BookingStreamController;
 use App\Http\Controllers\DjangoWebhookController;
 use App\Models\BookingBooking;
 use App\Models\BookingSport;
@@ -1094,15 +1093,15 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-Route::get('/bookings/stream/{complexId}', [BookingStreamController::class, 'stream'])
-    ->name('bookings.stream');
-
 // =========================================================================
 // DJANGO -> LARAVEL WEBHOOK  (no auth — verified by HMAC signature)
 // =========================================================================
 
 Route::post('/integration/webhooks/django-events', [DjangoWebhookController::class, 'receive'])
     ->name('webhook.django');
+
+Route::post('/integration/booking-notify', [DjangoWebhookController::class, 'notifyBooking'])
+    ->name('webhook.booking-notify');
 
 // =========================================================================
 

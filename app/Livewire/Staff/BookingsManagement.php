@@ -38,10 +38,6 @@ class BookingsManagement extends Component
     public $permanent = false;
     public $notes = '';
 
-    // Last known booking count and latest ID for change detection
-    public $lastBookingCount = 0;
-    public $lastBookingId = 0;
-
     // Slot blocking
     public $blockingSlot = null; // ['sportId'=>, 'date'=>, 'time'=>, 'court'=>]
     public $blockReason = 'Maintenance';
@@ -81,57 +77,12 @@ class BookingsManagement extends Component
         $this->complex_id = Auth::user()->complex_id;
         $this->checkAndUpdateBookingStatuses();
         $this->loadSports();
-        $this->updateChangeTracking();
-    }
-
-    /**
-     * Smart polling - checks for changes every 3 seconds
-     * Only refreshes data when booking count or latest ID changes
-     * This is very lightweight - just 2 quick COUNT/MAX queries
-     */
-    public function checkForChanges()
-    {
-        $currentCount = BookingBooking::where('complex_id_id', $this->complex_id)->count();
-        $latestId = BookingBooking::where('complex_id_id', $this->complex_id)->max('id') ?? 0;
-
-        // Check if anything changed
-        if ($currentCount !== $this->lastBookingCount || $latestId !== $this->lastBookingId) {
-            Log::info('Booking change detected', [
-                'old_count' => $this->lastBookingCount,
-                'new_count' => $currentCount,
-                'old_id' => $this->lastBookingId,
-                'new_id' => $latestId,
-            ]);
-
-            $this->lastBookingCount = $currentCount;
-            $this->lastBookingId = $latestId;
-            
-            // Reload the full booking data
-            $this->loadSports();
-            
-            // Dispatch browser event for notification
-            $this->dispatch('bookingDataChanged');
-            
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Update change tracking variables
-     */
-    private function updateChangeTracking()
-    {
-        $this->lastBookingCount = BookingBooking::where('complex_id_id', $this->complex_id)->count();
-        $this->lastBookingId = BookingBooking::where('complex_id_id', $this->complex_id)->max('id') ?? 0;
     }
 
     #[On('refreshBookings')]
     public function refreshBookings()
     {
         $this->loadSports();
-        $this->updateChangeTracking();
     }
 
     public function loadSports()
@@ -567,8 +518,7 @@ class BookingsManagement extends Component
     {
         // Reload all bookings to show the new one
         $this->loadSports();
-        $this->updateChangeTracking();
-        
+
         // Send notification to user
         $this->dispatch('notify', [
             'type' => 'success',
@@ -591,8 +541,7 @@ class BookingsManagement extends Component
 
         // Reload bookings to reflect the update
         $this->loadSports();
-        $this->updateChangeTracking();
-        
+
         // Send notification to user
         $this->dispatch('notify', [
             'type' => 'info',
@@ -614,8 +563,7 @@ class BookingsManagement extends Component
 
         // Reload bookings to remove the deleted one
         $this->loadSports();
-        $this->updateChangeTracking();
-        
+
         // Send notification to user
         $this->dispatch('notify', [
             'type' => 'warning',

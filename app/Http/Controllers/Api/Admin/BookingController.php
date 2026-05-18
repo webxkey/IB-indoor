@@ -320,12 +320,7 @@ class BookingController extends Controller
                     'permanent_source_id'  => $permanentSourceId,
                 ]);
 
-                // Broadcast the new booking
-                try {
-                    broadcast(new \App\Events\BookingCreated($booking))->toOthers();
-                } catch (\Exception $e) {
-                    Log::error("Failed to broadcast booking created event: " . $e->getMessage());
-                }
+                // BookingBookingObserver broadcasts BookingCreated automatically.
 
                 $bookings[] = $booking;
                 $currentDate->addWeek();
