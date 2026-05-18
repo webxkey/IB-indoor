@@ -713,6 +713,64 @@ class StaffSetting extends Component
     }
 
     /**
+     * Toggle a recurring (day-of-week) blocked slot for a sport.
+     * Storage: blocked_slots["monday"] = ["06:00:00", "07:00:00", ...]
+     * — distinguishable from date-based entries (which use "YYYY-MM-DD" keys with nested court objects).
+     */
+    public function toggleSportRecurringBlock($sportId, string $day, string $time): void
+    {
+        $sport = BookingSport::find($sportId);
+        if (!$sport || $sport->venue_id != $this->complex_id) {
+            session()->flash('error', 'Sport not found.');
+            return;
+        }
+
+        $day = strtolower($day);
+        if (!in_array($day, $this->days, true)) return;
+
+        $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        $list   = $blocks[$day] ?? [];
+        if (!is_array($list)) $list = [];
+
+        if (in_array($time, $list, true)) {
+            $list = array_values(array_filter($list, fn($t) => $t !== $time));
+        } else {
+            $list[] = $time;
+            sort($list);
+        }
+
+        if (empty($list)) {
+            unset($blocks[$day]);
+        } else {
+            $blocks[$day] = $list;
+        }
+
+        $sport->update(['blocked_slots' => $blocks]);
+        $this->loadSportsData();
+    }
+
+    /**
+     * Remove ALL recurring (day-of-week) blocks for a sport. Per-date entries are kept.
+     */
+    public function clearSportRecurringBlocks($sportId): void
+    {
+        $sport = BookingSport::find($sportId);
+        if (!$sport || $sport->venue_id != $this->complex_id) {
+            session()->flash('error', 'Sport not found.');
+            return;
+        }
+
+        $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        foreach ($this->days as $day) {
+            unset($blocks[$day]);
+        }
+        $sport->update(['blocked_slots' => $blocks]);
+
+        $this->loadSportsData();
+        session()->flash('message', 'Recurring blocks cleared for this sport.');
+    }
+
+    /**
      * Remove a single blocked slot from a sport (date / time / court).
      */
     public function unblockSportSlot($sportId, $date, $time, $court): void

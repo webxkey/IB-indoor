@@ -297,6 +297,13 @@ class BookingController extends Controller
                     throw new \Exception("Slot is blocked on $targetDate at $startTime on Court $court. Reason: $reason");
                 }
 
+                // Check recurring (day-of-week) blocked slots
+                $dayKey    = strtolower(Carbon::parse($targetDate)->format('l'));
+                $recurring = $blocked[$dayKey] ?? [];
+                if (is_array($recurring) && in_array($startTime, $recurring, true)) {
+                    throw new \Exception("Slot is recurring-blocked every $dayKey at $startTime for {$sport->name}.");
+                }
+
                 $booking = BookingBooking::create([
                     'user_id_id'           => $request->user()->id,
                     'game_id_id'           => $data['sport_id'],

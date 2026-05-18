@@ -1899,13 +1899,23 @@
                             blockedSlotsData[sportId][dateKey] &&
                             blockedSlotsData[sportId][dateKey][slotTimeKey] &&
                             blockedSlotsData[sportId][dateKey][slotTimeKey][court];
-                        const isBlocked = !!rawBlockValue;
-                        // Support both old string format and new {reason, end_time} object format
-                        const blockReason = isBlocked
+
+                        // Recurring (day-of-week) blocks set in Sport settings:
+                        //   blockedSlotsData[sportId]["monday"] = ["09:00:00", ...]
+                        const dayOfWeek = new Date(dateKey + 'T00:00:00')
+                            .toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
+                        const recurringList = sportId && blockedSlotsData[sportId] && Array.isArray(blockedSlotsData[sportId][dayOfWeek])
+                            ? blockedSlotsData[sportId][dayOfWeek] : [];
+                        const isRecurringBlocked = recurringList.indexOf(slotTimeKey) !== -1;
+
+                        const isBlocked = !!rawBlockValue || isRecurringBlocked;
+                        const blockReason = rawBlockValue
                             ? (typeof rawBlockValue === 'object' ? rawBlockValue.reason : rawBlockValue)
-                            : null;
-                        const blockEndTime = isBlocked && typeof rawBlockValue === 'object'
+                            : (isRecurringBlocked ? 'Recurring block' : null);
+                        const blockEndTime = rawBlockValue && typeof rawBlockValue === 'object'
                             ? rawBlockValue.end_time : null;
+                        // Recurring blocks aren't unblockable from this page — they live in Settings → Sports.
+                        const canUnblockHere = !!rawBlockValue;
 
                         // Check if slot is on hold (mobile user in checkout via Django webhook)
                         const isHeld = !!(sportId &&
@@ -1925,21 +1935,25 @@
                                 </div>
                             </td>`;
                         } else if (isBlocked) {
-                            // Show blocked slot with unblock button
+                            // Show blocked slot.  One-off (date) blocks get an Unblock button here.
+                            // Recurring blocks are managed in Settings → Sports.
                             const blockTimeRange = blockEndTime
                                 ? `${slot.display.split(' - ')[0]} – ${blockEndTime.substring(0,5)}`
                                 : '';
+                            const actionHtml = canUnblockHere
+                                ? `<button class="slot-action-btn"
+                                            style="color:#856404;border-color:#d97706;"
+                                            onclick="unblockSlotJS(${sportId}, '${dateKey}', '${slotTimeKey}', '${court}')"
+                                            title="Remove block">
+                                        <i class="fas fa-unlock me-1"></i>Unblock
+                                    </button>`
+                                : `<span class="small text-muted fst-italic">Recurring — change in Settings</span>`;
                             bodyHtml += `
                             <td>
                                 <div class="time-slot blocked-slot d-flex flex-column align-items-center justify-content-center gap-1">
                                     <div><i class="fas fa-ban me-1"></i><strong>Unavailable</strong></div>
                                     <div class="small text-muted">${blockReason}${blockTimeRange ? ' · ' + blockTimeRange : ''}</div>
-                                    <button class="slot-action-btn"
-                                            style="color:#856404;border-color:#d97706;"
-                                            onclick="unblockSlotJS(${sportId}, '${dateKey}', '${slotTimeKey}', '${court}')"
-                                            title="Remove block">
-                                        <i class="fas fa-unlock me-1"></i>Unblock
-                                    </button>
+                                    ${actionHtml}
                                 </div>
                             </td>`;
                         } else if (isHeld) {
