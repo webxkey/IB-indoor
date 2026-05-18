@@ -34,6 +34,8 @@ use App\Livewire\LandingPage\Careers;
 use App\Livewire\Admin\BlogsManagement;
 use App\Livewire\Admin\TournamentApprovals;
 use App\Livewire\Admin\AdminSettings;
+use App\Livewire\Admin\Announcements as AdminAnnouncements;
+use App\Livewire\Staff\Announcements as StaffAnnouncements;
 
 // Note: PollController removed - using WebSocket real-time updates instead
 
@@ -104,6 +106,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/landing-page', LandingPageCMS::class)->name('landing-page');
         Route::get('/blogs-management', BlogsManagement::class)->name('blogs-management');
         Route::get('/tournaments', TournamentApprovals::class)->name('tournaments');
+        Route::get('/announcements', AdminAnnouncements::class)->name('announcements');
         Route::get('/settings', AdminSettings::class)->name('settings');
     });
 
@@ -117,6 +120,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/feedbacks', StaffFeedbacks::class)->name('feedbacks');
         Route::get('/setting', StaffSetting::class)->name('setting');
         Route::get('/tournament', TournamentManagement::class)->name('tournament');
+        Route::get('/announcements', StaffAnnouncements::class)->name('announcements');
         Route::get('/help', StaffHelp::class)->name('help');
 
         // Global notification polling endpoint

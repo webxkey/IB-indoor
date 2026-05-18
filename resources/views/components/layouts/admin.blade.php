@@ -648,6 +648,13 @@
                                     @endif
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.announcements') ? 'active' : '' }}"
+                                    href="{{ route('admin.announcements') }}">
+                                    <i class="fas fa-bullhorn me-2"></i>
+                                    Announcements
+                                </a>
+                            </li>
 
                         </ul>
                     </div>

@@ -119,8 +119,8 @@ class AdminDashboard extends Component
                 DB::raw('DATE(booking_date) as date'),
                 DB::raw('SUM(price) as total_revenue')
             )
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
+            ->groupBy(DB::raw('DATE(booking_date)'))
+            ->orderBy(DB::raw('DATE(booking_date)'), 'asc')
             ->get()
             ->keyBy('date');
 
@@ -207,8 +207,8 @@ class AdminDashboard extends Component
                 DB::raw('DATE(booking_date) as date'),
                 DB::raw('COUNT(*) as total')
             )
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
+            ->groupBy(DB::raw('DATE(booking_date)'))
+            ->orderBy(DB::raw('DATE(booking_date)'), 'asc')
             ->get()
             ->keyBy('date');
 

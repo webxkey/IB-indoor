@@ -39,7 +39,13 @@
       "Bash(php -l app/Http/Controllers/Api/Admin/BookingController.php)",
       "Bash(php -l routes/api.php)",
       "PowerShell($env:PGPASSWORD = \"123123\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -h 127.0.0.1 -U postgres -d indoor_booking -c \"SELECT id, name, venue_id, opening_hours, blocked_slots FROM booking_sport WHERE blocked_slots IS NOT NULL OR opening_hours IS NOT NULL ORDER BY id DESC LIMIT 5;\")",
-      "Bash(php -l app/Livewire/Staff/StaffSetting.php)"
+      "Bash(php -l app/Livewire/Staff/StaffSetting.php)",
+      "PowerShell($env:PGPASSWORD = \"123123\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -h 127.0.0.1 -U postgres -d indoor_booking -c \"\\\\d booking_announcement\")",
+      "Bash(php -l app/Models/BookingAnnouncement.php)",
+      "Bash(php -l app/Livewire/Staff/Announcements.php)",
+      "Bash(php -l app/Livewire/Admin/Announcements.php)",
+      "Bash(php -l routes/web.php)",
+      "Bash(php -l app/Livewire/Admin/AdminDashboard.php)"
     ]
   }
 }
