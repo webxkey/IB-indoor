@@ -870,21 +870,6 @@
         </div>
         @endif
 
-        {{-- Real-time WebSocket updates via Laravel Reverb + Laravel Echo --}}
-        {{-- No polling! Updates come instantly via persistent WebSocket connection --}}
-
-        {{-- TEMP DEBUG: remove after fixing --}}
-        <div id="php-debug" style="background:#1e293b;color:#7dd3fc;padding:10px 16px;font-size:0.82rem;margin-bottom:8px;border-radius:8px;">
-            <strong>PHP Debug:</strong>
-            games={{ json_encode($games) }} |
-            complex_id={{ $complex_id }} |
-            opening_hours_wed={{ json_encode($opening_hours['wednesday'] ?? 'MISSING') }} |
-            sports_count={{ count($sports ?? []) }}
-        </div>
-        <div id="js-debug" style="background:#134e4a;color:#6ee7b7;padding:10px 16px;font-size:0.82rem;margin-bottom:8px;border-radius:8px;">
-            JS Debug: <span id="js-debug-msg">waiting for JS...</span>
-        </div>
-
         <div class="card booking-card">
             <div class="card-header booking-header">
                 <h5 class="mb-0 text-white">

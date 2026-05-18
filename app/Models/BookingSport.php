@@ -11,7 +11,7 @@ class BookingSport extends Model
     protected $fillable = [
         'name','price','image','available','game_type','rate_type',
         'maximum_court','status','description','additional_charges',
-        'advance_required','venue_id','average_rating','pricing_rules','blocked_slots'
+        'advance_required','venue_id','average_rating','pricing_rules','blocked_slots','opening_hours'
     ];
 
     protected $appends = ['image_url'];
@@ -59,6 +59,7 @@ class BookingSport extends Model
         'additional_charges' => 'array',
         'pricing_rules' => 'array',
         'blocked_slots' => 'array',
+        'opening_hours' => 'array',
     ];
 
     public function venue()

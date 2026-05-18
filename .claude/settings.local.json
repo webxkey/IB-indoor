@@ -37,7 +37,9 @@
       "PowerShell($env:PGPASSWORD = \"123123\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -h 127.0.0.1 -U postgres -d indoor_booking -c \"SELECT id, name, created_by_id, sport_type FROM league_league ORDER BY created_at DESC LIMIT 10;\")",
       "PowerShell($env:PGPASSWORD = \"123123\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -h 127.0.0.1 -U postgres -d indoor_booking -c \"SELECT u.id AS laravel_id, u.email AS laravel_email, uu.id AS django_id, uu.email AS django_email FROM users u LEFT JOIN users_user uu ON uu.email = u.email ORDER BY u.id DESC LIMIT 10;\")",
       "Bash(php -l app/Http/Controllers/Api/Admin/BookingController.php)",
-      "Bash(php -l routes/api.php)"
+      "Bash(php -l routes/api.php)",
+      "PowerShell($env:PGPASSWORD = \"123123\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -h 127.0.0.1 -U postgres -d indoor_booking -c \"SELECT id, name, venue_id, opening_hours, blocked_slots FROM booking_sport WHERE blocked_slots IS NOT NULL OR opening_hours IS NOT NULL ORDER BY id DESC LIMIT 5;\")",
+      "Bash(php -l app/Livewire/Staff/StaffSetting.php)"
     ]
   }
 }
