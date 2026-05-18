@@ -30,7 +30,10 @@
       "Bash(php -l app/Http/Controllers/DjangoWebhookController.php)",
       "Bash(python -c \"import json,sys; m=json.load\\(sys.stdin\\); print\\([k for k in m.keys\\(\\)][:5]\\)\")",
       "Bash(python:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "PowerShell($env:PGPASSWORD = \"123123\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -h 127.0.0.1 -U postgres -d indoor_booking -c \"\\\\d booking_venue\")",
+      "PowerShell($env:PGPASSWORD = \"123123\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -h 127.0.0.1 -U postgres -d indoor_booking -c \"SELECT DISTINCT venue_category, analytics_enabled FROM booking_venue;\")",
+      "PowerShell($env:PGPASSWORD = \"123123\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -h 127.0.0.1 -U postgres -d indoor_booking -c \"SELECT id, email, username, gender, accepted_tnc, username_changes_used FROM users_user ORDER BY id DESC LIMIT 5;\")"
     ]
   }
 }

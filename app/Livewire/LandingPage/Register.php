@@ -288,6 +288,8 @@ class Register extends Component
                     'terms' => $this->terms,
                     'rating' => 0,
                     'reviews' => 0,
+                    'analytics_enabled' => true,
+                    'venue_category' => strtolower($this->complex_type),
                 ]);
 
                 // Create sports (one per selected type)
@@ -341,6 +343,10 @@ class Register extends Component
                     'is_public_profile' => true,
                     'is_show_contact' => true,
                     'availability' => 'both',
+                    'username' => $this->generateUniqueUsername($this->email),
+                    'username_changes_used' => 0,
+                    'accepted_tnc' => (bool) $this->terms,
+                    'gender' => 'prefer_not_to_say',
                 ]);
             });
 
@@ -376,5 +382,21 @@ class Register extends Component
         } while (UserUser::where('referral_code', $code)->exists());
 
         return $code;
+    }
+
+    private function generateUniqueUsername($email)
+    {
+        $base = strtolower(preg_replace('/[^a-zA-Z0-9_]/', '', explode('@', $email)[0]));
+        if ($base === '') {
+            $base = 'user';
+        }
+        $base = substr($base, 0, 24);
+
+        $candidate = $base;
+        while (UserUser::where('username', $candidate)->exists()) {
+            $candidate = substr($base, 0, 24) . rand(100, 9999);
+        }
+
+        return substr($candidate, 0, 30);
     }
 }

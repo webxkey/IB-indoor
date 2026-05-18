@@ -1,3 +1,4 @@
+<div>
 <style>
     /* Settings page mobile fixes */
     .settings-nav-mobile {
@@ -1343,3 +1344,4 @@
     });
 
 </script>
+</div>{{-- /livewire root --}}

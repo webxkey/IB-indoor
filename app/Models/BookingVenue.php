@@ -13,7 +13,7 @@ class BookingVenue extends Model
         'county','location','postal_code','contact_number','email_address',
         'website','status','opening_hours','amenities','cover_image',
         'gallery_images_json','video_tour_url','description','terms',
-        'social_links'
+        'social_links','analytics_enabled','venue_category'
     ];
 
     protected $appends = ['image_url', 'cover_image_url'];
