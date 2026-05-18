@@ -842,6 +842,7 @@
                 </div>
                 @endif
             </div>
+            @endif {{-- end activeSection block --}}
 
             <!-- Add Staff Modal (moved outside conditional - see below) -->
             @php /* placeholder removed */ @endphp
@@ -1314,7 +1315,6 @@
             }
         </style>
         @endif
-        @endif {{-- end activeSection block --}}
         </div>{{-- /settings-content --}}
     </div>{{-- /settings-wrapper --}}
 </div>{{-- /container-fluid --}}
