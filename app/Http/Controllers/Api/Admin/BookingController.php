@@ -287,14 +287,24 @@ class BookingController extends Controller
                     ->first();
 
                 if ($conflict) {
-                    throw new \Exception("Slot already booked on $targetDate at $startTime on Court $court (Booking Status: {$conflict->status})");
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => "Slot already booked on $targetDate at $startTime on Court $court.",
+                        'detail' => "Slot already booked on $targetDate at $startTime on Court $court (Booking Status: {$conflict->status})",
+                        'error_type' => 'booking_conflict',
+                    ], 409);
                 }
 
                 // Check blocked slots
                 $blocked = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
                 if (isset($blocked[$targetDate][$startTime][$court])) {
                     $reason = $blocked[$targetDate][$startTime][$court]['reason'] ?? 'Blocked for maintenance';
-                    throw new \Exception("Slot is blocked on $targetDate at $startTime on Court $court. Reason: $reason");
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => "Slot is blocked on $targetDate at $startTime on Court $court.",
+                        'detail' => "Slot is blocked on $targetDate at $startTime on Court $court. Reason: $reason",
+                        'error_type' => 'slot_blocked',
+                    ], 409);
                 }
 
                 $booking = BookingBooking::create([
@@ -451,11 +461,20 @@ class BookingController extends Controller
 
         $booking->update($updateData);
 
+        // If payment_status is being updated and this is a permanent booking,
+        // propagate the payment_status to ALL other non-cancelled bookings in the same series.
+        if ($request->has('payment_status') && $booking->permanent_source_id) {
+            BookingBooking::where('permanent_source_id', $booking->permanent_source_id)
+                ->where('id', '!=', $booking->id)
+                ->whereNotIn('status', ['cancelled', 'Cancelled'])
+                ->update(['payment_status' => $request->payment_status]);
+        }
+
         $this->notifyStaff(
             $user->complex_id,
             'booking_updated',
             'Booking Payment Updated',
-            "Payment details updated for booking #{$booking->id}",
+            "Payment details updated for booking #{$booking->id}" . ($booking->permanent_source_id ? ' (and all bookings in the same permanent series)' : ''),
             [
                 'booking_id' => $booking->id,
                 'game_name' => $booking->game_name,
@@ -469,6 +488,8 @@ class BookingController extends Controller
                 'old_price' => $oldPrice,
                 'new_price' => (string)$booking->price,
                 'price' => (string)$booking->price,
+                'is_permanent' => (bool)$booking->permanent_source_id,
+                'permanent_source_id' => $booking->permanent_source_id,
             ]
         );
 
@@ -477,6 +498,7 @@ class BookingController extends Controller
 
     /**
      * Cancel a booking.
+     * Optional request field: refund (bool) — if true, set payment_status to 'Refunded'.
      */
     public function cancel(Request $request, $id)
     {
@@ -484,13 +506,20 @@ class BookingController extends Controller
         $booking = BookingBooking::where('complex_id_id', $user->complex_id)->find($id);
         if (!$booking) return response()->json(['message' => 'Booking not found'], 404);
 
-        $booking->update(['status' => 'cancelled']);
+        $refund = filter_var($request->input('refund', false), FILTER_VALIDATE_BOOLEAN);
+
+        $updateData = ['status' => 'cancelled'];
+        if ($refund && strtolower((string)$booking->payment_status) === 'paid') {
+            $updateData['payment_status'] = 'Refunded';
+        }
+
+        $booking->update($updateData);
 
         $this->notifyStaff(
             $user->complex_id,
             'booking_cancelled',
             'Booking Cancelled',
-            "Booking #{$booking->id} has been cancelled",
+            "Booking #{$booking->id} has been cancelled" . ($refund ? ' (Payment Refunded)' : ''),
             [
                 'booking_id' => $booking->id,
                 'game_name' => $booking->game_name,
@@ -500,10 +529,14 @@ class BookingController extends Controller
                 'end_time' => $booking->end_time,
                 'user_name' => $booking->user_name,
                 'price' => (string)$booking->price,
+                'refunded' => $refund,
             ]
         );
 
-        return response()->json(['message' => 'Booking cancelled', 'booking' => $booking]);
+        return response()->json([
+            'message' => 'Booking cancelled' . ($refund ? ' and payment refunded' : ''),
+            'booking' => $booking,
+        ]);
     }
 
     /**
@@ -571,15 +604,24 @@ class BookingController extends Controller
     {
         $user = $request->user();
         $venueId = $user->complex_id;
+        $refund = filter_var($request->input('refund', false), FILTER_VALIDATE_BOOLEAN);
 
-        $count = BookingBooking::where('complex_id_id', $venueId)
+        $query = BookingBooking::where('complex_id_id', $venueId)
             ->where('permanent_source_id', $id)
-            ->whereNotIn('status', ['cancelled', 'Cancelled'])
-            ->update(['status' => 'cancelled']);
+            ->whereNotIn('status', ['cancelled', 'Cancelled']);
+
+        $count = $query->count();
+        $updateData = ['status' => 'cancelled'];
+        if ($refund) {
+            $updateData['payment_status'] = 'Refunded';
+        }
+
+        $query->update($updateData);
 
         return response()->json([
-            'message' => "Successfully cancelled $count bookings in the series.",
-            'cancelled_count' => $count
+            'message' => 'Successfully cancelled ' . $count . ' bookings in the series.' . ($refund ? ' Payments were refunded where applicable.' : ''),
+            'cancelled_count' => $count,
+            'refunded' => $refund,
         ]);
     }
 

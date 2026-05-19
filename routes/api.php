@@ -39,8 +39,50 @@ use App\Events\BookingCreated;
 // AUTH
 // =========================================================================
 
-
-
+/**
+ * GET /api/test-mail
+ * Test endpoint to verify SMTP configuration
+ */
+Route::get('/test-mail', function (Request $request) {
+    $testEmail = $request->query('email', 'test@example.com');
+    
+    $mailConfig = [
+        'MAIL_MAILER' => env('MAIL_MAILER'),
+        'MAIL_HOST' => env('MAIL_HOST'),
+        'MAIL_PORT' => env('MAIL_PORT'),
+        'MAIL_USERNAME' => env('MAIL_USERNAME'),
+        'MAIL_ENCRYPTION' => env('MAIL_ENCRYPTION'),
+        'MAIL_FROM_ADDRESS' => env('MAIL_FROM_ADDRESS'),
+        'config_mail_default' => config('mail.default'),
+        'env_mail_mailer' => env('MAIL_MAILER'),
+    ];
+    
+    Log::info('Testing mail configuration', $mailConfig);
+    
+    try {
+        Mail::raw('This is a test email from IndoorBooking backend.', function ($message) use ($testEmail) {
+            $message->to($testEmail)
+                    ->subject('Test Email from IndoorBooking');
+        });
+        Log::info('Test email sent successfully to ' . $testEmail);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Test email sent to ' . $testEmail,
+            'config' => $mailConfig,
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Test email failed', [
+            'error' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ]);
+        return response()->json([
+            'status' => 'failed',
+            'message' => 'Test email failed: ' . $e->getMessage(),
+            'config' => $mailConfig,
+        ], 500);
+    }
+});
 
 /**
  * POST /api/auth/login
@@ -302,6 +344,9 @@ Route::post('/auth/send-verification-email', function (Request $request) {
     ]);
     if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
 
+    $shouldSendRealEmail = !in_array(config('mail.default'), ['log', 'array'], true)
+        && env('MAIL_MAILER') !== 'log';
+
     $emailAlreadyUsed = UserUser::where('email', $request->email)->exists()
         || \App\Models\User::where('email', $request->email)->exists();
     if ($emailAlreadyUsed) {
@@ -311,6 +356,14 @@ Route::post('/auth/send-verification-email', function (Request $request) {
     }
 
     try {
+        Log::info('OTP Send Request', [
+            'email' => $request->email,
+            'shouldSendRealEmail' => $shouldSendRealEmail,
+            'mailMailer' => env('MAIL_MAILER'),
+            'mailDefault' => config('mail.default'),
+            'mailHost' => env('MAIL_HOST'),
+        ]);
+
         $previousToken = Cache::get('signup_email_verification_token_by_email:' . $request->email);
         if ($previousToken) {
             Cache::forget('signup_email_verification_token:' . $previousToken);
@@ -318,13 +371,20 @@ Route::post('/auth/send-verification-email', function (Request $request) {
         Cache::forget('signup_email_verification_token_by_email:' . $request->email);
 
         $otp = OtpCode::createForEmail($request->email, 'email_verification');
+        Log::info('OTP Created', ['email' => $request->email, 'code' => $otp->code]);
 
-        // Only perform real SMTP sends in non-local, non-log mailer environments.
-        // In local or when mailer is configured to 'log' we skip the SMTP send
-        // to avoid authentication failures during development; the OTP is
-        // returned in the response for debugging in those cases.
-        if (!app()->environment('local') && config('mail.default') !== 'log' && env('MAIL_MAILER') !== 'log') {
-            Mail::to($request->email)->send(new SendOtpMail($otp->code, 'User', 'Email Verification'));
+        // Send to the actual signup email whenever SMTP is enabled.
+        if ($shouldSendRealEmail) {
+            Log::info('Attempting to send email via SMTP', ['to' => $request->email]);
+            try {
+                Mail::to($request->email)->send(new SendOtpMail($otp->code, 'User', 'Email Verification'));
+                Log::info('Email sent successfully', ['to' => $request->email]);
+            } catch (\Exception $mailException) {
+                Log::error('SMTP Error', ['error' => $mailException->getMessage(), 'to' => $request->email]);
+                throw $mailException;
+            }
+        } else {
+            Log::info('Email sending skipped (not SMTP or is log mailer)', ['shouldSend' => $shouldSendRealEmail]);
         }
 
         $response = [
@@ -340,9 +400,15 @@ Route::post('/auth/send-verification-email', function (Request $request) {
 
         return response()->json($response);
     } catch (\Exception $e) {
-        Log::error('Error sending verification email: ' . $e->getMessage());
+        Log::error('Error sending verification email', [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString(),
+        ]);
         return response()->json([
             'message' => 'Failed to send verification email. Please try again.',
+            'error' => $e->getMessage(),
         ], 500);
     }
 });
@@ -407,6 +473,9 @@ Route::post('/auth/resend-verification-email', function (Request $request) {
     ]);
     if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
 
+    $shouldSendRealEmail = !in_array(config('mail.default'), ['log', 'array'], true)
+        && env('MAIL_MAILER') !== 'log';
+
     try {
         $previousToken = Cache::get('signup_email_verification_token_by_email:' . $request->email);
         if ($previousToken) {
@@ -415,7 +484,7 @@ Route::post('/auth/resend-verification-email', function (Request $request) {
         Cache::forget('signup_email_verification_token_by_email:' . $request->email);
 
         $otp = OtpCode::createForEmail($request->email, 'email_verification');
-        if (!app()->environment('local') && config('mail.default') !== 'log' && env('MAIL_MAILER') !== 'log') {
+        if ($shouldSendRealEmail) {
             Mail::to($request->email)->send(new SendOtpMail($otp->code, 'User', 'Email Verification'));
         }
 
@@ -472,8 +541,10 @@ Route::post('/auth/login-with-verification', function (Request $request) {
                 $laravelUser->id
             );
 
-            // Send OTP email (skip real SMTP in local/log environments)
-            if (!app()->environment('local') && config('mail.default') !== 'log' && env('MAIL_MAILER') !== 'log') {
+            $shouldSendRealEmail = !in_array(config('mail.default'), ['log', 'array'], true)
+                && env('MAIL_MAILER') !== 'log';
+
+            if ($shouldSendRealEmail) {
                 Mail::to($laravelUser->email)->send(
                     new SendOtpMail($otp->code, $laravelUser->first_name ?: 'User', 'Login Verification')
                 );
@@ -613,7 +684,10 @@ Route::middleware('auth:sanctum')->post('/auth/enable-2step', function (Request 
     // Send verification OTP
         try {
             $otp = OtpCode::createForEmail($user->email, 'phone_verification', $user->id);
-            if (!app()->environment('local') && config('mail.default') !== 'log' && env('MAIL_MAILER') !== 'log') {
+            $shouldSendRealEmail = !in_array(config('mail.default'), ['log', 'array'], true)
+                && env('MAIL_MAILER') !== 'log';
+
+            if ($shouldSendRealEmail) {
                 Mail::to($user->email)->send(
                     new SendOtpMail($otp->code, $user->first_name ?: 'User', '2-Step Verification Setup')
                 );
@@ -1153,8 +1227,34 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
         $venue = \App\Models\BookingVenue::find($user->complex_id);
         if (!$venue) return response()->json(['message' => 'Venue not found'], 404);
 
-        $data = $request->only(['name', 'address', 'county', 'location', 'description', 'contact_number', 'opening_hours', 'complex_type']);
-        
+        $data = $request->only([
+            'name', 'address', 'county', 'location', 'description',
+            'contact_number', 'opening_hours', 'complex_type',
+            'email_address', 'status', 'video_tour_url', 'terms',
+            'postal_code', 'website',
+        ]);
+
+        $venue->update($data);
+        $venue->refresh();
+        return response()->json($venue);
+    });
+
+    // POST route for venue updates WITH file uploads.
+    // PHP only populates $_FILES on POST requests, so PATCH + multipart/form-data
+    // silently drops file uploads. This dedicated POST route handles image files.
+    Route::post('/venue', function (Request $request) {
+        $user = $request->user();
+        $venue = \App\Models\BookingVenue::find($user->complex_id);
+        if (!$venue) return response()->json(['message' => 'Venue not found'], 404);
+
+        $data = $request->only([
+            'name', 'address', 'county', 'location', 'description',
+            'contact_number', 'opening_hours', 'complex_type',
+            'email_address', 'status', 'video_tour_url', 'terms',
+            'postal_code', 'website',
+        ]);
+
+        // Handle cover image upload
         if ($request->hasFile('cover_image_file')) {
             if ($venue->cover_image && \Illuminate\Support\Facades\Storage::disk('public')->exists($venue->cover_image)) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($venue->cover_image);
@@ -1162,7 +1262,20 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
             $data['cover_image'] = $request->file('cover_image_file')->store('venues', 'public');
         }
 
+        // Handle gallery image uploads — frontend sends as gallery_image_files[]
+        $galleryFiles = $request->file('gallery_image_files');
+        if ($galleryFiles && is_array($galleryFiles) && count($galleryFiles) > 0) {
+            $existingGallery = $venue->gallery_images_json ?? [];
+            if (!is_array($existingGallery)) $existingGallery = [];
+            $newPaths = [];
+            foreach ($galleryFiles as $file) {
+                $newPaths[] = $file->store('venues/gallery', 'public');
+            }
+            $data['gallery_images_json'] = array_merge($existingGallery, $newPaths);
+        }
+
         $venue->update($data);
+        $venue->refresh();
         return response()->json($venue);
     });
 

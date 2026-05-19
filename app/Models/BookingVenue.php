@@ -16,7 +16,7 @@ class BookingVenue extends Model
         'social_links'
     ];
 
-    protected $appends = ['image_url', 'cover_image_url'];
+    protected $appends = ['image_url', 'cover_image_url', 'gallery_images_urls'];
 
     public function getImageUrlAttribute($value)
     {
@@ -64,8 +64,43 @@ class BookingVenue extends Model
         return asset('api/indoor-admin/local-storage/' . $this->cover_image);
     }
 
+    /**
+     * Resolve a single storage path to a full URL.
+     */
+    protected function resolveStoragePath(?string $path): ?string
+    {
+        if (!$path) return null;
 
+        // Already a full URL
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            if (str_contains($path, '127.0.0.1') || str_contains($path, 'localhost')) {
+                $parsed = parse_url($path, PHP_URL_PATH);
+                if (str_starts_with($parsed, '/storage/')) {
+                    return asset('api/indoor-admin/local-storage/' . substr($parsed, 9));
+                }
+                return asset('api/indoor-admin' . $parsed);
+            }
+            return $path;
+        }
 
+        // Relative path stored via Storage::disk('public')->store()
+        return asset('api/indoor-admin/local-storage/' . $path);
+    }
+
+    /**
+     * Return gallery images as resolved URLs.
+     */
+    public function getGalleryImagesUrlsAttribute(): array
+    {
+        $raw = $this->getAttributes()['gallery_images_json'] ?? null;
+        $items = is_string($raw) ? json_decode($raw, true) : $raw;
+        if (!is_array($items)) return [];
+
+        return array_values(array_filter(array_map(
+            fn($path) => $this->resolveStoragePath($path),
+            $items
+        )));
+    }
 
    protected $attributes = [
         'image_url' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
