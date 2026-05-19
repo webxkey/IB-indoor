@@ -36,6 +36,10 @@ class UserUser extends Authenticatable
         'is_show_contact',
         'points',
         'referral_code',
+        'username',
+        'username_changes_used',
+        'accepted_tnc',
+        'gender',
     ];
 
     protected $hidden = [

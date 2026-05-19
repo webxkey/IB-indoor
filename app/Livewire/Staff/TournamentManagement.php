@@ -9,6 +9,7 @@ use App\Models\LeagueTeam;
 use App\Models\LeagueMatch;
 use App\Models\LeagueMatchInning;
 use App\Models\LeaguePointsTable;
+use App\Models\UserUser;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -83,6 +84,15 @@ class TournamentManagement extends Component
         $this->form_start_date  = date('Y-m-d');
     }
 
+    private function currentDjangoUserId(): ?int
+    {
+        $email = auth()->user()?->email;
+        if (!$email) {
+            return null;
+        }
+        return UserUser::where('email', $email)->value('id');
+    }
+
     // ══════════════════════════════════════════════════════════════════════════
     //  NAVIGATION
     // ══════════════════════════════════════════════════════════════════════════
@@ -95,9 +105,21 @@ class TournamentManagement extends Component
 
     public function showDetail(string $id): void
     {
+        if (!$this->ownsTournament($id)) {
+            session()->flash('error', 'You do not have access to this tournament.');
+            return;
+        }
         $this->selectedTournamentId = $id;
         $this->fixturesTab          = 'fixtures';
         $this->view                 = 'detail';
+    }
+
+    private function ownsTournament(?string $tournamentId): bool
+    {
+        if (!$tournamentId) return false;
+        return LeagueLeague::where('id', $tournamentId)
+            ->where('created_by_id', $this->currentDjangoUserId())
+            ->exists();
     }
 
     public function showAddTeam(): void
@@ -160,7 +182,7 @@ class TournamentManagement extends Component
             'is_public'      => true,
             'created_at'     => now(),
             'updated_at'     => now(),
-            'created_by_id'  => auth()->id(),
+            'created_by_id'  => $this->currentDjangoUserId(),
         ]);
 
         session()->flash('success', 'Tournament "' . $tournament->name . '" created! Now add teams.');
@@ -552,6 +574,10 @@ class TournamentManagement extends Component
 
     public function deleteTournament(string $id): void
     {
+        if (!$this->ownsTournament($id)) {
+            session()->flash('error', 'You do not have access to this tournament.');
+            return;
+        }
         $t = LeagueLeague::find($id);
         if ($t) {
             LeagueMatch::where('league_id', $id)->each(function ($m) {
@@ -608,7 +634,10 @@ class TournamentManagement extends Component
 
     public function render()
     {
+        $ownerId = $this->currentDjangoUserId();
+
         $tournaments = LeagueLeague::where('sport_type', 'cricket')
+            ->where('created_by_id', $ownerId)
             ->when($this->search, fn($q) => $q->where('name', 'like', '%' . $this->search . '%'))
             ->orderByDesc('created_at')
             ->paginate(10);
@@ -622,7 +651,14 @@ class TournamentManagement extends Component
                 'teams',
                 'matches' => fn($q) => $q->with(['team1', 'team2', 'winner', 'innings'])->orderBy('match_number'),
                 'pointsTable.leagueTeam',
-            ])->find($this->selectedTournamentId);
+            ])
+                ->where('created_by_id', $ownerId)
+                ->find($this->selectedTournamentId);
+
+            if (!$selectedTournament) {
+                $this->selectedTournamentId = null;
+                $this->view = 'list';
+            }
 
             if ($selectedTournament) {
                 // Group matches: league rounds first, then playoffs

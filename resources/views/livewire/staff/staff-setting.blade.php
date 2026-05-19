@@ -1,4 +1,51 @@
+<div>
 <style>
+    /* Sport recurring-block grid pills */
+    .recurring-block-grid .slot-pill {
+        display: inline-block;
+        min-width: 80px;
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        user-select: none;
+        transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+    .recurring-block-grid .slot-pill.slot-open {
+        background: #d1fae5;
+        color: #065f46;
+        border-color: #6ee7b7;
+    }
+    .recurring-block-grid .slot-pill.slot-open:hover {
+        background: #a7f3d0;
+        transform: translateY(-1px);
+    }
+    .recurring-block-grid .slot-pill.slot-blocked {
+        background: #fee2e2;
+        color: #991b1b;
+        border-color: #fca5a5;
+    }
+    .recurring-block-grid .slot-pill.slot-blocked:hover {
+        background: #fecaca;
+        transform: translateY(-1px);
+    }
+    .recurring-block-grid .slot-pill.slot-closed {
+        background: #f3f4f6;
+        color: #9ca3af;
+        border-color: #e5e7eb;
+        cursor: not-allowed;
+    }
+    .legend-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 4px;
+        vertical-align: middle;
+    }
     /* Settings page mobile fixes */
     .settings-nav-mobile {
         display: flex;
@@ -102,6 +149,7 @@
         'notifications' => ['fa-bell',        'Notifications','Notifications'],
         'team'          => ['fa-users',       'Team',         'Team Member'],
         'opening_time'  => ['fa-clock',       'Hours',        'Opening Time'],
+        'sports'        => ['fa-futbol',      'Sports',       'Sports Settings'],
         'cctv'          => ['fa-video',       'CCTV',         'CCTV Cameras'],
     ];
     @endphp
@@ -756,6 +804,304 @@
                 </div>
 
             </div>
+            @elseif($activeSection === 'sports')
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-semibold mb-3 d-flex align-items-center">
+                        <i class="fas fa-futbol text-primary me-2"></i>
+                        Sports Settings
+                    </h5>
+                    <p class="text-muted small mb-4">Per-sport opening hours (override venue hours) and blocked time slots.</p>
+
+                    @if(count($sports) === 0)
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-futbol fa-3x mb-3 opacity-25"></i>
+                            <p>No sports configured for this venue yet.</p>
+                        </div>
+                    @else
+                        @foreach($sports as $sport)
+                        <div class="card border mb-3">
+                            <div class="card-body">
+                                {{-- Sport header --}}
+                                <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+                                    <div>
+                                        <h6 class="fw-semibold mb-1">
+                                            {{ $sport->name }}
+                                            <span class="badge bg-{{ strtolower($sport->status) === 'active' ? 'success' : 'secondary' }} ms-2">
+                                                {{ ucfirst($sport->status) }}
+                                            </span>
+                                        </h6>
+                                        <div class="small text-muted">
+                                            <i class="fas fa-tag me-1"></i> Rs. {{ number_format((float)$sport->price, 2) }} / {{ $sport->rate_type ?? 'hour' }}
+                                            &nbsp;•&nbsp;
+                                            <i class="fas fa-th me-1"></i> {{ $sport->maximum_court ?? 1 }} court(s)
+                                            &nbsp;•&nbsp;
+                                            <i class="fas fa-clock me-1"></i>
+                                            @if(!empty($sport->opening_hours))
+                                                <span class="text-warning">Custom hours</span>
+                                            @else
+                                                <span>Venue hours</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-primary rounded-2"
+                                            wire:click="editSportHours({{ $sport->id }})">
+                                        <i class="fas fa-clock me-1"></i> Edit Hours
+                                    </button>
+                                </div>
+
+                                {{-- Inline hours editor (only shown for the sport being edited) --}}
+                                @if($editingSportId === (int) $sport->id)
+                                <div class="border-top pt-3 mt-2">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="override_{{ $sport->id }}"
+                                               wire:model.live="sportOverrideHours">
+                                        <label class="form-check-label small" for="override_{{ $sport->id }}">
+                                            <strong>Override venue hours for this sport</strong>
+                                            <span class="text-muted">— when off, the venue's opening hours apply.</span>
+                                        </label>
+                                    </div>
+
+                                    @if($sportOverrideHours)
+                                        <table class="table table-borderless table-sm mb-3">
+                                            <tbody>
+                                                @foreach($days as $day)
+                                                <tr>
+                                                    <td class="w-25 fw-medium text-muted">{{ ucfirst($day) }}</td>
+                                                    <td>
+                                                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                            <input type="time"
+                                                                   class="form-control form-control-sm"
+                                                                   style="max-width:140px"
+                                                                   wire:model.live="sportOpeningHours.{{ $day }}.open"
+                                                                   @if($sportOpeningHours[$day]['closed'] ?? false) disabled @endif>
+                                                            <span class="text-muted">to</span>
+                                                            <input type="time"
+                                                                   class="form-control form-control-sm"
+                                                                   style="max-width:140px"
+                                                                   wire:model.live="sportOpeningHours.{{ $day }}.close"
+                                                                   @if($sportOpeningHours[$day]['closed'] ?? false) disabled @endif>
+                                                            <div class="form-check ms-2">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                       id="closed_{{ $sport->id }}_{{ $day }}"
+                                                                       wire:model.live="sportOpeningHours.{{ $day }}.closed">
+                                                                <label class="form-check-label small" for="closed_{{ $sport->id }}_{{ $day }}">Closed</label>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    @endif
+
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-primary" type="button" wire:click="saveSportHours">
+                                            <i class="fas fa-save me-1"></i> Save Hours
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" wire:click="cancelSportHoursEdit">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                                @endif
+
+                                {{-- Read-only view of opening hours when not editing --}}
+                                @if($editingSportId !== (int) $sport->id && !empty($sport->opening_hours))
+                                <div class="border-top pt-3 mt-2">
+                                    <h6 class="small fw-semibold text-muted mb-2">Custom Opening Hours</h6>
+                                    <div class="row g-2 small">
+                                        @foreach($days as $day)
+                                            @php
+                                                $h = is_array($sport->opening_hours) ? ($sport->opening_hours[$day] ?? null) : null;
+                                            @endphp
+                                            <div class="col-md-3 col-6">
+                                                <span class="text-muted">{{ ucfirst($day) }}:</span>
+                                                @if($h && ($h['closed'] ?? false))
+                                                    <span class="badge bg-danger bg-opacity-10 text-danger">Closed</span>
+                                                @elseif($h)
+                                                    <span>{{ $h['open'] ?? '—' }} - {{ $h['close'] ?? '—' }}</span>
+                                                @else
+                                                    <span class="text-muted">—</span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
+
+                                {{-- Recurring (day-of-week) blocked slots --}}
+                                @php
+                                    $rawBlocks   = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+                                    $recurring   = [];
+                                    foreach ($days as $d) {
+                                        $entry = $rawBlocks[$d] ?? [];
+                                        $recurring[$d] = is_array($entry) ? $entry : [];
+                                    }
+                                    $hasRecurring = false;
+                                    foreach ($recurring as $list) { if (count($list) > 0) { $hasRecurring = true; break; } }
+
+                                    // Hourly slot range (06:00–22:00 matches the Django UI).
+                                    $sportHours = is_array($sport->opening_hours) ? $sport->opening_hours : [];
+                                @endphp
+                                <div class="border-top pt-3 mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                                        <h6 class="small fw-semibold text-muted mb-0">
+                                            <i class="fas fa-calendar-times me-1"></i>
+                                            Recurring Blocked Slots (every week)
+                                        </h6>
+                                        @if($hasRecurring)
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    wire:click="clearSportRecurringBlocks({{ $sport->id }})"
+                                                    wire:confirm="Remove ALL recurring blocks for {{ $sport->name }}?">
+                                                <i class="fas fa-trash me-1"></i> Clear all recurring
+                                            </button>
+                                        @endif
+                                    </div>
+                                    <p class="small text-muted mb-2">Click any slot to toggle block / unblock. Closed days are read-only.</p>
+
+                                    <div class="recurring-block-grid">
+                                        <table class="table table-sm align-middle mb-0">
+                                            <tbody>
+                                                @foreach($days as $day)
+                                                    @php
+                                                        // Decide if this day is "closed" — use sport hours if override is set, else venue hours.
+                                                        $dayHours = $sportHours[$day] ?? ($opening_hours[$day] ?? null);
+                                                        $isClosed = isset($dayHours['closed']) && $dayHours['closed'];
+                                                        $dayList  = $recurring[$day];
+                                                    @endphp
+                                                    <tr>
+                                                        @php
+                                                            // Compute hourly range from the effective opening hours
+                                                            $startHour = isset($dayHours['open'])
+                                                                ? (int) explode(':', $dayHours['open'])[0] : 6;
+                                                            $endHour   = isset($dayHours['close'])
+                                                                ? (int) explode(':', $dayHours['close'])[0] : 22;
+                                                            if ($endHour <= $startHour) $endHour = $startHour + 1;
+                                                            $hoursLabel = $isClosed
+                                                                ? null
+                                                                : sprintf('%02d:00 - %02d:00', $startHour, $endHour);
+                                                        @endphp
+                                                        <td class="fw-medium text-muted" style="width:160px;white-space:nowrap;">
+                                                            {{ ucfirst($day) }}
+                                                            @if($isClosed)
+                                                                <span class="badge bg-secondary ms-1">Closed day</span>
+                                                            @elseif(empty($dayList))
+                                                                <span class="badge bg-success bg-opacity-25 text-success ms-1">All open</span>
+                                                            @else
+                                                                <span class="badge bg-danger bg-opacity-25 text-danger ms-1">{{ count($dayList) }} blocked</span>
+                                                            @endif
+                                                            @if($hoursLabel)
+                                                                <div class="small text-muted mt-1">{{ $hoursLabel }}</div>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            @if($isClosed)
+                                                                <span class="text-muted small fst-italic">— no slots, day closed —</span>
+                                                            @else
+                                                                <div class="d-flex flex-wrap gap-1">
+                                                                    @for($h = $startHour; $h < $endHour; $h++)
+                                                                        @php
+                                                                            $time     = sprintf('%02d:00:00', $h);
+                                                                            $label    = sprintf('%d%s-%d%s',
+                                                                                ($h % 12) === 0 ? 12 : ($h % 12), $h < 12 ? 'AM' : 'PM',
+                                                                                (($h+1) % 12) === 0 ? 12 : (($h+1) % 12), ($h+1) < 12 ? 'AM' : 'PM'
+                                                                            );
+                                                                            $isBlocked = in_array($time, $dayList, true);
+                                                                        @endphp
+                                                                        <button type="button"
+                                                                                class="slot-pill {{ $isBlocked ? 'slot-blocked' : 'slot-open' }}"
+                                                                                wire:click="toggleSportRecurringBlock({{ $sport->id }}, '{{ $day }}', '{{ $time }}')">
+                                                                            {{ $label }}
+                                                                        </button>
+                                                                    @endfor
+                                                                </div>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div class="small text-muted mt-2">
+                                        <span class="legend-dot bg-success"></span> Available
+                                        <span class="legend-dot bg-danger ms-3"></span> Blocked
+                                        <span class="legend-dot bg-secondary ms-3"></span> Closed day
+                                    </div>
+                                </div>
+
+                                {{-- Date-based blocked slots (one-off) --}}
+                                <div class="border-top pt-3 mt-3">
+                                    <h6 class="small fw-semibold text-muted mb-2">
+                                        <i class="fas fa-ban me-1"></i> One-off Blocked Slots (specific dates)
+                                        @php
+                                            $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+                                            $totalBlocks = 0;
+                                            foreach ($blocks as $key => $times) {
+                                                if (in_array($key, $days, true)) continue; // skip day-of-week recurring entries
+                                                if (!is_array($times)) continue;
+                                                foreach ($times as $time => $courts) {
+                                                    if (is_array($courts)) $totalBlocks += count($courts);
+                                                }
+                                            }
+                                        @endphp
+                                        <span class="badge bg-secondary ms-1">{{ $totalBlocks }}</span>
+                                    </h6>
+
+                                    @if($totalBlocks === 0)
+                                        <p class="text-muted small mb-0">No slots blocked. Block individual slots from the <a href="{{ route('staff.bookings') }}">Bookings page</a>.</p>
+                                    @else
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-borderless small mb-0">
+                                                <thead>
+                                                    <tr class="text-muted">
+                                                        <th>Date</th>
+                                                        <th>Time</th>
+                                                        <th>Court</th>
+                                                        <th>Reason</th>
+                                                        <th></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($blocks as $date => $times)
+                                                        @if(in_array($date, $days, true)) @continue @endif
+                                                        @if(!is_array($times)) @continue @endif
+                                                        @foreach($times as $time => $courts)
+                                                            @if(!is_array($courts)) @continue @endif
+                                                            @foreach($courts as $court => $reason)
+                                                            <tr>
+                                                                <td>{{ $date }}</td>
+                                                                <td>{{ $time }}</td>
+                                                                <td>Court {{ $court }}</td>
+                                                                <td>{{ $reason }}</td>
+                                                                <td class="text-end">
+                                                                    <button type="button"
+                                                                            class="btn btn-sm btn-link text-danger p-0"
+                                                                            title="Unblock"
+                                                                            wire:click="unblockSportSlot({{ $sport->id }}, '{{ $date }}', '{{ $time }}', '{{ $court }}')"
+                                                                            wire:confirm="Remove this block?">
+                                                                        <i class="fas fa-times"></i>
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                            @endforeach
+                                                        @endforeach
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    @endif
+                </div>
+            </div>
             @elseif($activeSection === 'cctv')
             <div>
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -841,6 +1187,7 @@
                 </div>
                 @endif
             </div>
+            @endif {{-- end activeSection block --}}
 
             <!-- Add Staff Modal (moved outside conditional - see below) -->
             @php /* placeholder removed */ @endphp
@@ -1313,7 +1660,6 @@
             }
         </style>
         @endif
-        @endif {{-- end activeSection block --}}
         </div>{{-- /settings-content --}}
     </div>{{-- /settings-wrapper --}}
 </div>{{-- /container-fluid --}}
@@ -1343,3 +1689,4 @@
     });
 
 </script>
+</div>{{-- /livewire root --}}

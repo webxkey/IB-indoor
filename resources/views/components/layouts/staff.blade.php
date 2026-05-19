@@ -194,6 +194,11 @@
                                     <i class="fas fa-trophy me-2"></i> Tournament
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.announcements') ? 'active' : '' }}" href="{{ route('staff.announcements') }}">
+                                    <i class="fas fa-bullhorn me-2"></i> Announcements
+                                </a>
+                            </li>
                         </ul>
                     </div>
 

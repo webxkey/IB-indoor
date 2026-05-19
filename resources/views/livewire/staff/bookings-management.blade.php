@@ -870,21 +870,6 @@
         </div>
         @endif
 
-        {{-- Real-time WebSocket updates via Laravel Reverb + Laravel Echo --}}
-        {{-- No polling! Updates come instantly via persistent WebSocket connection --}}
-
-        {{-- TEMP DEBUG: remove after fixing --}}
-        <div id="php-debug" style="background:#1e293b;color:#7dd3fc;padding:10px 16px;font-size:0.82rem;margin-bottom:8px;border-radius:8px;">
-            <strong>PHP Debug:</strong>
-            games={{ json_encode($games) }} |
-            complex_id={{ $complex_id }} |
-            opening_hours_wed={{ json_encode($opening_hours['wednesday'] ?? 'MISSING') }} |
-            sports_count={{ count($sports ?? []) }}
-        </div>
-        <div id="js-debug" style="background:#134e4a;color:#6ee7b7;padding:10px 16px;font-size:0.82rem;margin-bottom:8px;border-radius:8px;">
-            JS Debug: <span id="js-debug-msg">waiting for JS...</span>
-        </div>
-
         <div class="card booking-card">
             <div class="card-header booking-header">
                 <h5 class="mb-0 text-white">
@@ -1914,13 +1899,23 @@
                             blockedSlotsData[sportId][dateKey] &&
                             blockedSlotsData[sportId][dateKey][slotTimeKey] &&
                             blockedSlotsData[sportId][dateKey][slotTimeKey][court];
-                        const isBlocked = !!rawBlockValue;
-                        // Support both old string format and new {reason, end_time} object format
-                        const blockReason = isBlocked
+
+                        // Recurring (day-of-week) blocks set in Sport settings:
+                        //   blockedSlotsData[sportId]["monday"] = ["09:00:00", ...]
+                        const dayOfWeek = new Date(dateKey + 'T00:00:00')
+                            .toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
+                        const recurringList = sportId && blockedSlotsData[sportId] && Array.isArray(blockedSlotsData[sportId][dayOfWeek])
+                            ? blockedSlotsData[sportId][dayOfWeek] : [];
+                        const isRecurringBlocked = recurringList.indexOf(slotTimeKey) !== -1;
+
+                        const isBlocked = !!rawBlockValue || isRecurringBlocked;
+                        const blockReason = rawBlockValue
                             ? (typeof rawBlockValue === 'object' ? rawBlockValue.reason : rawBlockValue)
-                            : null;
-                        const blockEndTime = isBlocked && typeof rawBlockValue === 'object'
+                            : (isRecurringBlocked ? 'Recurring block' : null);
+                        const blockEndTime = rawBlockValue && typeof rawBlockValue === 'object'
                             ? rawBlockValue.end_time : null;
+                        // Recurring blocks aren't unblockable from this page — they live in Settings → Sports.
+                        const canUnblockHere = !!rawBlockValue;
 
                         // Check if slot is on hold (mobile user in checkout via Django webhook)
                         const isHeld = !!(sportId &&
@@ -1940,21 +1935,25 @@
                                 </div>
                             </td>`;
                         } else if (isBlocked) {
-                            // Show blocked slot with unblock button
+                            // Show blocked slot.  One-off (date) blocks get an Unblock button here.
+                            // Recurring blocks are managed in Settings → Sports.
                             const blockTimeRange = blockEndTime
                                 ? `${slot.display.split(' - ')[0]} – ${blockEndTime.substring(0,5)}`
                                 : '';
+                            const actionHtml = canUnblockHere
+                                ? `<button class="slot-action-btn"
+                                            style="color:#856404;border-color:#d97706;"
+                                            onclick="unblockSlotJS(${sportId}, '${dateKey}', '${slotTimeKey}', '${court}')"
+                                            title="Remove block">
+                                        <i class="fas fa-unlock me-1"></i>Unblock
+                                    </button>`
+                                : `<span class="small text-muted fst-italic">Recurring — change in Settings</span>`;
                             bodyHtml += `
                             <td>
                                 <div class="time-slot blocked-slot d-flex flex-column align-items-center justify-content-center gap-1">
                                     <div><i class="fas fa-ban me-1"></i><strong>Unavailable</strong></div>
                                     <div class="small text-muted">${blockReason}${blockTimeRange ? ' · ' + blockTimeRange : ''}</div>
-                                    <button class="slot-action-btn"
-                                            style="color:#856404;border-color:#d97706;"
-                                            onclick="unblockSlotJS(${sportId}, '${dateKey}', '${slotTimeKey}', '${court}')"
-                                            title="Remove block">
-                                        <i class="fas fa-unlock me-1"></i>Unblock
-                                    </button>
+                                    ${actionHtml}
                                 </div>
                             </td>`;
                         } else if (isHeld) {

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\BookingCreated;
 use App\Jobs\ProcessDjangoWebhookEvent;
+use App\Models\BookingBooking;
 use App\Models\DjangoWebhookEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -108,5 +110,41 @@ class DjangoWebhookController extends Controller
         }
 
         return response()->json(['status' => 'accepted', 'event_id' => $eventId]);
+    }
+
+    /**
+     * Simple notify endpoint for Django: one URL, one secret, one field.
+     *
+     *   POST /api/integration/booking-notify
+     *   Header: X-Webhook-Secret: <DJANGO_LARAVEL_WEBHOOK_SECRET>
+     *   Body:   { "booking_id": 123 }
+     *
+     * Laravel loads the booking from the shared DB and broadcasts BookingCreated,
+     * which the staff dashboard listens for on bookings.complex.{venueId}.
+     */
+    public function notifyBooking(Request $request): JsonResponse
+    {
+        $secret = config('services.django_webhook.secret');
+        if (!$secret || !hash_equals($secret, (string) $request->header('X-Webhook-Secret', ''))) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $bookingId = (int) $request->input('booking_id');
+        if ($bookingId <= 0) {
+            return response()->json(['error' => 'booking_id is required'], 422);
+        }
+
+        $booking = BookingBooking::find($bookingId);
+        if (!$booking) {
+            return response()->json(['error' => 'Booking not found'], 404);
+        }
+
+        broadcast(new BookingCreated($booking));
+
+        return response()->json([
+            'status'     => 'broadcasted',
+            'booking_id' => $booking->id,
+            'venue_id'   => $booking->complex_id_id,
+        ]);
     }
 }

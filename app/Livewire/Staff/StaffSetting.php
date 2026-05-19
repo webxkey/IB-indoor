@@ -11,6 +11,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\BookingVenue;
+use App\Models\BookingSport;
 use App\Models\VenueStaff;
 use App\Models\VenueCamera;
 
@@ -68,6 +69,12 @@ class StaffSetting extends Component
     public $editingCameraId = null;
     public $showCameraForm = false;
 
+    // Sport Management
+    public $sports = [];
+    public $editingSportId = null;
+    public $sportOpeningHours = [];   // ['monday' => ['open'=>'06:00','close'=>'22:00','closed'=>false], ...]
+    public $sportOverrideHours = false; // true if sport uses its own hours instead of venue hours
+
     public function mount()
     {
         try {
@@ -93,6 +100,7 @@ class StaffSetting extends Component
 
             $this->loadComplexData();
             $this->loadTeamData();
+            $this->loadSportsData();
 
             if (request()->has('section')) {
                 $this->activeSection = request('section');
@@ -625,6 +633,162 @@ class StaffSetting extends Component
         VenueCamera::find($cameraId)?->delete();
         $this->loadTeamData();
         session()->flash('message', 'Camera removed!');
+    }
+
+    // =========================================================
+    // Sport-specific opening hours & blocked slots
+    // =========================================================
+
+    protected function loadSportsData(): void
+    {
+        if (!$this->complex_id) return;
+        $this->sports = BookingSport::where('venue_id', $this->complex_id)
+            ->orderBy('name')
+            ->get()
+            ->all();
+    }
+
+    /**
+     * Open the per-sport opening-hours editor for a single sport.
+     */
+    public function editSportHours($sportId): void
+    {
+        $sport = BookingSport::find($sportId);
+        if (!$sport || $sport->venue_id != $this->complex_id) {
+            session()->flash('error', 'Sport not found.');
+            return;
+        }
+
+        $this->editingSportId = (int) $sportId;
+        $dbHours = is_string($sport->opening_hours)
+            ? (json_decode($sport->opening_hours, true) ?: [])
+            : ($sport->opening_hours ?: []);
+
+        $this->sportOverrideHours = !empty($dbHours);
+        $this->sportOpeningHours = $this->parseOpeningHoursFromDb($dbHours);
+    }
+
+    public function cancelSportHoursEdit(): void
+    {
+        $this->editingSportId = null;
+        $this->sportOpeningHours = [];
+        $this->sportOverrideHours = false;
+    }
+
+    /**
+     * Save per-sport opening hours.
+     * When sportOverrideHours = false → store null (sport falls back to venue hours).
+     */
+    public function saveSportHours(): void
+    {
+        if (!$this->editingSportId) return;
+
+        try {
+            $this->validate([
+                'sportOpeningHours.*.open'   => 'nullable|date_format:H:i',
+                'sportOpeningHours.*.close'  => 'nullable|date_format:H:i',
+                'sportOpeningHours.*.closed' => 'nullable|boolean',
+            ]);
+
+            $sport = BookingSport::find($this->editingSportId);
+            if (!$sport || $sport->venue_id != $this->complex_id) {
+                session()->flash('error', 'Sport not found.');
+                return;
+            }
+
+            $sport->update([
+                'opening_hours' => $this->sportOverrideHours ? $this->sportOpeningHours : null,
+            ]);
+
+            $this->loadSportsData();
+            $this->cancelSportHoursEdit();
+            session()->flash('message', 'Sport opening hours saved.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            session()->flash('error', 'Invalid time format (use HH:MM).');
+            throw $e;
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error saving sport hours: ' . $e->getMessage());
+            Log::error('Sport hours save error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Toggle a recurring (day-of-week) blocked slot for a sport.
+     * Storage: blocked_slots["monday"] = ["06:00:00", "07:00:00", ...]
+     * — distinguishable from date-based entries (which use "YYYY-MM-DD" keys with nested court objects).
+     */
+    public function toggleSportRecurringBlock($sportId, string $day, string $time): void
+    {
+        $sport = BookingSport::find($sportId);
+        if (!$sport || $sport->venue_id != $this->complex_id) {
+            session()->flash('error', 'Sport not found.');
+            return;
+        }
+
+        $day = strtolower($day);
+        if (!in_array($day, $this->days, true)) return;
+
+        $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        $list   = $blocks[$day] ?? [];
+        if (!is_array($list)) $list = [];
+
+        if (in_array($time, $list, true)) {
+            $list = array_values(array_filter($list, fn($t) => $t !== $time));
+        } else {
+            $list[] = $time;
+            sort($list);
+        }
+
+        if (empty($list)) {
+            unset($blocks[$day]);
+        } else {
+            $blocks[$day] = $list;
+        }
+
+        $sport->update(['blocked_slots' => $blocks]);
+        $this->loadSportsData();
+    }
+
+    /**
+     * Remove ALL recurring (day-of-week) blocks for a sport. Per-date entries are kept.
+     */
+    public function clearSportRecurringBlocks($sportId): void
+    {
+        $sport = BookingSport::find($sportId);
+        if (!$sport || $sport->venue_id != $this->complex_id) {
+            session()->flash('error', 'Sport not found.');
+            return;
+        }
+
+        $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        foreach ($this->days as $day) {
+            unset($blocks[$day]);
+        }
+        $sport->update(['blocked_slots' => $blocks]);
+
+        $this->loadSportsData();
+        session()->flash('message', 'Recurring blocks cleared for this sport.');
+    }
+
+    /**
+     * Remove a single blocked slot from a sport (date / time / court).
+     */
+    public function unblockSportSlot($sportId, $date, $time, $court): void
+    {
+        $sport = BookingSport::find($sportId);
+        if (!$sport || $sport->venue_id != $this->complex_id) {
+            session()->flash('error', 'Sport not found.');
+            return;
+        }
+
+        $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        unset($blocks[$date][$time][$court]);
+        if (empty($blocks[$date][$time])) unset($blocks[$date][$time]);
+        if (empty($blocks[$date]))        unset($blocks[$date]);
+
+        $sport->update(['blocked_slots' => $blocks]);
+        $this->loadSportsData();
+        session()->flash('message', 'Blocked slot removed.');
     }
 
     public function render()
