@@ -9,12 +9,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Database\QueryException;
 use App\Models\User;
 use App\Models\BookingVenue;
 use App\Models\BookingSport;
 use App\Models\BookingGalleryImage;
 use Illuminate\Validation\Rule;
-use Livewire\Attributes\Layout;
 use App\Models\UserUser;
 
 
@@ -123,7 +123,13 @@ class Register extends Component
     {
         return [
             'name' => 'required|string|max:255',
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email'),
+                Rule::unique('users_user', 'email'),
+            ],
             'password' => 'required|min:6|confirmed',
             'contact' => 'required|string|max:20',
         ];
@@ -230,6 +236,8 @@ class Register extends Component
 
     public function register()
     {
+        $this->email = strtolower(trim((string) $this->email));
+
         $this->validate(array_merge(
             $this->step1Rules(),
             $this->step2Rules(),
@@ -353,10 +361,20 @@ class Register extends Component
             // Login the user and redirect to the facility owner dashboard
             Auth::login($registeredUser);
             return redirect()->route('staff.dashboard');
+        } catch (QueryException $e) {
+            Log::error('Registration failed with database error: ' . $e->getMessage());
+
+            if (($e->getCode() === '23505') || str_contains($e->getMessage(), 'users_user_email_key') || str_contains($e->getMessage(), 'users_email_key')) {
+                $this->addError('email', 'This email address is already registered. Please use a different email or sign in to your existing account.');
+                session()->flash('error', 'This email address is already registered. Please use a different email or sign in to your existing account.');
+                return;
+            }
+
+            session()->flash('error', 'An error occurred during registration. Please try again.');
         } catch (\Exception $e) {
             Log::error('Registration failed: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
-            session()->flash('error', 'An error occurred during registration: ' . $e->getMessage());
+            session()->flash('error', 'An error occurred during registration. Please try again.');
         }
     }
 

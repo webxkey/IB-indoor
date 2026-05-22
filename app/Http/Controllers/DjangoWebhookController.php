@@ -139,10 +139,22 @@ class DjangoWebhookController extends Controller
             return response()->json(['error' => 'Booking not found'], 404);
         }
 
-        broadcast(new BookingCreated($booking));
+        // Broadcasting failure (e.g. Reverb not running on this host) must not
+        // turn this notify endpoint into a 500. The booking already exists in
+        // the DB; the live update is best-effort.
+        $broadcastStatus = 'broadcasted';
+        try {
+            broadcast(new BookingCreated($booking));
+        } catch (\Throwable $e) {
+            $broadcastStatus = 'queued_locally';
+            Log::warning('booking-notify: broadcast failed', [
+                'booking_id' => $booking->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
-            'status'     => 'broadcasted',
+            'status'     => $broadcastStatus,
             'booking_id' => $booking->id,
             'venue_id'   => $booking->complex_id_id,
         ]);
