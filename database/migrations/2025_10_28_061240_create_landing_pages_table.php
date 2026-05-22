@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('landing_pages', function (Blueprint $table) {
-            $table->id(); // bigint unsigned primary key
-            $table->string('page_name');
-            $table->string('section_title')->nullable();
-            $table->text('section_description')->nullable();
-            $table->longText('images')->nullable(); // JSON stored as text
-            $table->integer('display_order')->default(0);
-            $table->boolean('is_active')->default(true);
-            $table->timestamps(); // created_at and updated_at
-        });
+        if (!Schema::hasTable('landing_pages')) {
+            Schema::create('landing_pages', function (Blueprint $table) {
+                $table->id(); // bigint unsigned primary key
+                $table->string('page_name');
+                $table->string('section_title')->nullable();
+                $table->text('section_description')->nullable();
+                $table->longText('images')->nullable(); // JSON stored as text
+                $table->integer('display_order')->default(0);
+                $table->boolean('is_active')->default(true);
+                $table->timestamps(); // created_at and updated_at
+            });
+        }
     }
 
     /**

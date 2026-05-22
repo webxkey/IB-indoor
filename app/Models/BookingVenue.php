@@ -25,6 +25,40 @@ class BookingVenue extends Model
         'social_links' => 'array',
     ];
 
+    protected $appends = ['cover_image_url', 'gallery_images_urls'];
+
+    public function getCoverImageUrlAttribute()
+    {
+        if (!$this->cover_image) {
+            return null;
+        }
+        
+        if (filter_var($this->cover_image, FILTER_VALIDATE_URL)) {
+            return $this->cover_image;
+        }
+
+        $host = app()->runningInConsole() ? config('app.url') : request()->getSchemeAndHttpHost();
+        return rtrim($host, '/') . '/api/indoor-admin/local-storage/' . ltrim($this->cover_image, '/');
+    }
+
+    public function getGalleryImagesUrlsAttribute()
+    {
+        $gallery = $this->gallery_images_json;
+        if (!is_array($gallery)) {
+            return [];
+        }
+        
+        $host = app()->runningInConsole() ? config('app.url') : request()->getSchemeAndHttpHost();
+        $baseUrl = rtrim($host, '/') . '/api/indoor-admin/local-storage/';
+
+        return array_map(function ($path) use ($baseUrl) {
+            if (filter_var($path, FILTER_VALIDATE_URL)) {
+                return $path;
+            }
+            return $baseUrl . ltrim($path, '/');
+        }, $gallery);
+    }
+
     public function sports()
     {
         return $this->hasMany(BookingSport::class, 'venue_id');

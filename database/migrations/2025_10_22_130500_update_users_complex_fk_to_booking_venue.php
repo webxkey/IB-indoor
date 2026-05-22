@@ -14,19 +14,40 @@ return new class extends Migration
     {
         // If the complex_id column exists, drop any existing FK constraints and add the new one
         if (Schema::hasColumn('users', 'complex_id')) {
-            // Find any foreign key constraints for users.complex_id from information_schema
-            $dbName = DB::getDatabaseName();
-            $constraints = DB::select(
-                'SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL',
-                [$dbName, 'users', 'complex_id']
-            );
+            $driver = DB::connection()->getDriverName();
+            if ($driver === 'pgsql') {
+                $constraints = DB::select(
+                    "SELECT tc.constraint_name AS constraint_name
+                     FROM information_schema.table_constraints AS tc 
+                     JOIN information_schema.key_column_usage AS kcu
+                       ON tc.constraint_name = kcu.constraint_name
+                       AND tc.table_schema = kcu.table_schema
+                     WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = ? AND kcu.column_name = ?",
+                    ['users', 'complex_id']
+                );
+                foreach ($constraints as $c) {
+                    $constraintName = $c->constraint_name;
+                    try {
+                        DB::statement("ALTER TABLE users DROP CONSTRAINT \"{$constraintName}\"");
+                    } catch (\Exception $e) {
+                        // ignore
+                    }
+                }
+            } else {
+                // Find any foreign key constraints for users.complex_id from information_schema (MySQL)
+                $dbName = DB::getDatabaseName();
+                $constraints = DB::select(
+                    'SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL',
+                    [$dbName, 'users', 'complex_id']
+                );
 
-            foreach ($constraints as $c) {
-                $constraintName = $c->CONSTRAINT_NAME;
-                try {
-                    DB::statement("ALTER TABLE `users` DROP FOREIGN KEY `{$constraintName}`");
-                } catch (\Exception $e) {
-                    // ignore
+                foreach ($constraints as $c) {
+                    $constraintName = $c->CONSTRAINT_NAME;
+                    try {
+                        DB::statement("ALTER TABLE `users` DROP FOREIGN KEY `{$constraintName}`");
+                    } catch (\Exception $e) {
+                        // ignore
+                    }
                 }
             }
 
@@ -47,17 +68,38 @@ return new class extends Migration
     public function down(): void
     {
         if (Schema::hasColumn('users', 'complex_id')) {
-            $dbName = DB::getDatabaseName();
-            $constraints = DB::select(
-                'SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL',
-                [$dbName, 'users', 'complex_id']
-            );
-            foreach ($constraints as $c) {
-                $constraintName = $c->CONSTRAINT_NAME;
-                try {
-                    DB::statement("ALTER TABLE `users` DROP FOREIGN KEY `{$constraintName}`");
-                } catch (\Exception $e) {
-                    // ignore
+            $driver = DB::connection()->getDriverName();
+            if ($driver === 'pgsql') {
+                $constraints = DB::select(
+                    "SELECT tc.constraint_name AS constraint_name
+                     FROM information_schema.table_constraints AS tc 
+                     JOIN information_schema.key_column_usage AS kcu
+                       ON tc.constraint_name = kcu.constraint_name
+                       AND tc.table_schema = kcu.table_schema
+                     WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = ? AND kcu.column_name = ?",
+                    ['users', 'complex_id']
+                );
+                foreach ($constraints as $c) {
+                    $constraintName = $c->constraint_name;
+                    try {
+                        DB::statement("ALTER TABLE users DROP CONSTRAINT \"{$constraintName}\"");
+                    } catch (\Exception $e) {
+                        // ignore
+                    }
+                }
+            } else {
+                $dbName = DB::getDatabaseName();
+                $constraints = DB::select(
+                    'SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL',
+                    [$dbName, 'users', 'complex_id']
+                );
+                foreach ($constraints as $c) {
+                    $constraintName = $c->CONSTRAINT_NAME;
+                    try {
+                        DB::statement("ALTER TABLE `users` DROP FOREIGN KEY `{$constraintName}`");
+                    } catch (\Exception $e) {
+                        // ignore
+                    }
                 }
             }
 

@@ -71,10 +71,22 @@ class BookingController extends Controller
         $now = Carbon::now();
         $isToday = $date === $now->format('Y-m-d');
 
-        // Determine opening hours based on the day of the week
+        // Determine opening hours based on the day of the week (prefer sport-specific, fallback to venue)
         $dayOfWeek = strtolower(Carbon::parse($date)->format('l'));
-        $openingHours = is_array($venue->opening_hours) ? $venue->opening_hours : json_decode($venue->opening_hours, true) ?? [];
-        $dayConfig = $openingHours[$dayOfWeek] ?? null;
+        $openingHours = null;
+        if (!empty($sport->opening_hours)) {
+            $openingHours = is_array($sport->opening_hours) ? $sport->opening_hours : json_decode($sport->opening_hours, true);
+        }
+        
+        $dayConfig = null;
+        if ($openingHours && isset($openingHours[$dayOfWeek])) {
+            $dayConfig = $openingHours[$dayOfWeek];
+        }
+        
+        if (!$dayConfig || (empty($dayConfig['open']) && empty($dayConfig['close']) && !isset($dayConfig['closed']))) {
+            $venueHours = is_array($venue->opening_hours) ? $venue->opening_hours : json_decode($venue->opening_hours, true) ?? [];
+            $dayConfig = $venueHours[$dayOfWeek] ?? null;
+        }
 
         // If the venue is explicitly closed, return no slots and a specific message
         if ($dayConfig && isset($dayConfig['closed']) && $dayConfig['closed'] == true) {
@@ -109,6 +121,15 @@ class BookingController extends Controller
             ->whereNotIn('status', ['cancelled', 'Cancelled'])
             ->get();
 
+        // 2. Parse blocked slots
+        $blocked = $sport->blocked_slots;
+        if (is_string($blocked)) {
+            $blocked = json_decode($blocked, true) ?? [];
+        }
+        if (!is_array($blocked)) {
+            $blocked = [];
+        }
+
         $courts = [];
         for ($c = 1; $c <= $maxCourts; $c++) {
             $slots = [];
@@ -120,8 +141,7 @@ class BookingController extends Controller
                 $bookingModel = $existingBookings->where('start_time', $time)->where('court_number', (string)$c)->first();
                 
                 // 2. Check blocked slots
-                $blocked = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
-                $isBlocked = isset($blocked[$date][$time][(string)$c]);
+                $isBlocked = (isset($blocked[$dayOfWeek]) && is_array($blocked[$dayOfWeek]) && in_array($time, $blocked[$dayOfWeek], true)) || isset($blocked[$date][$time][(string)$c]);
 
                 $status = 'available';
                 if ($bookingModel) {

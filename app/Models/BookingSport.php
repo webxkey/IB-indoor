@@ -29,6 +29,22 @@ class BookingSport extends Model
         'opening_hours' => 'array',
     ];
 
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        if (!$this->image) {
+            return 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg';
+        }
+        
+        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
+            return $this->image;
+        }
+
+        $host = app()->runningInConsole() ? config('app.url') : request()->getSchemeAndHttpHost();
+        return rtrim($host, '/') . '/api/indoor-admin/local-storage/' . ltrim($this->image, '/');
+    }
+
     public function venue()
     {
         return $this->belongsTo(BookingVenue::class, 'venue_id');
