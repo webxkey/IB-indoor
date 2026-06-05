@@ -506,13 +506,21 @@ class BookingController extends Controller
         $booking = BookingBooking::where('complex_id_id', $user->complex_id)->find($id);
         if (!$booking) return response()->json(['message' => 'Booking not found'], 404);
 
-        $booking->update(['status' => 'cancelled']);
+        $refundRequested = filter_var($request->input('refund', false), FILTER_VALIDATE_BOOL);
+        $updateData = ['status' => 'cancelled'];
+        if ($refundRequested) {
+            $updateData['payment_status'] = 'refunded';
+        }
+
+        $booking->update($updateData);
 
         $this->notifyStaff(
             $user->complex_id,
             'booking_cancelled',
             'Booking Cancelled',
-            "Booking #{$booking->id} has been cancelled",
+            $refundRequested
+                ? "Booking #{$booking->id} has been cancelled and refunded"
+                : "Booking #{$booking->id} has been cancelled",
             [
                 'booking_id' => $booking->id,
                 'game_name' => $booking->game_name,
@@ -522,6 +530,8 @@ class BookingController extends Controller
                 'end_time' => $booking->end_time,
                 'user_name' => $booking->user_name,
                 'price' => (string)$booking->price,
+                'refund' => $refundRequested,
+                'payment_status' => $refundRequested ? 'refunded' : (string) $booking->payment_status,
             ]
         );
 
@@ -593,14 +603,22 @@ class BookingController extends Controller
     {
         $user = $request->user();
         $venueId = $user->complex_id;
+        $refundRequested = filter_var($request->input('refund', false), FILTER_VALIDATE_BOOL);
+
+        $updateData = ['status' => 'cancelled'];
+        if ($refundRequested) {
+            $updateData['payment_status'] = 'refunded';
+        }
 
         $count = BookingBooking::where('complex_id_id', $venueId)
             ->where('permanent_source_id', $id)
             ->whereNotIn('status', ['cancelled', 'Cancelled'])
-            ->update(['status' => 'cancelled']);
+            ->update($updateData);
 
         return response()->json([
-            'message' => "Successfully cancelled $count bookings in the series.",
+            'message' => $refundRequested
+                ? "Successfully cancelled and refunded $count bookings in the series."
+                : "Successfully cancelled $count bookings in the series.",
             'cancelled_count' => $count
         ]);
     }
@@ -620,6 +638,25 @@ class BookingController extends Controller
         $m = str_pad($parts[1] ?? '00', 2, '0', STR_PAD_LEFT);
         $s = str_pad($parts[2] ?? '00', 2, '0', STR_PAD_LEFT);
         return "$h:$m:$s";
+    }
+
+    /**
+     * Scan and verify booking by QR code
+     */
+    public function scanBooking(Request $request, $qrCode)
+    {
+        $user = $request->user();
+        $venueId = $user->complex_id;
+
+        $booking = BookingBooking::where('complex_id_id', $venueId)
+            ->where('qr_code', $qrCode)
+            ->first();
+
+        if (!$booking) {
+            return response()->json(['message' => 'Booking not found for this QR code.'], 404);
+        }
+
+        return response()->json($booking);
     }
 
     /**

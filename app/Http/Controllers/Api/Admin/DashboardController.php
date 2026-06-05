@@ -37,7 +37,7 @@ class DashboardController extends Controller
             'total_bookings' => $bookings->count(),
             'today_bookings' => $bookings->filter(function ($b) use ($today) {
                 $bDate = $b->booking_date instanceof Carbon ? $b->booking_date->format('Y-m-d') : (string) $b->booking_date;
-                return substr($bDate, 0, 10) === $today;
+                return substr($bDate, 0, 10) === $today && strtolower((string) $b->status) !== 'cancelled';
             })->count(),
             'pending_bookings' => $statusCount($bookings, 'pending'),
             'confirmed_bookings' => $statusCount($bookings, 'confirmed'),

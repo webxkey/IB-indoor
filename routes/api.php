@@ -869,7 +869,7 @@ Route::get('/slot/available', function (Request $request) {
     $blocked = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
     $dayOfWeek = strtolower(Carbon::parse($request->date)->format('l'));
     $isWeeklyBlocked = isset($blocked[$dayOfWeek]) && is_array($blocked[$dayOfWeek]) && in_array($timeKey, $blocked[$dayOfWeek], true);
-    
+
     $slotData = $blocked[$request->date][$timeKey][$court] ?? null;
     if ($isWeeklyBlocked || $slotData !== null) {
         $reason = $isWeeklyBlocked ? 'Unavailable' : (is_array($slotData) ? ($slotData['reason'] ?? 'Unavailable') : $slotData);
@@ -1844,6 +1844,8 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     Route::get('/bookings/permanent/', [BookingController::class, 'permanentList']);
     Route::post('/bookings/create/', [BookingController::class, 'create']);
     Route::patch('/bookings/permanent/{id}/cancel-all/', [BookingController::class, 'permanentCancelAll']);
+    Route::get('/bookings/scan/{qr_code}', [BookingController::class, 'scanBooking']);
+
 
     // Staff Management
     Route::get('/staff/', function (Request $request) {
