@@ -134,7 +134,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
                 ->limit(10);
 
             if ($since) {
-                $query->where('created_at', '>', $since);
+                try {
+                    $query->where('created_at', '>', \Carbon\Carbon::parse($since)->timezone(config('app.timezone')));
+                } catch (\Exception $e) {
+                    // Fallback to basic string comparison if parsing fails
+                    $query->where('created_at', '>', $since);
+                }
             }
 
             $notifications = $query->get()->map(fn($n) => [
@@ -148,6 +153,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
             return response()->json([
                 'notifications' => $notifications,
                 'unread_count'  => \App\Models\BookingNotification::where('user_id', $userId)->where('is_read', false)->count(),
+                'server_time'   => now()->toISOString(),
             ]);
         })->name('notifications.poll');
 

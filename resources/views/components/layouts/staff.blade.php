@@ -481,7 +481,7 @@
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (data) {
                 if (!data) return;
-                lastSeen = new Date().toISOString();
+                lastSeen = data.server_time || new Date().toISOString();
                 updateBadge(data.unread_count);
                 if (data.notifications && data.notifications.length > 0) {
                     data.notifications.forEach(function (n) { showToast(n); });

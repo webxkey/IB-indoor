@@ -904,7 +904,11 @@
                     <button class="btn btn-outline-secondary date-btn" id="prevDay">
                         <i class="fas fa-chevron-left"></i>
                     </button>
-                    <div class="current-date" id="currentDate">{{ now()->format('F j, Y') }}</div>
+                    <div class="current-date position-relative" style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="document.getElementById('datePickerInput').showPicker()">
+                        <span id="currentDate">{{ now()->format('F j, Y') }}</span>
+                        <i class="fas fa-calendar-alt text-muted" style="font-size: 1.1rem;"></i>
+                        <input type="date" id="datePickerInput" style="position: absolute; opacity: 0; top: 0; left: 0; height: 100%; width: 100%; cursor: pointer;">
+                    </div>
                     <button class="btn btn-outline-secondary date-btn" id="nextDay">
                         <i class="fas fa-chevron-right"></i>
                     </button>
@@ -1280,26 +1284,12 @@
                 });
             });
 
-            // Listen for booking data changes from Livewire smart polling
-            window.addEventListener('bookingDataChanged', function() {
-                console.log('🔔 Booking data changed - refreshing calendar');
-                
-                // Refresh booking data from Livewire component
-                refreshBookingData().then(() => {
-                    updateCalendar();
-                    showNotification('🔔 New Update', 'Booking data has been updated!');
-                    playNotificationSound();
-                });
-            });
-
-            // Also listen via Livewire's native event system
-            Livewire.on('bookingDataChanged', () => {
-                console.log('🔔 Livewire: Booking data changed');
-                refreshBookingData().then(() => {
-                    updateCalendar();
-                    showNotification('🔔 New Update', 'Booking data has been updated!');
-                    playNotificationSound();
-                });
+            // Listen for notification events dispatched from Livewire
+            window.addEventListener('notify', (event) => {
+                const data = event.detail[0] || event.detail;
+                if (data && data.title && data.message) {
+                    showNotification(data.title, data.message);
+                }
             });
 
             console.log('✅ Livewire listeners initialized for real-time updates');
@@ -1388,6 +1378,7 @@
             // Date navigation
             const prevBtn = document.getElementById('prevDay');
             const nextBtn = document.getElementById('nextDay');
+            const datePickerInput = document.getElementById('datePickerInput');
 
             if (prevBtn) {
                 prevBtn.addEventListener('click', function() {
@@ -1402,6 +1393,17 @@
                     currentDate.setDate(currentDate.getDate() + 1);
                     console.log('Next day clicked:', formatDate(currentDate));
                     updateCalendar();
+                });
+            }
+
+            if (datePickerInput) {
+                datePickerInput.addEventListener('change', function(e) {
+                    if (e.target.value) {
+                        const parts = e.target.value.split('-');
+                        currentDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                        console.log('Date selected from picker:', formatDate(currentDate));
+                        updateCalendar();
+                    }
                 });
             }
 
@@ -2005,6 +2007,8 @@
             calendarBodyEl.innerHTML = bodyHtml;
             const currentDateEl = document.getElementById('currentDate');
             if (currentDateEl) currentDateEl.textContent = formatDate(currentDate);
+            const datePickerInput = document.getElementById('datePickerInput');
+            if (datePickerInput) datePickerInput.value = formatDateKey(currentDate);
 
             console.log('DEBUG - Calendar body updated!');
 
