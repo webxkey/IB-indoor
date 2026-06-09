@@ -719,22 +719,18 @@
 
     <!-- Success Modal -->
     @if ($showSuccessModal)
-    <div class="modal show d-block">
-        <div class="modal-dialog">
-            <div class="modal-content text-center p-4">
-                <h3 class="text-success mb-3">Registration Successful!</h3>
-                <p>Your complex has been created successfully.</p>
-
-                @if (Auth::user() && Auth::user()->complex)
-                <div class="mt-3 border-top pt-3 text-start">
-                    <h5>Complex Details</h5>
-                    <p><strong>Name:</strong> {{ Auth::user()->complex->name }}</p>
-                    <p><strong>Owner:</strong> {{ Auth::user()->name }}</p>
-                    <p><strong>Email:</strong> {{ Auth::user()->email }}</p>
+    <div class="modal show d-block" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center p-5 shadow-lg border-0" style="border-radius: 20px;">
+                <div class="success-icon mb-4" style="background: var(--primary-gradient); color: white; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 2.5rem;">
+                    <i class="fas fa-check"></i>
                 </div>
-                @endif
+                <h3 class="text-success mb-3" style="font-weight: 700;">Registration Successful!</h3>
+                <p class="text-muted mb-4" style="font-size: 1.1rem;">Your complex has been registered. <br><strong>Our team will contact you shortly and then you can use our service.</strong></p>
 
-                <button class="btn btn-primary mt-3" wire:click="$set('showSuccessModal', false)">Close</button>
+                <div class="d-grid">
+                    <a href="/" class="btn btn-primary btn-lg" style="border-radius: 12px; font-weight: 600;">Back to Homepage</a>
+                </div>
             </div>
         </div>
     </div>
@@ -759,14 +755,6 @@
             </div>
             @endif
 
-            @if (session()->has('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <div class="d-flex align-items-center"><i class="fas fa-exclamation-triangle me-2"></i>
-                    <div>{{ session('error') }}</div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            @endif
             @if (session()->has('error'))
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <div class="d-flex align-items-center"><i class="fas fa-exclamation-triangle me-2"></i>
@@ -857,16 +845,6 @@
                                 <option value="Both">Both</option>
                             </select>
                             @error('complex_type') <div class="error-message">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="form-group">
-                            <label for="status" class="form-label"><i class="fas fa-info-circle me-2"></i>Status </label>
-                            <select class="form-input @error('status') is-invalid @enderror" id="status" wire:model="status" required>
-                                <option value="Active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="maintenance">Under Maintenance</option>
-                                <option value="new">New</option>
-                            </select>
-                            @error('status') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
                             <label for="county" class="form-label"><i class="fas fa-map me-2"></i>District / City </label>

@@ -42,7 +42,7 @@ class Register extends Component
     public $contact_number;
     public $email_address;
     public $website;
-    public $status = 'Active';
+    public $status = 'New';
     public $description;
 
     // Step 3: Facility Details
@@ -285,7 +285,7 @@ class Register extends Component
                     'email_address' => $this->email_address,
                     'image_url' => $base_image_url,
                     'website' => $this->website,
-                    'status' => $this->status,
+                    'status' => 'New', // Force status to New for manual approval
                     'opening_hours' => $this->opening_hours,
                     'amenities' => $this->amenities,
                     'description' => $this->description,
@@ -306,14 +306,14 @@ class Register extends Component
                     BookingSport::create([
                         'name' => ucfirst($sportName),
                         'price' => $this->hourly_rate,
-                        'available' => $this->status === 'Active',
+                        'available' => false, // Default to false until approved
                         'game_type' => $this->gameType ?? 'Indoor',
                         'rate_type' => 'Per hour',
                         'venue_id' => $venue->id,
                         'description' => $this->description,
                         'image' => $base_image_url,
                         'maximum_court' => 1,
-                        'status' => 'Active',
+                        'status' => 'Inactive', // Default to Inactive until approved
                     ]);
                 }
 
@@ -358,9 +358,8 @@ class Register extends Component
                 ]);
             });
 
-            // Login the user and redirect to the facility owner dashboard
-            Auth::login($registeredUser);
-            return redirect()->route('staff.dashboard');
+            // Show success modal instead of auto-login
+            $this->showSuccessModal = true;
         } catch (QueryException $e) {
             Log::error('Registration failed with database error: ' . $e->getMessage());
 

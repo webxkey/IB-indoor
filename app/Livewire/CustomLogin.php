@@ -27,6 +27,16 @@ class CustomLogin extends Component
             session()->regenerate();
             
             $user = Auth::user();
+
+            // Check if facility owner is approved
+            if ($user && $user->role === 'facility_owner') {
+                $venue = $user->complex; // Relationship defined in User model
+                if ($venue && $venue->status === 'New') {
+                    Auth::logout();
+                    $this->addError('email', 'Your facility registration is pending manual approval. our team will contact you shortly and then you can use our service.');
+                    return;
+                }
+            }
             
             if ($user && $user->role === 'admin') {
                 return redirect()->route('admin.dashboard');
