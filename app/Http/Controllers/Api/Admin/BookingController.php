@@ -166,6 +166,11 @@ class BookingController extends Controller
                         }
                     }
 
+                    if (empty($bookingModel->qr_code)) {
+                        $bookingModel->qr_code = 'QR' . strtoupper(substr(md5(uniqid($bookingModel->id, true)), 0, 6));
+                        $bookingModel->save();
+                    }
+
                     $bookingData = [
                         'id' => $bookingModel->id,
                         'customer_name' => $bookingModel->user_name,
@@ -181,6 +186,7 @@ class BookingController extends Controller
                         'booking_date' => $bookingModel->booking_date->format('Y-m-d'),
                         'start_time' => $bookingModel->start_time,
                         'end_time' => $bookingModel->end_time,
+                        'qr_code' => $bookingModel->qr_code,
                     ];
                 }
 
@@ -345,6 +351,7 @@ class BookingController extends Controller
                     'notes'                => $data['notes'] ?? null,
                     'is_challenge_booking' => false,
                     'permanent_source_id'  => $permanentSourceId,
+                    'qr_code'              => 'QR' . strtoupper(substr(md5(uniqid('', true)), 0, 6)),
                 ]);
 
                 // BookingBookingObserver broadcasts BookingCreated automatically.
@@ -656,7 +663,49 @@ class BookingController extends Controller
             return response()->json(['message' => 'Booking not found for this QR code.'], 404);
         }
 
-        return response()->json($booking);
+        // Calculate whether the booking time slot has ended
+        $now = Carbon::now('Asia/Colombo');
+        $isTimeCompleted = false;
+        $displayStatus = $booking->status;
+
+        try {
+            $bookingDate = Carbon::parse($booking->booking_date)->format('Y-m-d');
+            $endTime = $booking->end_time;
+            $startTime = $booking->start_time;
+
+            $endAt = Carbon::parse("{$bookingDate} {$endTime}", 'Asia/Colombo');
+            $startAt = Carbon::parse("{$bookingDate} {$startTime}", 'Asia/Colombo');
+
+            // Handle overnight slots (end time is next day)
+            if ($endAt->lte($startAt)) {
+                $endAt->addDay();
+            }
+
+            $isTimeCompleted = $now->gte($endAt);
+
+            if ($isTimeCompleted) {
+                $status = strtolower($booking->status);
+                if ($status === 'playing') {
+                    $displayStatus = 'Played';
+                } elseif ($status === 'no-show') {
+                    $displayStatus = 'No-Show';
+                } elseif ($status === 'cancelled') {
+                    $displayStatus = 'Cancelled';
+                } elseif ($status === 'confirmed' || $status === 'upcoming') {
+                    $displayStatus = 'Not Played';
+                } else {
+                    $displayStatus = $booking->status;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Error calculating booking time completion: " . $e->getMessage());
+        }
+
+        $data = $booking->toArray();
+        $data['is_time_completed'] = $isTimeCompleted;
+        $data['display_status'] = $displayStatus;
+
+        return response()->json($data);
     }
 
     /**
