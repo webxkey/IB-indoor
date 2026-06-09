@@ -108,7 +108,7 @@
     <section class="careers-hero">
         <div class="container">
             <h1>Join Our Team</h1>
-            <p>Be part of Indoor Booking and help us revolutionize the indoor sports experience.</p>
+            <p>Be part of Sportynix Hub and help us revolutionize the indoor sports experience.</p>
         </div>
     </section>
 
@@ -156,7 +156,7 @@
     <section class="culture-section bg-white">
         <div class="container">
             <h2 class="section-title">Our Culture</h2>
-            <p class="section-subtitle">Indoor Booking values innovation, teamwork, and a passion for sports. We believe in a collaborative environment where everyone can grow and make an impact.</p>
+            <p class="section-subtitle">Sportynix Hub values innovation, teamwork, and a passion for sports. We believe in a collaborative environment where everyone can grow and make an impact.</p>
 
             <div class="row align-items-center">
                 <div class="col-md-6">

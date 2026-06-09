@@ -75,7 +75,7 @@
   <section class="security-hero">
     <div class="container">
       <h1>Security & Data Protection</h1>
-      <p>Your privacy and safety are our top priorities at Indoor Booking</p>
+      <p>Your privacy and safety are our top priorities at Sportynix Hub</p>
     </div>
   </section>
 

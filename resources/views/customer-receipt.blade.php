@@ -102,7 +102,7 @@
 
 <body>
     <div class="header">
-        <h1>sportynix</h1>
+        <h1>Sportynix Hub</h1>
         <p>Booking Confirmation Receipt</p>
     </div>
     <div class="content">
@@ -172,7 +172,7 @@
         </table>
 
         <div class="footer">
-            <p>Thank you for booking with sportynix!</p>
+            <p>Thank you for booking with Sportynix Hub!</p>
             <p>Generated on {{ now()->format('M d, Y \a\t g:i A') }}</p>
         </div>
     </div>

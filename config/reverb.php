@@ -73,9 +73,9 @@ return [
                     'use_ssl' => env('REVERB_SCHEME') === 'https',
                 ],
                 'allowed_origins' => [
-                    'sportynix.com',
-                    'www.sportynix.com',
-                    'https://sportynix.com',
+                    'sportynixhub.com',
+                    'www.sportynixhub.com',
+                    'https://sportynixhub.com',
                     '*'
                 ],
                 'max_message_size' => 10000,

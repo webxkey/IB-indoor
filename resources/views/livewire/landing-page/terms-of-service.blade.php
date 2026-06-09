@@ -137,7 +137,7 @@
     <section id="privacy-data" class="indoor-about-services">
         <h2>Privacy Policy And User Data</h2>
         <p>
-            sportynix values your privacy and is committed to protecting your personal data.
+            Sportynix Hub values your privacy and is committed to protecting your personal data.
             This Privacy Policy explains how we collect, use, and safeguard your information when
             you use our platform to discover, book, or communicate with indoor venues.
         </p>
@@ -164,7 +164,7 @@
             </li>
             <li class="mb-3">
                 <strong>Transparency And Control.</strong> We believe in giving users full control
-                over their information. sportynix only collects data necessary to ensure smooth
+                over their information. Sportynix Hub only collects data necessary to ensure smooth
                 service delivery and improve your experience.
             </li>
         </ul>
@@ -179,27 +179,27 @@
     <section id="licenses" class="indoor-about-services">
         <h2>Licenses</h2>
         <p>
-            sportynix grants you a limited, non-exclusive, non-transferable, and revocable license
+            Sportynix Hub grants you a limited, non-exclusive, non-transferable, and revocable license
             to use our platform and services in accordance with our Terms and Policies. This license is
             provided solely for your personal and lawful use related to discovering and booking indoor venues.
         </p>
 
         <ul class="list-unstyled">
             <li class="mb-3">
-                <strong>Usage Rights.</strong> You are permitted to access and use the sportynix
+                <strong>Usage Rights.</strong> You are permitted to access and use the Sportynix Hub
                 application, website, and related services only for booking venues, managing your
                 reservations, and communicating with venue providers.
             </li>
 
             <li class="mb-3">
                 <strong>Restrictions.</strong> You may not copy, modify, distribute, sell, lease,
-                or reverse-engineer any part of the sportynix platform or its software. Unauthorized
+                or reverse-engineer any part of the Sportynix Hub platform or its software. Unauthorized
                 access or duplication of our services or content is strictly prohibited.
             </li>
 
             <li class="mb-3">
                 <strong>Intellectual Property.</strong> All content, features, designs, trademarks,
-                and software used within sportynix remain the sole property of sportynix or
+                and software used within Sportynix Hub remain the sole property of Sportynix Hub or
                 its partners. These are protected under applicable intellectual property laws.
             </li>
 
@@ -210,7 +210,7 @@
             </li>
 
             <li class="mb-3">
-                <strong>Termination of License.</strong> sportynix reserves the right to revoke or
+                <strong>Termination of License.</strong> Sportynix Hub reserves the right to revoke or
                 suspend your license at any time if you violate our Terms, misuse the platform, or engage
                 in activities that harm the security or integrity of our services.
             </li>
@@ -219,7 +219,7 @@
     <section id="third-party" class="indoor-about-services">
         <h2>Third-Party Services</h2>
         <p>
-            sportynix may work with trusted third-party services to improve your experience, such as
+            Sportynix Hub may work with trusted third-party services to improve your experience, such as
             payment processors, map providers, and communication tools. These services operate under their
             own terms and privacy policies.
         </p>
@@ -233,7 +233,7 @@
                 they handle your data and content. We recommend reviewing their policies before using them.
             </li>
             <li class="mb-3">
-                <strong>Service Updates.</strong> sportynix may add or remove third-party integrations
+                <strong>Service Updates.</strong> Sportynix Hub may add or remove third-party integrations
                 as needed to maintain secure and reliable service.
             </li>
         </ul>
@@ -241,7 +241,7 @@
     <section id="reporting-infringement" class="indoor-about-services">
         <h2>Reporting Third-Party Copyright, Trademark, And Other Intellectual Property Infringement</h2>
         <p>
-            sportynix respects the intellectual property rights of others and expects our users and
+            Sportynix Hub respects the intellectual property rights of others and expects our users and
             venue partners to do the same. If you believe that any content available on our platform
             infringes your copyright, trademark, or other rights, please contact us with the necessary details.
         </p>
@@ -264,11 +264,11 @@
     <section id="availability-termination" class="indoor-about-services">
         <h2>Availability And Termination Of Our Services</h2>
         <p>
-            We strive to make sportynix available at all times, but we do not guarantee uninterrupted access.
+            We strive to make Sportynix Hub available at all times, but we do not guarantee uninterrupted access.
             Maintenance, updates, or unforeseen technical issues may occasionally affect service availability.
         </p>
         <p>
-            sportynix reserves the right to modify, suspend, or terminate our Services or your account
+            Sportynix Hub reserves the right to modify, suspend, or terminate our Services or your account
             at any time if we believe you have violated our Terms or engaged in misuse of the platform.
         </p>
         <p>
@@ -279,7 +279,7 @@
     <section id="other" class="indoor-about-services">
         <h2>Other</h2>
         <p>
-            These Terms represent the entire agreement between you and sportynix regarding your use of our Services
+            These Terms represent the entire agreement between you and Sportynix Hub regarding your use of our Services
             and replace any previous agreements.
         </p>
         <p>
@@ -287,7 +287,7 @@
             to apply in full effect.
         </p>
         <p>
-            We may update or revise these Terms from time to time. Continued use of sportynix after changes are made
+            We may update or revise these Terms from time to time. Continued use of Sportynix Hub after changes are made
             means you accept the updated Terms.
         </p>
     </section>

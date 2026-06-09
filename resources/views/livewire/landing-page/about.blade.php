@@ -20,7 +20,7 @@
     <section class="section-padding bg-light">
         <div class="container">
             <div class="text-center mb-5">
-                <h2 class="fw-bold text-dark">Why Choose VenueNest?</h2>
+                <h2 class="fw-bold text-dark">Why Choose Sportynix Hub?</h2>
                 <p class="text-muted">We make indoor sports bookings seamless and enjoyable.</p>
             </div>
             <div class="row text-center">
@@ -42,7 +42,7 @@
                     <div class="p-4 feature-box shadow-sm bg-white rounded-4">
                         <i class="bi bi-people-fill fs-1 mb-3 text-success"></i>
                         <h4 class="fw-semibold">Trusted by Athletes</h4>
-                        <p class="text-muted">Thousands of players and teams rely on VenueNest for hassle-free indoor bookings.</p>
+                        <p class="text-muted">Thousands of players and teams rely on Sportynix Hub for hassle-free indoor bookings.</p>
                     </div>
                 </div>
             </div>

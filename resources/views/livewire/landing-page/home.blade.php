@@ -35,7 +35,7 @@
                     <div class="banner-content">
                         <!-- Left Content -->
                         <div class="promo-content">
-                            <div class="pass-logo"><span class="brand">INDOOR</span> PASS</div>
+                            <div class="pass-logo"><span class="brand">SPORTYNIX</span> PASS</div>
                             <h1>Unlimited <span class="highlight">Court Access</span></h1>
                             <p>For just LKR 1,999 a month</p>
                         </div>
@@ -54,7 +54,7 @@
                     <div class="banner-content">
                         <!-- Left Content -->
                         <div class="promo-content">
-                            <div class="pass-logo"><span class="brand">INDOOR</span> PASS</div>
+                            <div class="pass-logo"><span class="brand">SPORTYNIX</span> PASS</div>
                             <h1>Play <span class="highlight">Anytime</span></h1>
                             <p>Access courts 24/7 with one simple pass</p>
                         </div>
@@ -73,7 +73,7 @@
                     <div class="banner-content">
                         <!-- Left Content -->
                         <div class="promo-content">
-                            <div class="pass-logo"><span class="brand">INDOOR</span> PASS</div>
+                            <div class="pass-logo"><span class="brand">SPORTYNIX</span> PASS</div>
                             <h1><span class="highlight">Join Today</span> & Save</h1>
                             <p>Get exclusive offers on court bookings</p>
                         </div>

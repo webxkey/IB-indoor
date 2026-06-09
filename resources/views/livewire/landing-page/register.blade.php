@@ -855,8 +855,14 @@
                             @error('county') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
-                            <label for="location" class="form-label"><i class="fas fa-map-marker-alt me-2"></i>Location </label>
-                            <input type="text" class="form-input @error('location') is-invalid @enderror" id="location" wire:model="location" required placeholder="Enter location area">
+                            <label for="location" class="form-label" style="justify-content: space-between;">
+                                <span><i class="fas fa-map-marker-alt me-2"></i>Map Coordinates</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick="getCurrentLocation(this)" style="font-size: 0.8rem; height: auto;">
+                                    <i class="fas fa-crosshairs me-1"></i>Get Current Location
+                                </button>
+                            </label>
+                            <input type="text" class="form-input @error('location') is-invalid @enderror" id="location" wire:model="location" required placeholder="e.g. 7.123126, 80.072028">
+                            <small class="text-muted mt-1" style="font-size: 0.8rem;">Enter Latitude, Longitude or click the button to auto-fill.</small>
                             @error('location') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
@@ -1082,3 +1088,40 @@
         </div>
     </div>
 </div>
+
+<script>
+    function getCurrentLocation(btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Locating...';
+        btn.disabled = true;
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const coords = lat + ', ' + lng;
+                    
+                    // Update Livewire model directly
+                    @this.set('location', coords);
+                    
+                    btn.innerHTML = '<i class="fas fa-check text-success me-1"></i>Found';
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                },
+                function(error) {
+                    alert('Error getting location: ' + error.message + '. Please ensure location services are enabled or enter coordinates manually.');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                },
+                { enableHighAccuracy: true }
+            );
+        } else {
+            alert("Geolocation is not supported by this browser.");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+</script>

@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Indoor Booking - Professional platform for managing sports venues, bookings, and events. Streamline your indoor facility operations with ease and efficiency.">
-    <title>Indoor Booking</title>
+    <meta name="description" content="Sportynix Hub - Professional platform for managing sports venues, bookings, and events. Streamline your indoor facility operations with ease and efficiency.">
+    <title>Sportynix Hub</title>
     <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
 
@@ -247,7 +247,7 @@
         }
 
         /* Footer Styling - Green Theme */
-        /* 🌿 Indoor Booking Footer - Updated Professional Green Theme */
+        /* 🌿 Sportynix Hub Footer - Updated Professional Green Theme */
 
         /* Primary Theme Color */
         :root {
@@ -261,7 +261,7 @@
             /* Soft dark grey for secondary info */
         }
 
-        /* IndoorB text next to the logo */
+        /* Sportynix Hub text next to the logo */
         .indoorb-logo-text {
             color: rgb(25, 135, 84);
             /* Green color */
@@ -1430,7 +1430,7 @@
     <!-- Navbar / Header -->
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#"><img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; width: auto; margin-right: 10px;">IndoorB</a>
+            <a class="navbar-brand" href="#"><img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; width: auto; margin-right: 10px;">Sportynix Hub</a>
             <!-- Desktop Navbar (visible only on lg and up) -->
             <div class="collapse navbar-collapse justify-content-end d-none d-lg-flex" id="nav">
                 <ul class="navbar-nav align-items-lg-center">
@@ -1462,7 +1462,7 @@
     <!-- Mobile Sidebar Menu (strictly hidden on desktop) -->
     <div class="mobile-sidebar d-lg-none" id="mobileSidebar">
         <button class="close-btn" id="closeSidebarBtn" aria-label="Close menu"><i class="bi bi-x-lg"></i></button>
-        <a class="navbar-brand" href="#"><img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; width: auto; margin-right: 10px;">IndoorB</a>
+        <a class="navbar-brand" href="#"><img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; width: auto; margin-right: 10px;">Sportynix Hub</a>
         <ul class="navbar-nav align-items-lg-center">
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a>
@@ -1497,7 +1497,7 @@
                 <div class="col-auto d-flex align-items-center">
                     <h4 class="mb-0 indoor-booking-text-primary d-flex align-items-center">
                         <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 60px; width: auto; margin-right: 10px;">
-                        <span class="indoorb-logo-text fw-bold">IndoorB</span>
+                        <span class="indoorb-logo-text fw-bold">Sportynix Hub</span>
                     </h4>
                 </div>
 
@@ -1531,7 +1531,7 @@
                 </div>
 
                 <div class="col-6 col-md-3 col-lg-2 mb-3 mb-lg-0">
-                    <h6 class="text-uppercase indoor-booking-text-primary mb-3">Use IndoorB</h6>
+                    <h6 class="text-uppercase indoor-booking-text-primary mb-3">Use Sportynix Hub</h6>
                     <ul class="list-unstyled">
                         <li><a href="#" class="indoor-booking-link">Web App</a></li>
                         <li><a href="#" class="indoor-booking-link">iPhone</a></li>
@@ -1557,7 +1557,7 @@
                 <!-- Top: Copyright and Terms on Left, Language on Right -->
                 <div class="col-12 mb-3 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
                     <div class="indoor-booking-secondary-text d-flex flex-wrap align-items-center mb-3 mb-md-0">
-                        <span class="me-2 me-md-3">&copy; 2024 IndoorB LLC</span>
+                        <span class="me-2 me-md-3">&copy; 2024 Sportynix Hub LLC</span>
                         <a href="{{ route('terms-of-service') }}" class="indoor-booking-link">Terms of service</a>
                     </div>
 

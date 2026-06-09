@@ -88,7 +88,7 @@ self.addEventListener('push', event => {
     if (!event.data) return;
     const data = event.data.json();
     event.waitUntil(
-        self.registration.showNotification(data.title || 'IndoorB', {
+        self.registration.showNotification(data.title || 'Sportynix Hub', {
             body:    data.body    || 'You have a new notification',
             icon:    data.icon    || '/images/icons/icon-192.png',
             badge:   data.badge   || '/images/icons/icon-96.png',

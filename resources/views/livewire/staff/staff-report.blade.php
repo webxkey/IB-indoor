@@ -501,7 +501,7 @@
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content print-section">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="bookingReportModalLabel">Comprehensive Booking Details Report - Indoor Booking System</h5>
+                        <h5 class="modal-title" id="bookingReportModalLabel">Comprehensive Booking Details Report - Sportynix Hub</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -572,7 +572,7 @@
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content print-section">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="revenueReportModalLabel">Comprehensive Revenue Report - Indoor Booking System</h5>
+                        <h5 class="modal-title" id="revenueReportModalLabel">Comprehensive Revenue Report - Sportynix Hub</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">

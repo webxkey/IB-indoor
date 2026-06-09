@@ -1,4 +1,4 @@
-# sportynix System — Complete Guide
+# Sportynix Hub System — Complete Guide
 > For Claude and future developers. Read this before touching any file.
 
 ---
@@ -21,7 +21,7 @@
 
 ## 1. What This System Is
 
-**sportynix** is a dual-platform sports venue booking system:
+**Sportynix Hub** is a dual-platform sports venue booking system:
 
 - **Web App** — Laravel 10 + Livewire 3 (this project)
 - **Mobile App** — Django REST API (separate repo)
@@ -30,7 +30,7 @@
 The web app has three portals:
 1. **Public Landing Page** — Browse venues, register as a facility owner
 2. **Staff/Facility Owner Dashboard** — Manage your venue's bookings, sports, reports
-3. **Super Admin Dashboard** — Manage all venues, users, bookings system-wide
+3. **Sportynix Hub Admin Dashboard** — Manage all venues, users, bookings system-wide
 
 The mobile app's users book through Django; those bookings appear in the Laravel web admin in real-time via WebSocket (Laravel Reverb).
 

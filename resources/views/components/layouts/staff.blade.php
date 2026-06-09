@@ -13,7 +13,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="IndoorB">
+    <meta name="apple-mobile-web-app-title" content="Sportynix Hub">
     <link rel="apple-touch-icon" href="{{ asset('images/icons/icon-192.png') }}">
     <link rel="apple-touch-icon" sizes="152x152" href="{{ asset('images/icons/icon-152.png') }}">
     <link rel="apple-touch-icon" sizes="144x144" href="{{ asset('images/icons/icon-144.png') }}">
@@ -128,7 +128,7 @@
         align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
         <img src="{{ asset('images/icons/icon-72.png') }}" width="40" height="40" style="border-radius:8px;flex-shrink:0;">
         <div style="flex:1;min-width:0;">
-            <div style="font-weight:700;font-size:0.9rem;">Install IndoorB</div>
+            <div style="font-weight:700;font-size:0.9rem;">Install Sportynix Hub</div>
             <div style="font-size:0.75rem;opacity:0.85;">Add to home screen for quick access</div>
         </div>
         <button onclick="installPWA()" style="background:#fff;color:#19722d;border:none;border-radius:8px;
@@ -144,7 +144,7 @@
                 <div class="position-sticky pt-1">
                     <div class="sidebar-brand p-3 border-bottom">
                         <div class="d-flex align-items-center gap-0" style="font-size: 1.8rem;">
-                            <span class="fw-bold">IndoorB</span>
+                            <span class="fw-bold">Sportynix Hub</span>
                             <i class="fas fa-futbol text-success"></i>
                         </div>
                     </div>
@@ -262,7 +262,7 @@
                         </button>
                         <!-- App logo — visible on mobile only -->
                         <div class="d-md-none d-flex align-items-center gap-1" style="font-size:1.3rem;font-weight:700;line-height:1;">
-                            <span>IndoorB</span><i class="fas fa-futbol text-success" style="font-size:1rem;"></i>
+                            <span>Sportynix Hub</span><i class="fas fa-futbol text-success" style="font-size:1rem;"></i>
                         </div>
                     </div>
 

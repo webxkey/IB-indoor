@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Indoor Booking Admin - Manage sports venues, bookings, users, and analytics with a professional dashboard for indoor facility operations.">
-    <title>{{ $title ?? 'Page Title' }}</title>
+    <meta name="description" content="Sportynix Hub Admin - Manage sports venues, bookings, users, and analytics with a professional dashboard for indoor facility operations.">
+    <title>{{ $title ?? 'Sportynix Hub' }}</title>
     <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#198754">
@@ -571,7 +571,7 @@
                 <div class="position-sticky pt-1">
                     <div class="sidebar-brand mb-2">
                         <div class="d-flex align-items-center gap-0" style="font-size: 1.8rem;">
-                            <span class="fw-bold">IndoorB</span>
+                            <span class="fw-bold">Sportynix Hub</span>
                             <i class="fas fa-futbol text-success"></i>
                         </div>
 

@@ -116,7 +116,7 @@ input:checked + .toggle-slider:before { transform: translateX(22px); }
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Site Name <span class="text-danger">*</span></label>
-                        <input wire:model="site_name" type="text" class="form-control @error('site_name') is-invalid @enderror" placeholder="IndoorB">
+                        <input wire:model="site_name" type="text" class="form-control @error('site_name') is-invalid @enderror" placeholder="Sportynix Hub">
                         @error('site_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
@@ -131,7 +131,7 @@ input:checked + .toggle-slider:before { transform: translateX(22px); }
                         <label class="form-label fw-semibold">Contact Email</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                            <input wire:model="contact_email" type="email" class="form-control @error('contact_email') is-invalid @enderror" placeholder="admin@indoorb.com">
+                            <input wire:model="contact_email" type="email" class="form-control @error('contact_email') is-invalid @enderror" placeholder="admin@sportynixhub.com">
                             @error('contact_email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
@@ -214,7 +214,7 @@ input:checked + .toggle-slider:before { transform: translateX(22px); }
                     </div>
                     <div class="col-12">
                         <label class="form-label fw-semibold">Footer Text</label>
-                        <input wire:model="footer_text" type="text" class="form-control" placeholder="© 2026 IndoorB. All rights reserved.">
+                        <input wire:model="footer_text" type="text" class="form-control" placeholder="© 2026 Sportynix Hub. All rights reserved.">
                     </div>
                 </div>
                 <div class="save-row d-flex gap-2">
@@ -312,7 +312,7 @@ input:checked + .toggle-slider:before { transform: translateX(22px); }
                         <label class="form-label fw-semibold">Admin Notification Email</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                            <input wire:model="notify_admin_email" type="email" class="form-control @error('notify_admin_email') is-invalid @enderror" placeholder="admin@indoorb.com">
+                            <input wire:model="notify_admin_email" type="email" class="form-control @error('notify_admin_email') is-invalid @enderror" placeholder="admin@sportynixhub.com">
                             @error('notify_admin_email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <small class="text-muted">All admin alerts are sent to this email.</small>

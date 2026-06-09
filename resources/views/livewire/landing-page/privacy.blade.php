@@ -68,13 +68,13 @@
     <section class="privacy-hero">
         <div class="container">
             <h1>Privacy Policy</h1>
-            <p>Your privacy and trust are important to us at Indoor Booking</p>
+            <p>Your privacy and trust are important to us at Sportynix Hub</p>
         </div>
     </section>
 
     <!-- Main Privacy Content -->
     <section class="container privacy-section">
-        <p>At <strong>Indoor Booking</strong>, we respect your privacy and are committed to protecting your personal
+        <p>At <strong>Sportynix Hub</strong>, we respect your privacy and are committed to protecting your personal
             information. This Privacy Policy explains how we collect, use, and safeguard the data you share with us when
             using our website and services.</p>
 
@@ -112,11 +112,11 @@
             us for any privacy-related concerns.</p>
 
         <h3>7. Policy Updates</h3>
-        <p>Indoor Booking may update this Privacy Policy from time to time. Any changes will be posted on this page with
+        <p>Sportynix Hub may update this Privacy Policy from time to time. Any changes will be posted on this page with
             an updated revision date.</p>
 
         <h3>8. Contact Us</h3>
         <p>If you have questions or concerns about this Privacy Policy, please contact us at:</p>
-        <p><strong>Email:</strong> support@sportynix.com</p>
+        <p><strong>Email:</strong> support@sportynixhub.com</p>
     </section>
 </div>

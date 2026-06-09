@@ -111,7 +111,7 @@
     <!-- Hero Section -->
     <section class="business-hero">
         <div class="container">
-            <h1>Indoor Booking for Business</h1>
+            <h1>Sportynix Hub for Business</h1>
             <p>Partner with us to power your indoor sports venue, corporate events, or brand promotions.</p>
         </div>
     </section>
@@ -119,7 +119,7 @@
     <!-- Why Partner With Us -->
     <section class="section">
         <div class="container">
-            <h2 class="section-title">Why Partner with Indoor Booking?</h2>
+            <h2 class="section-title">Why Partner with Sportynix Hub?</h2>
             <p class="section-subtitle">We help indoor sports businesses grow by providing seamless technology, exposure, and support to reach more customers.</p>
 
             <div class="row row-cols-1 row-cols-md-3 g-4">
@@ -177,7 +177,7 @@
     <!-- CTA Section -->
     <section class="cta-section">
         <div class="container">
-            <h2>Partner With Indoor Booking Today</h2>
+            <h2>Partner With Sportynix Hub Today</h2>
             <p>Join hundreds of venues and organizations already using our platform to streamline operations and attract new customers.</p>
             <a href="#" class="btn btn-light">Get Started →</a>
         </div>

@@ -33,7 +33,7 @@ class SendOtpMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Your {$this->otpType} Code - SPORTYNIX",
+            subject: "Your {$this->otpType} Code - SPORTYNIX HUB",
         );
     }
 

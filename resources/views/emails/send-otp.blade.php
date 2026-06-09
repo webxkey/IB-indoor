@@ -88,7 +88,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏆 SPORTYNIX</h1>
+            <h1>🏆 SPORTYNIX HUB</h1>
             <p style="margin: 5px 0 0; font-size: 14px;">Admin Dashboard</p>
         </div>
 
@@ -116,12 +116,12 @@
             </div>
 
             <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-                Need help? Contact our support team at <a href="mailto:support@sportynix.com" style="color: #667eea;">support@sportynix.com</a>
+                Need help? Contact our support team at <a href="mailto:support@sportynixhub.com" style="color: #667eea;">support@sportynixhub.com</a>
             </p>
         </div>
 
         <div class="footer">
-            <p style="margin: 0;">© 2026 SPORTYNIX. All rights reserved.</p>
+            <p style="margin: 0;">© 2026 SPORTYNIX HUB. All rights reserved.</p>
             <p style="margin: 5px 0 0;">This is an automated message, please do not reply.</p>
         </div>
     </div>

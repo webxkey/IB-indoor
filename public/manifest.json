@@ -1,7 +1,7 @@
 {
-    "name": "IndoorB — Indoor Booking",
-    "short_name": "IndoorB",
-    "description": "Manage and book indoor sports facilities",
+    "name": "Sportynix Hub — Sports Management",
+    "short_name": "Sportynix Hub",
+    "description": "Manage and book sports facilities with ease",
     "start_url": "/staff/dashboard",
     "scope": "/",
     "display": "standalone",

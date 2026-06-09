@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title ?? 'My Bookings' }} — sportynix</title>
+    <title>{{ $title ?? 'My Bookings' }} — Sportynix Hub</title>
     <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -31,7 +31,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="/"><i class="fas fa-futbol me-2 text-success"></i>sportynix</a>
+            <a class="navbar-brand" href="/"><i class="fas fa-futbol me-2 text-success"></i>Sportynix Hub</a>
             <div class="ms-auto d-flex align-items-center gap-3">
                 <span class="text-muted small">{{ Auth::user()->name ?? '' }}</span>
                 <form method="POST" action="{{ route('logout') }}">
