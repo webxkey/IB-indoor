@@ -807,7 +807,7 @@
                             </div>
                             <div class="partition-form-group">
                                 <label for="contact" class="form-label"><i class="fas fa-phone me-2"></i>Contact Number </label>
-                                <input type="text" class="form-input @error('contact') is-invalid @enderror" id="contact" wire:model.lazy="contact" required placeholder="+1 234 567 890">
+                                <input type="tel" class="form-input @error('contact') is-invalid @enderror" id="contact" wire:model.lazy="contact" required placeholder="076 1265 772">
                                 @error('contact') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                         </div>
@@ -877,7 +877,7 @@
                         </div>
                         <div class="form-group">
                             <label for="contact_number" class="form-label"><i class="fas fa-phone me-2"></i>Complex Contact </label>
-                            <input type="text" class="form-input @error('contact_number') is-invalid @enderror" id="contact_number" wire:model="contact_number" required placeholder="Complex contact number">
+                            <input type="tel" class="form-input @error('contact_number') is-invalid @enderror" id="contact_number" wire:model="contact_number" required placeholder="Complex contact number">
                             @error('contact_number') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
