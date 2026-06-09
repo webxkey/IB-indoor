@@ -71,10 +71,22 @@ class BookingController extends Controller
         $now = Carbon::now();
         $isToday = $date === $now->format('Y-m-d');
 
-        // Determine opening hours based on the day of the week
+        // Determine opening hours based on the day of the week (prefer sport-specific, fallback to venue)
         $dayOfWeek = strtolower(Carbon::parse($date)->format('l'));
-        $openingHours = is_array($venue->opening_hours) ? $venue->opening_hours : json_decode($venue->opening_hours, true) ?? [];
-        $dayConfig = $openingHours[$dayOfWeek] ?? null;
+        $openingHours = null;
+        if (!empty($sport->opening_hours)) {
+            $openingHours = is_array($sport->opening_hours) ? $sport->opening_hours : json_decode($sport->opening_hours, true);
+        }
+        
+        $dayConfig = null;
+        if ($openingHours && isset($openingHours[$dayOfWeek])) {
+            $dayConfig = $openingHours[$dayOfWeek];
+        }
+        
+        if (!$dayConfig || (empty($dayConfig['open']) && empty($dayConfig['close']) && !isset($dayConfig['closed']))) {
+            $venueHours = is_array($venue->opening_hours) ? $venue->opening_hours : json_decode($venue->opening_hours, true) ?? [];
+            $dayConfig = $venueHours[$dayOfWeek] ?? null;
+        }
 
         // If the venue is explicitly closed, return no slots and a specific message
         if ($dayConfig && isset($dayConfig['closed']) && $dayConfig['closed'] == true) {
@@ -109,6 +121,15 @@ class BookingController extends Controller
             ->whereNotIn('status', ['cancelled', 'Cancelled'])
             ->get();
 
+        // 2. Parse blocked slots
+        $blocked = $sport->blocked_slots;
+        if (is_string($blocked)) {
+            $blocked = json_decode($blocked, true) ?? [];
+        }
+        if (!is_array($blocked)) {
+            $blocked = [];
+        }
+
         $courts = [];
         for ($c = 1; $c <= $maxCourts; $c++) {
             $slots = [];
@@ -120,8 +141,7 @@ class BookingController extends Controller
                 $bookingModel = $existingBookings->where('start_time', $time)->where('court_number', (string)$c)->first();
                 
                 // 2. Check blocked slots
-                $blocked = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
-                $isBlocked = isset($blocked[$date][$time][(string)$c]);
+                $isBlocked = (isset($blocked[$dayOfWeek]) && is_array($blocked[$dayOfWeek]) && in_array($time, $blocked[$dayOfWeek], true)) || isset($blocked[$date][$time][(string)$c]);
 
                 $status = 'available';
                 if ($bookingModel) {
@@ -146,6 +166,11 @@ class BookingController extends Controller
                         }
                     }
 
+                    if (empty($bookingModel->qr_code)) {
+                        $bookingModel->qr_code = 'QR' . strtoupper(substr(md5(uniqid($bookingModel->id, true)), 0, 6));
+                        $bookingModel->save();
+                    }
+
                     $bookingData = [
                         'id' => $bookingModel->id,
                         'customer_name' => $bookingModel->user_name,
@@ -161,6 +186,7 @@ class BookingController extends Controller
                         'booking_date' => $bookingModel->booking_date->format('Y-m-d'),
                         'start_time' => $bookingModel->start_time,
                         'end_time' => $bookingModel->end_time,
+                        'qr_code' => $bookingModel->qr_code,
                     ];
                 }
 
@@ -325,6 +351,7 @@ class BookingController extends Controller
                     'notes'                => $data['notes'] ?? null,
                     'is_challenge_booking' => false,
                     'permanent_source_id'  => $permanentSourceId,
+                    'qr_code'              => 'QR' . strtoupper(substr(md5(uniqid('', true)), 0, 6)),
                 ]);
 
                 // BookingBookingObserver broadcasts BookingCreated automatically.
@@ -486,13 +513,21 @@ class BookingController extends Controller
         $booking = BookingBooking::where('complex_id_id', $user->complex_id)->find($id);
         if (!$booking) return response()->json(['message' => 'Booking not found'], 404);
 
-        $booking->update(['status' => 'cancelled']);
+        $refundRequested = filter_var($request->input('refund', false), FILTER_VALIDATE_BOOL);
+        $updateData = ['status' => 'cancelled'];
+        if ($refundRequested) {
+            $updateData['payment_status'] = 'refunded';
+        }
+
+        $booking->update($updateData);
 
         $this->notifyStaff(
             $user->complex_id,
             'booking_cancelled',
             'Booking Cancelled',
-            "Booking #{$booking->id} has been cancelled",
+            $refundRequested
+                ? "Booking #{$booking->id} has been cancelled and refunded"
+                : "Booking #{$booking->id} has been cancelled",
             [
                 'booking_id' => $booking->id,
                 'game_name' => $booking->game_name,
@@ -502,6 +537,8 @@ class BookingController extends Controller
                 'end_time' => $booking->end_time,
                 'user_name' => $booking->user_name,
                 'price' => (string)$booking->price,
+                'refund' => $refundRequested,
+                'payment_status' => $refundRequested ? 'refunded' : (string) $booking->payment_status,
             ]
         );
 
@@ -573,14 +610,22 @@ class BookingController extends Controller
     {
         $user = $request->user();
         $venueId = $user->complex_id;
+        $refundRequested = filter_var($request->input('refund', false), FILTER_VALIDATE_BOOL);
+
+        $updateData = ['status' => 'cancelled'];
+        if ($refundRequested) {
+            $updateData['payment_status'] = 'refunded';
+        }
 
         $count = BookingBooking::where('complex_id_id', $venueId)
             ->where('permanent_source_id', $id)
             ->whereNotIn('status', ['cancelled', 'Cancelled'])
-            ->update(['status' => 'cancelled']);
+            ->update($updateData);
 
         return response()->json([
-            'message' => "Successfully cancelled $count bookings in the series.",
+            'message' => $refundRequested
+                ? "Successfully cancelled and refunded $count bookings in the series."
+                : "Successfully cancelled $count bookings in the series.",
             'cancelled_count' => $count
         ]);
     }
@@ -600,6 +645,67 @@ class BookingController extends Controller
         $m = str_pad($parts[1] ?? '00', 2, '0', STR_PAD_LEFT);
         $s = str_pad($parts[2] ?? '00', 2, '0', STR_PAD_LEFT);
         return "$h:$m:$s";
+    }
+
+    /**
+     * Scan and verify booking by QR code
+     */
+    public function scanBooking(Request $request, $qrCode)
+    {
+        $user = $request->user();
+        $venueId = $user->complex_id;
+
+        $booking = BookingBooking::where('complex_id_id', $venueId)
+            ->where('qr_code', $qrCode)
+            ->first();
+
+        if (!$booking) {
+            return response()->json(['message' => 'Booking not found for this QR code.'], 404);
+        }
+
+        // Calculate whether the booking time slot has ended
+        $now = Carbon::now('Asia/Colombo');
+        $isTimeCompleted = false;
+        $displayStatus = $booking->status;
+
+        try {
+            $bookingDate = Carbon::parse($booking->booking_date)->format('Y-m-d');
+            $endTime = $booking->end_time;
+            $startTime = $booking->start_time;
+
+            $endAt = Carbon::parse("{$bookingDate} {$endTime}", 'Asia/Colombo');
+            $startAt = Carbon::parse("{$bookingDate} {$startTime}", 'Asia/Colombo');
+
+            // Handle overnight slots (end time is next day)
+            if ($endAt->lte($startAt)) {
+                $endAt->addDay();
+            }
+
+            $isTimeCompleted = $now->gte($endAt);
+
+            if ($isTimeCompleted) {
+                $status = strtolower($booking->status);
+                if ($status === 'playing') {
+                    $displayStatus = 'Played';
+                } elseif ($status === 'no-show') {
+                    $displayStatus = 'No-Show';
+                } elseif ($status === 'cancelled') {
+                    $displayStatus = 'Cancelled';
+                } elseif ($status === 'confirmed' || $status === 'upcoming') {
+                    $displayStatus = 'Not Played';
+                } else {
+                    $displayStatus = $booking->status;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Error calculating booking time completion: " . $e->getMessage());
+        }
+
+        $data = $booking->toArray();
+        $data['is_time_completed'] = $isTimeCompleted;
+        $data['display_status'] = $displayStatus;
+
+        return response()->json($data);
     }
 
     /**

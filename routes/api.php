@@ -38,8 +38,50 @@ use App\Events\BookingCreated;
 // AUTH
 // =========================================================================
 
+/**
+ * GET /api/test-mail
+ * Test endpoint to verify SMTP configuration
+ */
+Route::get('/test-mail', function (Request $request) {
+    $testEmail = $request->query('email', 'test@example.com');
 
+    $mailConfig = [
+        'MAIL_MAILER' => env('MAIL_MAILER'),
+        'MAIL_HOST' => env('MAIL_HOST'),
+        'MAIL_PORT' => env('MAIL_PORT'),
+        'MAIL_USERNAME' => env('MAIL_USERNAME'),
+        'MAIL_ENCRYPTION' => env('MAIL_ENCRYPTION'),
+        'MAIL_FROM_ADDRESS' => env('MAIL_FROM_ADDRESS'),
+        'config_mail_default' => config('mail.default'),
+        'env_mail_mailer' => env('MAIL_MAILER'),
+    ];
 
+    Log::info('Testing mail configuration', $mailConfig);
+
+    try {
+        Mail::raw('This is a test email from IndoorBooking backend.', function ($message) use ($testEmail) {
+            $message->to($testEmail)
+                ->subject('Test Email from IndoorBooking');
+        });
+        Log::info('Test email sent successfully to ' . $testEmail);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Test email sent to ' . $testEmail,
+            'config' => $mailConfig,
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Test email failed', [
+            'error' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ]);
+        return response()->json([
+            'status' => 'failed',
+            'message' => 'Test email failed: ' . $e->getMessage(),
+            'config' => $mailConfig,
+        ], 500);
+    }
+});
 
 /**
  * POST /api/auth/login
@@ -48,16 +90,18 @@ use App\Events\BookingCreated;
  */
 Route::post('/auth/login', function (Request $request) {
     $v = Validator::make($request->all(), [
-        'email'    => 'required|email',
+        'email' => 'required|email',
         'password' => 'required|string',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
 
     $laravelUser = \App\Models\User::where('email', $request->email)->first();
     $userUser = UserUser::where('email', $request->email)->first();
 
     $safePasswordCheck = function (?string $rawPassword, ?string $hashedPassword): bool {
-        if (!$rawPassword || !$hashedPassword) return false;
+        if (!$rawPassword || !$hashedPassword)
+            return false;
         try {
             return Hash::check($rawPassword, $hashedPassword);
         } catch (\Throwable $e) {
@@ -66,17 +110,19 @@ Route::post('/auth/login', function (Request $request) {
     };
 
     $verifyDjangoPassword = function (string $password, string $djangoHash): bool {
-        if (!str_starts_with($djangoHash, 'pbkdf2_sha256$')) return false;
+        if (!str_starts_with($djangoHash, 'pbkdf2_sha256$'))
+            return false;
         $parts = explode('$', $djangoHash);
-        if (count($parts) !== 4) return false;
+        if (count($parts) !== 4)
+            return false;
         list($algorithm, $iterations, $salt, $hash) = $parts;
-        $calc = hash_pbkdf2('sha256', $password, $salt, (int)$iterations, 32, true);
+        $calc = hash_pbkdf2('sha256', $password, $salt, (int) $iterations, 32, true);
         return base64_encode($calc) === $hash;
     };
 
     $validLaravelPassword = $laravelUser ? $safePasswordCheck($request->password, $laravelUser->password) : false;
     $validUserUserPassword = $userUser ? $safePasswordCheck($request->password, $userUser->password) : false;
-    
+
     // Check for legacy Django hash if standard checks failed
     $isLegacyLogin = false;
     if (!$validLaravelPassword && !$validUserUserPassword && $userUser && str_starts_with($userUser->password, 'pbkdf2_sha256$')) {
@@ -144,18 +190,18 @@ Route::post('/auth/login', function (Request $request) {
         ],
         'access' => $token,
         'refresh' => null,
-        'user'  => [
-            'id'              => $laravelUser->id,
-            'email'           => $laravelUser->email,
-            'first_name'      => $laravelUser->first_name,
-            'last_name'       => $laravelUser->last_name,
-            'user_type'       => $userType,
-            'is_active'       => true, 
-            'phone_number'    => $userUser?->phone_number ?? $laravelUser->contact,
+        'user' => [
+            'id' => $laravelUser->id,
+            'email' => $laravelUser->email,
+            'first_name' => $laravelUser->first_name,
+            'last_name' => $laravelUser->last_name,
+            'user_type' => $userType,
+            'is_active' => true,
+            'phone_number' => $userUser?->phone_number ?? $laravelUser->contact,
             'profile_picture' => $userUser?->profile_picture ?? $laravelUser->profile_photo_url,
-            'venue_id'        => $laravelUser->complex_id,
-            'venue_name'      => $laravelUser->complex?->name,
-            'points'          => $userUser?->points ?? 0,
+            'venue_id' => $laravelUser->complex_id,
+            'venue_name' => $laravelUser->complex?->name,
+            'points' => $userUser?->points ?? 0,
         ],
     ]);
 });
@@ -174,14 +220,17 @@ Route::post('/auth/register', function (Request $request) {
     ]);
 
     $v = Validator::make($request->all(), [
-        'first_name'   => 'required|string|max:100',
-        'last_name'    => 'nullable|string|max:100',
-        'email'        => 'required|email|unique:users_user,email|unique:users,email',
-        'password'     => 'required|string|min:6',
+        'first_name' => 'required|string|max:100',
+        'last_name' => 'nullable|string|max:100',
+        'email' => 'required|email|unique:users_user,email|unique:users,email',
+        'password' => 'required|string|min:6',
         'phone_number' => 'required|string|digits:10|unique:users_user,phone_number',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
 
+    // Email verification bypassed for simplified signup flow
+    /*
     $emailVerificationToken = trim((string) $request->input('email_verification_token', ''));
     if ($emailVerificationToken === '') {
         return response()->json([
@@ -198,22 +247,23 @@ Route::post('/auth/register', function (Request $request) {
 
     Cache::forget('signup_email_verification_token:' . $emailVerificationToken);
     Cache::forget('signup_email_verification_token_by_email:' . $request->email);
+    */
 
     try {
         $user = UserUser::create([
-            'first_name'       => $request->first_name,
-            'last_name'        => $request->last_name ?? '',
-            'email'            => $request->email,
-            'password'         => Hash::make($request->password),
-            'phone_number'     => $normalizedPhoneNumber,
-            'is_active'        => true,
-            'is_staff'         => false,
-            'is_superuser'     => false,
-            'points'           => 0,
-            'referral_code'    => strtoupper(\Illuminate\Support\Str::random(8)),
-            'availability'     => '',
-            'is_public_profile'=> false,
-            'is_show_contact'  => false,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name ?? '',
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'phone_number' => $normalizedPhoneNumber,
+            'is_active' => true,
+            'is_staff' => false,
+            'is_superuser' => false,
+            'points' => 0,
+            'referral_code' => strtoupper(\Illuminate\Support\Str::random(8)),
+            'availability' => '',
+            'is_public_profile' => false,
+            'is_show_contact' => false,
         ]);
 
         $role = 'customer';
@@ -228,38 +278,38 @@ Route::post('/auth/register', function (Request $request) {
         $venueId = null;
         if ($request->filled('venue_name')) {
             $venue = \App\Models\BookingVenue::create([
-                'name'           => $request->venue_name,
-                'address'        => $request->venue_address ?? '',
+                'name' => $request->venue_name,
+                'address' => $request->venue_address ?? '',
                 'contact_number' => preg_replace('/\D+/', '', (string) ($request->venue_contact_number ?? '')),
-                'email_address'  => $request->venue_email ?? '',
-                'location'       => $request->venue_location ?? '',
-                'complex_type'   => $request->venue_complex_type ?? 'Indoor',
-                'rating'         => '0',
-                'reviews'        => 0,
-                'status'         => 'Active',
+                'email_address' => $request->venue_email ?? '',
+                'location' => $request->venue_location ?? '',
+                'complex_type' => $request->venue_complex_type ?? 'Indoor',
+                'rating' => '0',
+                'reviews' => 0,
+                'status' => 'Active',
             ]);
             $venueId = $venue->id;
         }
 
         // Also create Laravel user for Sanctum
         $laravelUser = \App\Models\User::create([
-            'name'       => trim($request->first_name . ' ' . ($request->last_name ?? '')),
-            'email'      => $request->email,
-            'password'   => Hash::make($request->password),
-            'role'       => $role,
-            'contact'    => $normalizedPhoneNumber,
+            'name' => trim($request->first_name . ' ' . ($request->last_name ?? '')),
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $role,
+            'contact' => $normalizedPhoneNumber,
             'complex_id' => $venueId,
         ]);
         $token = $laravelUser->createToken('mobile')->plainTextToken;
 
         return response()->json([
             'token' => $token,
-            'user'  => [
-                'id'           => $user->id,
-                'name'         => trim($user->first_name . ' ' . $user->last_name),
-                'email'        => $user->email,
+            'user' => [
+                'id' => $user->id,
+                'name' => trim($user->first_name . ' ' . $user->last_name),
+                'email' => $user->email,
                 'phone_number' => $user->phone_number,
-                'points'       => 0,
+                'points' => 0,
             ],
         ], 201);
     } catch (QueryException $e) {
@@ -299,7 +349,11 @@ Route::post('/auth/send-verification-email', function (Request $request) {
     $v = Validator::make($request->all(), [
         'email' => 'required|email',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
+
+    $shouldSendRealEmail = !in_array(config('mail.default'), ['log', 'array'], true)
+        && env('MAIL_MAILER') !== 'log';
 
     $emailAlreadyUsed = UserUser::where('email', $request->email)->exists()
         || \App\Models\User::where('email', $request->email)->exists();
@@ -310,6 +364,14 @@ Route::post('/auth/send-verification-email', function (Request $request) {
     }
 
     try {
+        Log::info('OTP Send Request', [
+            'email' => $request->email,
+            'shouldSendRealEmail' => $shouldSendRealEmail,
+            'mailMailer' => env('MAIL_MAILER'),
+            'mailDefault' => config('mail.default'),
+            'mailHost' => env('MAIL_HOST'),
+        ]);
+
         $previousToken = Cache::get('signup_email_verification_token_by_email:' . $request->email);
         if ($previousToken) {
             Cache::forget('signup_email_verification_token:' . $previousToken);
@@ -317,13 +379,20 @@ Route::post('/auth/send-verification-email', function (Request $request) {
         Cache::forget('signup_email_verification_token_by_email:' . $request->email);
 
         $otp = OtpCode::createForEmail($request->email, 'email_verification');
+        Log::info('OTP Created', ['email' => $request->email, 'code' => $otp->code]);
 
-        // Only perform real SMTP sends in non-local, non-log mailer environments.
-        // In local or when mailer is configured to 'log' we skip the SMTP send
-        // to avoid authentication failures during development; the OTP is
-        // returned in the response for debugging in those cases.
-        if (!app()->environment('local') && config('mail.default') !== 'log' && env('MAIL_MAILER') !== 'log') {
-            Mail::to($request->email)->send(new SendOtpMail($otp->code, 'User', 'Email Verification'));
+        // Send to the actual signup email whenever SMTP is enabled.
+        if ($shouldSendRealEmail) {
+            Log::info('Attempting to send email via SMTP', ['to' => $request->email]);
+            try {
+                Mail::to($request->email)->send(new SendOtpMail($otp->code, 'User', 'Email Verification'));
+                Log::info('Email sent successfully', ['to' => $request->email]);
+            } catch (\Exception $mailException) {
+                Log::error('SMTP Error', ['error' => $mailException->getMessage(), 'to' => $request->email]);
+                throw $mailException;
+            }
+        } else {
+            Log::info('Email sending skipped (not SMTP or is log mailer)', ['shouldSend' => $shouldSendRealEmail]);
         }
 
         $response = [
@@ -339,9 +408,15 @@ Route::post('/auth/send-verification-email', function (Request $request) {
 
         return response()->json($response);
     } catch (\Exception $e) {
-        Log::error('Error sending verification email: ' . $e->getMessage());
+        Log::error('Error sending verification email', [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString(),
+        ]);
         return response()->json([
             'message' => 'Failed to send verification email. Please try again.',
+            'error' => $e->getMessage(),
         ], 500);
     }
 });
@@ -359,9 +434,10 @@ Route::post('/auth/verify-email', function (Request $request) {
 
     $v = Validator::make($request->all(), [
         'email' => 'required|email',
-        'code'  => 'required|string|size:6',
+        'code' => 'required|string|size:6',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
 
     $otp = OtpCode::verify($request->email, $request->code, 'email_verification');
 
@@ -404,7 +480,11 @@ Route::post('/auth/resend-verification-email', function (Request $request) {
     $v = Validator::make($request->all(), [
         'email' => 'required|email',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
+
+    $shouldSendRealEmail = !in_array(config('mail.default'), ['log', 'array'], true)
+        && env('MAIL_MAILER') !== 'log';
 
     try {
         $previousToken = Cache::get('signup_email_verification_token_by_email:' . $request->email);
@@ -414,7 +494,7 @@ Route::post('/auth/resend-verification-email', function (Request $request) {
         Cache::forget('signup_email_verification_token_by_email:' . $request->email);
 
         $otp = OtpCode::createForEmail($request->email, 'email_verification');
-        if (!app()->environment('local') && config('mail.default') !== 'log' && env('MAIL_MAILER') !== 'log') {
+        if ($shouldSendRealEmail) {
             Mail::to($request->email)->send(new SendOtpMail($otp->code, 'User', 'Email Verification'));
         }
 
@@ -447,10 +527,11 @@ Route::post('/auth/resend-verification-email', function (Request $request) {
  */
 Route::post('/auth/login-with-verification', function (Request $request) {
     $v = Validator::make($request->all(), [
-        'email'    => 'required|email',
+        'email' => 'required|email',
         'password' => 'required|string',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
 
     $laravelUser = \App\Models\User::where('email', $request->email)->first();
     if (!$laravelUser) {
@@ -471,8 +552,10 @@ Route::post('/auth/login-with-verification', function (Request $request) {
                 $laravelUser->id
             );
 
-            // Send OTP email (skip real SMTP in local/log environments)
-            if (!app()->environment('local') && config('mail.default') !== 'log' && env('MAIL_MAILER') !== 'log') {
+            $shouldSendRealEmail = !in_array(config('mail.default'), ['log', 'array'], true)
+                && env('MAIL_MAILER') !== 'log';
+
+            if ($shouldSendRealEmail) {
                 Mail::to($laravelUser->email)->send(
                     new SendOtpMail($otp->code, $laravelUser->first_name ?: 'User', 'Login Verification')
                 );
@@ -538,7 +621,8 @@ Route::post('/auth/verify-login', function (Request $request) {
         'verification_token' => 'required|string',
         'code' => 'required|string|size:6',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
 
     // Get verification data from cache
     $verificationData = Cache::get('2step_' . $request->verification_token);
@@ -605,34 +689,38 @@ Route::middleware('auth:sanctum')->post('/auth/enable-2step', function (Request 
     $v = Validator::make($request->all(), [
         'method' => 'required|in:email,phone',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
 
     $user = $request->user();
-    
+
     // Send verification OTP
-        try {
-            $otp = OtpCode::createForEmail($user->email, 'phone_verification', $user->id);
-            if (!app()->environment('local') && config('mail.default') !== 'log' && env('MAIL_MAILER') !== 'log') {
-                Mail::to($user->email)->send(
-                    new SendOtpMail($otp->code, $user->first_name ?: 'User', '2-Step Verification Setup')
-                );
-            }
+    try {
+        $otp = OtpCode::createForEmail($user->email, 'phone_verification', $user->id);
+        $shouldSendRealEmail = !in_array(config('mail.default'), ['log', 'array'], true)
+            && env('MAIL_MAILER') !== 'log';
 
-            $resp = [
-                'message' => 'Verification code sent to confirm 2-step setup',
-                'expires_in' => 15 * 60,
-            ];
-            if (app()->environment('local') || env('MAIL_MAILER') === 'log' || config('mail.default') === 'log') {
-                $resp['debug_code'] = $otp->code;
-            }
-
-            return response()->json($resp);
-        } catch (\Exception $e) {
-            Log::error('Error enabling 2-step: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'Failed to send verification code',
-            ], 500);
+        if ($shouldSendRealEmail) {
+            Mail::to($user->email)->send(
+                new SendOtpMail($otp->code, $user->first_name ?: 'User', '2-Step Verification Setup')
+            );
         }
+
+        $resp = [
+            'message' => 'Verification code sent to confirm 2-step setup',
+            'expires_in' => 15 * 60,
+        ];
+        if (app()->environment('local') || env('MAIL_MAILER') === 'log' || config('mail.default') === 'log') {
+            $resp['debug_code'] = $otp->code;
+        }
+
+        return response()->json($resp);
+    } catch (\Exception $e) {
+        Log::error('Error enabling 2-step: ' . $e->getMessage());
+        return response()->json([
+            'message' => 'Failed to send verification code',
+        ], 500);
+    }
 });
 
 /**
@@ -643,12 +731,13 @@ Route::middleware('auth:sanctum')->post('/auth/enable-2step', function (Request 
 Route::middleware('auth:sanctum')->post('/auth/confirm-2step', function (Request $request) {
     $v = Validator::make($request->all(), [
         'method' => 'required|in:email,phone',
-        'code'   => 'required|string|size:6',
+        'code' => 'required|string|size:6',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
 
     $user = $request->user();
-    
+
     // Verify OTP
     $otp = OtpCode::verify($user->email, $request->code, 'phone_verification');
     if (!$otp) {
@@ -701,13 +790,17 @@ Route::middleware('auth:sanctum')->post('/auth/disable-2step', function (Request
  */
 Route::get('/venues', function (Request $request) {
     $query = BookingVenue::where('status', 'Active')
-        ->with(['sports' => function ($q) {
-            $q->where('status', 'Active')->select('id','venue_id','name','price','rate_type','maximum_court','image','average_rating');
-        }])
-        ->select('id','name','address','county','location','image_url','cover_image','rating','reviews','complex_type','description','contact_number','opening_hours');
+        ->with([
+            'sports' => function ($q) {
+                $q->where('status', 'Active')->select('id', 'venue_id', 'name', 'price', 'rate_type', 'maximum_court', 'image', 'average_rating');
+            }
+        ])
+        ->select('id', 'name', 'address', 'county', 'location', 'image_url', 'cover_image', 'rating', 'reviews', 'complex_type', 'description', 'contact_number', 'opening_hours');
 
-    if ($request->county)  $query->where('county', $request->county);
-    if ($request->search)  $query->where('name', 'ilike', '%'.$request->search.'%');
+    if ($request->county)
+        $query->where('county', $request->county);
+    if ($request->search)
+        $query->where('name', 'ilike', '%' . $request->search . '%');
 
     $venues = $query->paginate(10);
 
@@ -728,7 +821,8 @@ Route::get('/venues/{id}', function ($id) {
         },
     ])->find($id);
 
-    if (!$venue) return response()->json(['message' => 'Venue not found'], 404);
+    if (!$venue)
+        return response()->json(['message' => 'Venue not found'], 404);
 
     return response()->json($venue);
 });
@@ -740,7 +834,7 @@ Route::get('/venues/{id}', function ($id) {
 Route::get('/venues/{id}/sports', function ($id) {
     $sports = BookingSport::where('venue_id', $id)
         ->where('status', 'Active')
-        ->get(['id','name','price','rate_type','maximum_court','image','average_rating','description','game_type']);
+        ->get(['id', 'name', 'price', 'rate_type', 'maximum_court', 'image', 'average_rating', 'description', 'game_type']);
 
     return response()->json($sports);
 });
@@ -757,23 +851,28 @@ Route::get('/venues/{id}/sports', function ($id) {
 Route::get('/slot/available', function (Request $request) {
     $v = Validator::make($request->all(), [
         'sport_id' => 'required|integer',
-        'date'     => 'required|date',
-        'time'     => 'required',
-        'court'    => 'nullable|string',
+        'date' => 'required|date',
+        'time' => 'required',
+        'court' => 'nullable|string',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
 
     $sport = BookingSport::find($request->sport_id);
-    if (!$sport) return response()->json(['available' => false, 'reason' => 'Sport not found'], 404);
+    if (!$sport)
+        return response()->json(['available' => false, 'reason' => 'Sport not found'], 404);
 
     $timeKey = strlen($request->time) === 5 ? $request->time . ':00' : $request->time;
-    $court   = $request->court ?? '1';
+    $court = $request->court ?? '1';
 
     // 1. Check blocked_slots
-    $blocked  = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+    $blocked = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+    $dayOfWeek = strtolower(Carbon::parse($request->date)->format('l'));
+    $isWeeklyBlocked = isset($blocked[$dayOfWeek]) && is_array($blocked[$dayOfWeek]) && in_array($timeKey, $blocked[$dayOfWeek], true);
+
     $slotData = $blocked[$request->date][$timeKey][$court] ?? null;
-    if ($slotData !== null) {
-        $reason = is_array($slotData) ? ($slotData['reason'] ?? 'Unavailable') : $slotData;
+    if ($isWeeklyBlocked || $slotData !== null) {
+        $reason = $isWeeklyBlocked ? 'Unavailable' : (is_array($slotData) ? ($slotData['reason'] ?? 'Unavailable') : $slotData);
         return response()->json(['available' => false, 'reason' => $reason]);
     }
 
@@ -785,7 +884,8 @@ Route::get('/slot/available', function (Request $request) {
         ->whereNotIn('status', ['cancelled', 'Cancelled'])
         ->exists();
 
-    if ($booked) return response()->json(['available' => false, 'reason' => 'Already booked']);
+    if ($booked)
+        return response()->json(['available' => false, 'reason' => 'Already booked']);
 
     return response()->json(['available' => true]);
 });
@@ -798,20 +898,24 @@ Route::get('/slot/available', function (Request $request) {
 Route::get('/slot/available-courts', function (Request $request) {
     $v = Validator::make($request->all(), [
         'sport_id' => 'required|integer',
-        'date'     => 'required|date',
-        'time'     => 'required',
+        'date' => 'required|date',
+        'time' => 'required',
     ]);
-    if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+    if ($v->fails())
+        return response()->json(['errors' => $v->errors()], 422);
 
     $sport = BookingSport::find($request->sport_id);
-    if (!$sport) return response()->json(['message' => 'Sport not found'], 404);
+    if (!$sport)
+        return response()->json(['message' => 'Sport not found'], 404);
 
-    $timeKey  = strlen($request->time) === 5 ? $request->time . ':00' : $request->time;
-    $blocked  = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
-    $courts   = [];
+    $timeKey = strlen($request->time) === 5 ? $request->time . ':00' : $request->time;
+    $blocked = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+    $courts = [];
+    $dayOfWeek = strtolower(Carbon::parse($request->date)->format('l'));
+    $isWeeklyBlocked = isset($blocked[$dayOfWeek]) && is_array($blocked[$dayOfWeek]) && in_array($timeKey, $blocked[$dayOfWeek], true);
 
     for ($c = 1; $c <= $sport->maximum_court; $c++) {
-        $court    = (string) $c;
+        $court = (string) $c;
         $slotData = $blocked[$request->date][$timeKey][$court] ?? null;
         $isBooked = BookingBooking::where('game_id_id', $request->sport_id)
             ->where('booking_date', $request->date)
@@ -821,9 +925,9 @@ Route::get('/slot/available-courts', function (Request $request) {
             ->exists();
 
         $courts[] = [
-            'court'     => $c,
-            'available' => $slotData === null && !$isBooked,
-            'reason'    => $slotData ? (is_array($slotData) ? ($slotData['reason'] ?? 'Blocked') : $slotData) : ($isBooked ? 'Already booked' : null),
+            'court' => $c,
+            'available' => !$isWeeklyBlocked && $slotData === null && !$isBooked,
+            'reason' => $isWeeklyBlocked ? 'Blocked' : ($slotData ? (is_array($slotData) ? ($slotData['reason'] ?? 'Blocked') : $slotData) : ($isBooked ? 'Already booked' : null)),
         ];
     }
 
@@ -851,16 +955,20 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::get('/bookings/my', function (Request $request) {
         $laravelUser = $request->user();
-        $userUser    = UserUser::where('email', $laravelUser->email)->first();
+        $userUser = UserUser::where('email', $laravelUser->email)->first();
 
-        $query = BookingBooking::where('user_name', $laravelUser->name)
-            ->orWhere('user_number', $laravelUser->contact);
+        $query = BookingBooking::where(function ($bookings) use ($laravelUser, $userUser) {
+            $bookings->where('user_name', $laravelUser->name)
+                ->orWhere('user_number', $laravelUser->contact);
 
-        if ($userUser) {
-            $query->orWhere('user_id_id', $userUser->id);
+            if ($userUser) {
+                $bookings->orWhere('user_id_id', $userUser->id);
+            }
+        });
+
+        if ($request->status) {
+            $query->whereRaw('lower(status) = ?', [strtolower((string) $request->status)]);
         }
-
-        if ($request->status) $query->where('status', $request->status);
 
         $bookings = $query->orderByDesc('booking_date')
             ->orderByDesc('start_time')
@@ -875,7 +983,8 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::get('/bookings/{id}', function ($id) {
         $booking = BookingBooking::find($id);
-        if (!$booking) return response()->json(['message' => 'Not found'], 404);
+        if (!$booking)
+            return response()->json(['message' => 'Not found'], 404);
         return response()->json($booking);
     });
 
@@ -885,7 +994,8 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::patch('/bookings/{id}/cancel', function ($id) {
         $booking = BookingBooking::find($id);
-        if (!$booking) return response()->json(['message' => 'Not found'], 404);
+        if (!$booking)
+            return response()->json(['message' => 'Not found'], 404);
         if ($booking->status === 'cancelled') {
             return response()->json(['message' => 'Already cancelled'], 409);
         }
@@ -903,7 +1013,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', function (Request $request) {
         $laravelUser = $request->user();
         $laravelUser->load('complex');
-        $userUser    = UserUser::where('email', $laravelUser->email)->first();
+        $userUser = UserUser::where('email', $laravelUser->email)->first();
         $role = strtolower((string) ($laravelUser->role ?? 'customer'));
         $userType = match ($role) {
             'admin', 'superadmin' => 'superadmin',
@@ -912,18 +1022,18 @@ Route::middleware('auth:sanctum')->group(function () {
             default => 'user',
         };
         return response()->json([
-            'id'              => $laravelUser->id,
-            'email'           => $laravelUser->email,
-            'first_name'      => $laravelUser->first_name,
-            'last_name'       => $laravelUser->last_name,
-            'user_type'       => $userType,
-            'is_active'       => true,
-            'phone_number'    => $userUser?->phone_number ?? $laravelUser->contact,
+            'id' => $laravelUser->id,
+            'email' => $laravelUser->email,
+            'first_name' => $laravelUser->first_name,
+            'last_name' => $laravelUser->last_name,
+            'user_type' => $userType,
+            'is_active' => true,
+            'phone_number' => $userUser?->phone_number ?? $laravelUser->contact,
             'profile_picture' => $userUser?->profile_picture ?? $laravelUser->profile_photo_url,
-            'venue_id'        => $laravelUser->complex_id,
-            'venue_name'      => $laravelUser->complex?->name,
-            'points'          => $userUser?->points ?? 0,
-            'bio'             => $userUser?->bio,
+            'venue_id' => $laravelUser->complex_id,
+            'venue_name' => $laravelUser->complex?->name,
+            'points' => $userUser?->points ?? 0,
+            'bio' => $userUser?->bio,
         ]);
     });
 
@@ -931,7 +1041,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/profile', function (Request $request) {
         $laravelUser = $request->user();
         $laravelUser->load('complex');
-        $userUser    = UserUser::where('email', $laravelUser->email)->first();
+        $userUser = UserUser::where('email', $laravelUser->email)->first();
         $role = strtolower((string) ($laravelUser->role ?? 'customer'));
         $userType = match ($role) {
             'admin', 'superadmin' => 'superadmin',
@@ -941,18 +1051,18 @@ Route::middleware('auth:sanctum')->group(function () {
         };
 
         return response()->json([
-            'id'              => $laravelUser->id,
-            'email'           => $laravelUser->email,
-            'first_name'      => $laravelUser->first_name,
-            'last_name'       => $laravelUser->last_name,
-            'user_type'       => $userType,
-            'is_active'       => true,
-            'phone_number'    => $userUser?->phone_number ?? $laravelUser->contact,
+            'id' => $laravelUser->id,
+            'email' => $laravelUser->email,
+            'first_name' => $laravelUser->first_name,
+            'last_name' => $laravelUser->last_name,
+            'user_type' => $userType,
+            'is_active' => true,
+            'phone_number' => $userUser?->phone_number ?? $laravelUser->contact,
             'profile_picture' => $userUser?->profile_picture ?? $laravelUser->profile_photo_url,
-            'venue_id'        => $laravelUser->complex_id,
-            'venue_name'      => $laravelUser->complex?->name,
-            'points'          => $userUser?->points ?? 0,
-            'bio'             => $userUser?->bio,
+            'venue_id' => $laravelUser->complex_id,
+            'venue_name' => $laravelUser->complex?->name,
+            'points' => $userUser?->points ?? 0,
+            'bio' => $userUser?->bio,
         ]);
     });
 
@@ -963,23 +1073,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/profile', function (Request $request) {
         $laravelUser = $request->user();
         $v = Validator::make($request->all(), [
-            'first_name'   => 'nullable|string|max:100',
-            'last_name'    => 'nullable|string|max:100',
+            'first_name' => 'nullable|string|max:100',
+            'last_name' => 'nullable|string|max:100',
             'phone_number' => 'nullable|string|max:20',
-            'bio'          => 'nullable|string|max:500',
+            'bio' => 'nullable|string|max:500',
         ]);
-        if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+        if ($v->fails())
+            return response()->json(['errors' => $v->errors()], 422);
 
         $name = trim(($request->first_name ?? '') . ' ' . ($request->last_name ?? ''));
-        if ($name) $laravelUser->update(['name' => $name]);
+        if ($name)
+            $laravelUser->update(['name' => $name]);
 
         $userUser = UserUser::where('email', $laravelUser->email)->first();
         if ($userUser) {
             $userUser->update(array_filter([
-                'first_name'   => $request->first_name,
-                'last_name'    => $request->last_name,
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
                 'phone_number' => $request->phone_number,
-                'bio'          => $request->bio,
+                'bio' => $request->bio,
             ]));
         }
 
@@ -993,7 +1105,8 @@ Route::middleware('auth:sanctum')->group(function () {
             'new_password' => 'required|string|min:8',
             'confirm_password' => 'required|same:new_password',
         ]);
-        if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+        if ($v->fails())
+            return response()->json(['errors' => $v->errors()], 422);
 
         $laravelUser = $request->user();
         if (!Hash::check($request->old_password, $laravelUser->password)) {
@@ -1023,23 +1136,25 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::post('/venues/{id}/reviews', function (Request $request, $id) {
         $venue = BookingVenue::find($id);
-        if (!$venue) return response()->json(['message' => 'Venue not found'], 404);
+        if (!$venue)
+            return response()->json(['message' => 'Venue not found'], 404);
 
         $v = Validator::make($request->all(), [
-            'rating'           => 'required|integer|min:1|max:5',
-            'comment'          => 'nullable|string|max:1000',
-            'would_recommend'  => 'nullable|boolean',
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:1000',
+            'would_recommend' => 'nullable|boolean',
         ]);
-        if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+        if ($v->fails())
+            return response()->json(['errors' => $v->errors()], 422);
 
         $userUser = UserUser::where('email', $request->user()->email)->first();
 
         $review = BookingVenueReview::create([
-            'venue_id'         => $id,
-            'user_id'          => $userUser?->id,
-            'rating'           => $request->rating,
-            'comment'          => $request->comment,
-            'would_recommend'  => $request->would_recommend ?? true,
+            'venue_id' => $id,
+            'user_id' => $userUser?->id,
+            'rating' => $request->rating,
+            'comment' => $request->comment,
+            'would_recommend' => $request->would_recommend ?? true,
         ]);
 
         // Update venue average rating
@@ -1071,7 +1186,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/broadcast-today-bookings', function (Request $request) {
         $bookings = BookingBooking::where('booking_date', now()->format('Y-m-d'))->get();
         foreach ($bookings as $booking) {
-            try { broadcast(new BookingCreated($booking))->toOthers(); } catch (\Exception $e) {}
+            try {
+                broadcast(new BookingCreated($booking))->toOthers();
+            } catch (\Exception $e) {
+            }
         }
         return response()->json(['status' => 'success', 'count' => $bookings->count()]);
     });
@@ -1080,15 +1198,22 @@ Route::middleware('auth:sanctum')->group(function () {
         $bookings = BookingBooking::where('booking_date', now()->format('Y-m-d'))
             ->where('complex_id_id', $complexId)->get();
         foreach ($bookings as $booking) {
-            try { broadcast(new BookingCreated($booking))->toOthers(); } catch (\Exception $e) {}
+            try {
+                broadcast(new BookingCreated($booking))->toOthers();
+            } catch (\Exception $e) {
+            }
         }
         return response()->json(['status' => 'success', 'count' => $bookings->count()]);
     });
 
     Route::post('/broadcast-booking/{bookingId}', function (Request $request, $bookingId) {
         $booking = BookingBooking::find($bookingId);
-        if (!$booking) return response()->json(['error' => 'Not found'], 404);
-        try { broadcast(new BookingCreated($booking))->toOthers(); } catch (\Exception $e) {}
+        if (!$booking)
+            return response()->json(['error' => 'Not found'], 404);
+        try {
+            broadcast(new BookingCreated($booking))->toOthers();
+        } catch (\Exception $e) {
+        }
         return response()->json(['status' => 'success']);
     });
 });
@@ -1109,7 +1234,11 @@ Route::get('/booking/refresh', function (Request $request) {
     $bookings = BookingBooking::where('booking_date', '>=', now()->subDays(1)->format('Y-m-d'))->get();
     $count = 0;
     foreach ($bookings as $booking) {
-        try { broadcast(new BookingCreated($booking))->toOthers(); $count++; } catch (\Exception $e) {}
+        try {
+            broadcast(new BookingCreated($booking))->toOthers();
+            $count++;
+        } catch (\Exception $e) {
+        }
     }
     return response()->json(['status' => 'success', 'broadcasted' => $count]);
 });
@@ -1123,13 +1252,15 @@ Route::get('/booking/refresh', function (Request $request) {
 Route::prefix('indoor-admin')->group(function () {
     Route::get('/local-storage/{path}', function ($path) {
         $fullPath = storage_path('app/public/' . $path);
-        if (!file_exists($fullPath)) return response()->json(['message' => 'File not found: ' . $path], 404);
+        if (!file_exists($fullPath))
+            return response()->json(['message' => 'File not found: ' . $path], 404);
         return response()->file($fullPath);
     })->where('path', '.*');
 
     Route::get('/local-images/{path}', function ($path) {
         $fullPath = public_path('images/' . $path);
-        if (!file_exists($fullPath)) return response()->json(['message' => 'File not found: ' . $path], 404);
+        if (!file_exists($fullPath))
+            return response()->json(['message' => 'File not found: ' . $path], 404);
         return response()->file($fullPath);
     })->where('path', '.*');
 });
@@ -1143,17 +1274,66 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     Route::get('/venue', function (Request $request) {
         $user = $request->user();
         $venue = \App\Models\BookingVenue::find($user->complex_id);
-        if (!$venue) return response()->json(['message' => 'Venue not found'], 404);
+        if (!$venue)
+            return response()->json(['message' => 'Venue not found'], 404);
         return response()->json($venue);
     });
 
     Route::patch('/venue', function (Request $request) {
         $user = $request->user();
         $venue = \App\Models\BookingVenue::find($user->complex_id);
-        if (!$venue) return response()->json(['message' => 'Venue not found'], 404);
+        if (!$venue)
+            return response()->json(['message' => 'Venue not found'], 404);
 
-        $data = $request->only(['name', 'address', 'county', 'location', 'description', 'contact_number', 'opening_hours', 'complex_type']);
-        
+        $data = $request->only([
+            'name',
+            'address',
+            'county',
+            'location',
+            'description',
+            'contact_number',
+            'opening_hours',
+            'complex_type',
+            'email_address',
+            'status',
+            'video_tour_url',
+            'terms',
+            'postal_code',
+            'website',
+        ]);
+
+        $venue->update($data);
+        $venue->refresh();
+        return response()->json($venue);
+    });
+
+    // POST route for venue updates WITH file uploads.
+    // PHP only populates $_FILES on POST requests, so PATCH + multipart/form-data
+    // silently drops file uploads. This dedicated POST route handles image files.
+    Route::post('/venue', function (Request $request) {
+        $user = $request->user();
+        $venue = \App\Models\BookingVenue::find($user->complex_id);
+        if (!$venue)
+            return response()->json(['message' => 'Venue not found'], 404);
+
+        $data = $request->only([
+            'name',
+            'address',
+            'county',
+            'location',
+            'description',
+            'contact_number',
+            'opening_hours',
+            'complex_type',
+            'email_address',
+            'status',
+            'video_tour_url',
+            'terms',
+            'postal_code',
+            'website',
+        ]);
+
+        // Handle cover image upload
         if ($request->hasFile('cover_image_file')) {
             if ($venue->cover_image && \Illuminate\Support\Facades\Storage::disk('public')->exists($venue->cover_image)) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($venue->cover_image);
@@ -1161,7 +1341,21 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
             $data['cover_image'] = $request->file('cover_image_file')->store('venues', 'public');
         }
 
+        // Handle gallery image uploads — frontend sends as gallery_image_files[]
+        $galleryFiles = $request->file('gallery_image_files');
+        if ($galleryFiles && is_array($galleryFiles) && count($galleryFiles) > 0) {
+            $existingGallery = $venue->gallery_images_json ?? [];
+            if (!is_array($existingGallery))
+                $existingGallery = [];
+            $newPaths = [];
+            foreach ($galleryFiles as $file) {
+                $newPaths[] = $file->store('venues/gallery', 'public');
+            }
+            $data['gallery_images_json'] = array_merge($existingGallery, $newPaths);
+        }
+
         $venue->update($data);
+        $venue->refresh();
         return response()->json($venue);
     });
 
@@ -1179,7 +1373,8 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
             'name' => 'required|string',
             'price' => 'required|numeric',
         ]);
-        if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+        if ($v->fails())
+            return response()->json(['errors' => $v->errors()], 422);
 
         $imagePath = null;
         if ($request->hasFile('image_file')) {
@@ -1207,10 +1402,11 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     Route::post('/sports/{id}/', function (Request $request, $id) {
         $user = $request->user();
         $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
-        if (!$sport) return response()->json(['message' => 'Not found'], 404);
+        if (!$sport)
+            return response()->json(['message' => 'Not found'], 404);
 
         $data = $request->only(['name', 'price', 'rate_type', 'maximum_court', 'description', 'game_type', 'status']);
-        
+
         if ($request->hasFile('image_file')) {
             if ($sport->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($sport->image)) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($sport->image);
@@ -1225,10 +1421,11 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     Route::patch('/sports/{id}/', function (Request $request, $id) {
         $user = $request->user();
         $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
-        if (!$sport) return response()->json(['message' => 'Not found'], 404);
+        if (!$sport)
+            return response()->json(['message' => 'Not found'], 404);
 
         $data = $request->only(['name', 'price', 'rate_type', 'maximum_court', 'description', 'game_type', 'status']);
-        
+
         if ($request->hasFile('image_file')) {
             if ($sport->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($sport->image)) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($sport->image);
@@ -1244,7 +1441,8 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     Route::delete('/sports/{id}/', function (Request $request, $id) {
         $user = $request->user();
         $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
-        if (!$sport) return response()->json(['message' => 'Not found'], 404);
+        if (!$sport)
+            return response()->json(['message' => 'Not found'], 404);
 
         $sport->delete();
         return response()->json(['message' => 'Deleted']);
@@ -1253,12 +1451,391 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     Route::post('/sports/{id}/toggle_status/', function (Request $request, $id) {
         $user = $request->user();
         $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
-        if (!$sport) return response()->json(['message' => 'Not found'], 404);
+        if (!$sport)
+            return response()->json(['message' => 'Not found'], 404);
 
         $newStatus = $sport->status === 'Active' ? 'Inactive' : 'Active';
         $sport->update(['status' => $newStatus]);
         return response()->json(['message' => 'Status updated', 'status' => $newStatus]);
     });
+
+    Route::post('/sports/{id}/toggle-recurring-block/', function (Request $request, $id) {
+        $user = $request->user();
+        $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
+        if (!$sport) {
+            return response()->json(['message' => 'Sport not found'], 404);
+        }
+
+        $v = Validator::make($request->all(), [
+            'day' => 'required|string',
+            'time' => 'required|string',
+        ]);
+        if ($v->fails()) {
+            return response()->json(['errors' => $v->errors()], 422);
+        }
+
+        $day = strtolower($request->day);
+        $time = $request->time;
+
+        $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        $list = $blocks[$day] ?? [];
+        if (!is_array($list)) {
+            $list = [];
+        }
+
+        if (in_array($time, $list, true)) {
+            $list = array_values(array_filter($list, fn($t) => $t !== $time));
+        } else {
+            $list[] = $time;
+            sort($list);
+        }
+
+        if (empty($list)) {
+            unset($blocks[$day]);
+        } else {
+            $blocks[$day] = $list;
+        }
+
+        $sport->update(['blocked_slots' => $blocks]);
+        return response()->json([
+            'message' => 'Recurring block toggled',
+            'blocked_slots' => $sport->blocked_slots
+        ]);
+    });
+
+    Route::post('/sports/{id}/clear-recurring-blocks/', function (Request $request, $id) {
+        $user = $request->user();
+        $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
+        if (!$sport) {
+            return response()->json(['message' => 'Sport not found'], 404);
+        }
+
+        $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        foreach ($days as $day) {
+            unset($blocks[$day]);
+        }
+
+        $sport->update(['blocked_slots' => $blocks]);
+        return response()->json([
+            'message' => 'All recurring blocks cleared',
+            'blocked_slots' => $sport->blocked_slots
+        ]);
+    });
+
+    Route::post('/sports/{id}/clear-day-recurring-blocks/', function (Request $request, $id) {
+        $user = $request->user();
+        $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
+        if (!$sport) {
+            return response()->json(['message' => 'Sport not found'], 404);
+        }
+
+        $v = Validator::make($request->all(), [
+            'day' => 'required|string',
+        ]);
+        if ($v->fails()) {
+            return response()->json(['errors' => $v->errors()], 422);
+        }
+
+        $day = strtolower($request->day);
+        $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        unset($blocks[$day]);
+
+        $sport->update(['blocked_slots' => $blocks]);
+        return response()->json([
+            'message' => 'Recurring blocks cleared for ' . $day,
+            'blocked_slots' => $sport->blocked_slots
+        ]);
+    });
+
+    Route::post('/sports/{id}/block-slot', function (Request $request, $id) {
+        $user = $request->user();
+        $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
+        if (!$sport) {
+            return response()->json(['message' => 'Sport not found'], 404);
+        }
+
+        $v = Validator::make($request->all(), [
+            'date' => 'required|date_format:Y-m-d',
+            'time' => 'required|string',
+            'court' => 'required|string',
+            'reason' => 'nullable|string',
+        ]);
+        if ($v->fails()) {
+            return response()->json(['errors' => $v->errors()], 422);
+        }
+
+        $date = $request->date;
+        $time = $request->time;
+        if (strlen($time) === 5) {
+            $time .= ':00';
+        }
+        $court = $request->court;
+        $reason = $request->reason ?? 'Maintenance';
+
+        $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        $blocks[$date][$time][$court] = $reason;
+
+        $sport->update(['blocked_slots' => $blocks]);
+        return response()->json([
+            'message' => 'Slot blocked successfully',
+            'blocked_slots' => $sport->blocked_slots
+        ]);
+    });
+
+    Route::post('/sports/{id}/unblock-slot', function (Request $request, $id) {
+        $user = $request->user();
+        $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
+        if (!$sport) {
+            return response()->json(['message' => 'Sport not found'], 404);
+        }
+
+        $v = Validator::make($request->all(), [
+            'date' => 'required|date_format:Y-m-d',
+            'time' => 'required|string',
+            'court' => 'required|string',
+        ]);
+        if ($v->fails()) {
+            return response()->json(['errors' => $v->errors()], 422);
+        }
+
+        $date = $request->date;
+        $time = $request->time;
+        if (strlen($time) === 5) {
+            $time .= ':00';
+        }
+        $court = $request->court;
+
+        $blocks = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        if (isset($blocks[$date][$time][$court])) {
+            unset($blocks[$date][$time][$court]);
+            if (empty($blocks[$date][$time])) {
+                unset($blocks[$date][$time]);
+            }
+            if (empty($blocks[$date])) {
+                unset($blocks[$date]);
+            }
+        }
+
+        $sport->update(['blocked_slots' => $blocks]);
+        return response()->json([
+            'message' => 'Slot unblocked successfully',
+            'blocked_slots' => $sport->blocked_slots
+        ]);
+    });
+
+    Route::post('/sports/{id}/save-hours/', function (Request $request, $id) {
+        $user = $request->user();
+        $sport = \App\Models\BookingSport::where('venue_id', $user->complex_id)->find($id);
+        if (!$sport) {
+            return response()->json(['message' => 'Sport not found'], 404);
+        }
+
+        $v = Validator::make($request->all(), [
+            'opening_hours' => 'nullable|array',
+        ]);
+        if ($v->fails()) {
+            return response()->json(['errors' => $v->errors()], 422);
+        }
+
+        $sport->update([
+            'opening_hours' => $request->opening_hours
+        ]);
+
+        return response()->json([
+            'message' => 'Sport opening hours saved',
+            'opening_hours' => $sport->opening_hours
+        ]);
+    });
+
+    // Announcements Management
+    Route::get('/announcements/', function (Request $request) {
+        $user = $request->user();
+        if (!$user->complex_id) {
+            return response()->json(['results' => []]);
+        }
+        $announcements = \App\Models\BookingAnnouncement::where('venue_id', $user->complex_id)
+            ->orderByDesc('is_pinned')
+            ->orderBy('sort_order')
+            ->orderByDesc('created_at')
+            ->get();
+        return response()->json(['results' => $announcements]);
+    });
+
+    Route::post('/announcements/', function (Request $request) {
+        $user = $request->user();
+        if (!$user->complex_id) {
+            return response()->json(['message' => 'Your account has no venue assigned.'], 403);
+        }
+
+        $v = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'subtitle' => 'required|string|max:255',
+            'short_description' => 'required|string|max:320',
+            'full_description' => 'required|string',
+            'label' => 'required|string|max:50',
+            'fallback_bg_color' => 'required|string|max:20',
+            'expires_at' => 'nullable|date',
+            'read_more_label' => 'nullable|string|max:50',
+            'read_more_url' => 'nullable|string|max:200',
+        ]);
+        if ($v->fails())
+            return response()->json(['errors' => $v->errors()], 422);
+
+        $imagePath = null;
+        if ($request->hasFile('image_file')) {
+            $imagePath = $request->file('image_file')->store('announcements', 'public');
+        }
+
+        $announcement = \App\Models\BookingAnnouncement::create([
+            'venue_id' => $user->complex_id,
+            'title' => $request->title,
+            'subtitle' => $request->subtitle,
+            'short_description' => $request->short_description,
+            'full_description' => $request->full_description,
+            'image' => $imagePath,
+            'fallback_bg_color' => $request->fallback_bg_color ?? '#19722d',
+            'label' => $request->label ?? 'Update',
+            'is_active' => filter_var($request->input('is_active', true), FILTER_VALIDATE_BOOLEAN),
+            'is_pinned' => filter_var($request->input('is_pinned', false), FILTER_VALIDATE_BOOLEAN),
+            'sort_order' => intval($request->input('sort_order', 0)),
+            'expires_at' => $request->expires_at ? \Carbon\Carbon::parse($request->expires_at) : null,
+            'read_more_label' => $request->read_more_label ?? '',
+            'read_more_url' => $request->read_more_url ?? '',
+        ]);
+
+        return response()->json($announcement, 201);
+    });
+
+    Route::post('/announcements/{id}/', function (Request $request, $id) {
+        $user = $request->user();
+        if (!$user->complex_id) {
+            return response()->json(['message' => 'Your account has no venue assigned.'], 403);
+        }
+
+        $announcement = \App\Models\BookingAnnouncement::where('venue_id', $user->complex_id)->find($id);
+        if (!$announcement)
+            return response()->json(['message' => 'Not found'], 404);
+
+        $v = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'subtitle' => 'required|string|max:255',
+            'short_description' => 'required|string|max:320',
+            'full_description' => 'required|string',
+            'label' => 'required|string|max:50',
+            'fallback_bg_color' => 'required|string|max:20',
+            'expires_at' => 'nullable|date',
+            'read_more_label' => 'nullable|string|max:50',
+            'read_more_url' => 'nullable|string|max:200',
+        ]);
+        if ($v->fails())
+            return response()->json(['errors' => $v->errors()], 422);
+
+        $data = $request->only([
+            'title',
+            'subtitle',
+            'short_description',
+            'full_description',
+            'label',
+            'fallback_bg_color',
+            'read_more_label',
+            'read_more_url',
+        ]);
+
+        $data['is_active'] = filter_var($request->input('is_active', true), FILTER_VALIDATE_BOOLEAN);
+        $data['is_pinned'] = filter_var($request->input('is_pinned', false), FILTER_VALIDATE_BOOLEAN);
+        $data['sort_order'] = intval($request->input('sort_order', 0));
+        $data['expires_at'] = $request->expires_at ? \Carbon\Carbon::parse($request->expires_at) : null;
+
+        if ($request->hasFile('image_file')) {
+            if ($announcement->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($announcement->image)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($announcement->image);
+            }
+            $data['image'] = $request->file('image_file')->store('announcements', 'public');
+        }
+
+        $announcement->update($data);
+        return response()->json($announcement);
+    });
+
+    Route::patch('/announcements/{id}/', function (Request $request, $id) {
+        $user = $request->user();
+        if (!$user->complex_id) {
+            return response()->json(['message' => 'Your account has no venue assigned.'], 403);
+        }
+
+        $announcement = \App\Models\BookingAnnouncement::where('venue_id', $user->complex_id)->find($id);
+        if (!$announcement)
+            return response()->json(['message' => 'Not found'], 404);
+
+        $data = $request->only([
+            'title',
+            'subtitle',
+            'short_description',
+            'full_description',
+            'label',
+            'fallback_bg_color',
+            'read_more_label',
+            'read_more_url',
+        ]);
+
+        if ($request->has('is_active')) {
+            $data['is_active'] = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN);
+        }
+        if ($request->has('is_pinned')) {
+            $data['is_pinned'] = filter_var($request->input('is_pinned'), FILTER_VALIDATE_BOOLEAN);
+        }
+        if ($request->has('sort_order')) {
+            $data['sort_order'] = intval($request->input('sort_order'));
+        }
+        if ($request->has('expires_at')) {
+            $data['expires_at'] = $request->expires_at ? \Carbon\Carbon::parse($request->expires_at) : null;
+        }
+
+        if ($request->hasFile('image_file')) {
+            if ($announcement->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($announcement->image)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($announcement->image);
+            }
+            $data['image'] = $request->file('image_file')->store('announcements', 'public');
+        }
+
+        $announcement->update($data);
+        return response()->json($announcement);
+    });
+
+    Route::delete('/announcements/{id}/', function (Request $request, $id) {
+        $user = $request->user();
+        if (!$user->complex_id) {
+            return response()->json(['message' => 'Your account has no venue assigned.'], 403);
+        }
+
+        $announcement = \App\Models\BookingAnnouncement::where('venue_id', $user->complex_id)->find($id);
+        if (!$announcement)
+            return response()->json(['message' => 'Not found'], 404);
+
+        if ($announcement->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($announcement->image)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($announcement->image);
+        }
+
+        $announcement->delete();
+        return response()->json(['message' => 'Deleted']);
+    });
+
+    Route::post('/announcements/{id}/toggle_status/', function (Request $request, $id) {
+        $user = $request->user();
+        if (!$user->complex_id) {
+            return response()->json(['message' => 'Your account has no venue assigned.'], 403);
+        }
+
+        $announcement = \App\Models\BookingAnnouncement::where('venue_id', $user->complex_id)->find($id);
+        if (!$announcement)
+            return response()->json(['message' => 'Not found'], 404);
+
+        $newActive = !$announcement->is_active;
+        $announcement->update(['is_active' => $newActive]);
+        return response()->json(['message' => 'Status updated', 'is_active' => $newActive]);
+    });
+
 
     // Bookings
     Route::get('/bookings/upcoming/', [BookingController::class, 'upcoming']);
@@ -1267,6 +1844,8 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     Route::get('/bookings/permanent/', [BookingController::class, 'permanentList']);
     Route::post('/bookings/create/', [BookingController::class, 'create']);
     Route::patch('/bookings/permanent/{id}/cancel-all/', [BookingController::class, 'permanentCancelAll']);
+    Route::get('/bookings/scan/{qr_code}', [BookingController::class, 'scanBooking']);
+
 
     // Staff Management
     Route::get('/staff/', function (Request $request) {
@@ -1282,7 +1861,8 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
             'role' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
         ]);
-        if ($v->fails()) return response()->json(['errors' => $v->errors()], 422);
+        if ($v->fails())
+            return response()->json(['errors' => $v->errors()], 422);
 
         $photoPath = null;
         if ($request->hasFile('photo')) {
@@ -1307,10 +1887,11 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     Route::post('/staff/{id}/', function (Request $request, $id) {
         $user = $request->user();
         $staff = \App\Models\VenueStaff::where('venue_id', $user->complex_id)->find($id);
-        if (!$staff) return response()->json(['message' => 'Not found'], 404);
+        if (!$staff)
+            return response()->json(['message' => 'Not found'], 404);
 
         $data = $request->only(['name', 'role', 'phone', 'shift', 'status', 'is_online', 'email', 'status_detail']);
-        
+
         if ($request->hasFile('photo')) {
             if ($staff->photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($staff->photo)) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($staff->photo);
@@ -1325,7 +1906,8 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     Route::delete('/staff/{id}/', function (Request $request, $id) {
         $user = $request->user();
         $staff = \App\Models\VenueStaff::where('venue_id', $user->complex_id)->find($id);
-        if (!$staff) return response()->json(['message' => 'Not found'], 404);
+        if (!$staff)
+            return response()->json(['message' => 'Not found'], 404);
 
         if ($staff->photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($staff->photo)) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($staff->photo);
@@ -1351,8 +1933,9 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     // Notifications
     Route::get('/notifications/', function (Request $request) {
         $user = $request->user();
-        $pageSize = (int)($request->query('page_size', 20));
-        if ($pageSize <= 0) $pageSize = 20;
+        $pageSize = (int) ($request->query('page_size', 20));
+        if ($pageSize <= 0)
+            $pageSize = 20;
         $pageSize = min($pageSize, 100);
 
         $query = \App\Models\BookingNotification::where('user_id', $user->id);
@@ -1367,7 +1950,7 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
                 'title' => $item->title,
                 'message' => $item->message,
                 'data' => is_array($item->data) ? $item->data : (json_decode($item->data ?? '{}', true) ?: []),
-                'is_read' => (bool)$item->is_read,
+                'is_read' => (bool) $item->is_read,
                 'created_at' => optional($item->created_at)->toDateTimeString(),
             ];
         })->values();
@@ -1377,7 +1960,7 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
             'page' => $notifications->currentPage(),
             'page_size' => $notifications->perPage(),
             'results' => $results,
-            'unread_count' => (int)$query->where('is_read', false)->count(),
+            'unread_count' => (int) $query->where('is_read', false)->count(),
         ]);
     });
 
@@ -1388,21 +1971,22 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
             ->count();
 
         return response()->json([
-            'unread_count' => (int)$unreadCount,
+            'unread_count' => (int) $unreadCount,
         ]);
     });
 
     Route::post('/notifications/{id}/mark-read/', function (Request $request, $id) {
         $user = $request->user();
         $notification = \App\Models\BookingNotification::where('user_id', $user->id)->find($id);
-        if (!$notification) return response()->json(['message' => 'Not found'], 404);
+        if (!$notification)
+            return response()->json(['message' => 'Not found'], 404);
 
         $notification->update(['is_read' => true]);
         return response()->json([
             'message' => 'Marked as read',
             'notification' => [
                 'id' => $notification->id,
-                'is_read' => (bool)$notification->is_read,
+                'is_read' => (bool) $notification->is_read,
             ],
         ]);
     });
@@ -1415,7 +1999,7 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
 
         return response()->json([
             'message' => 'All marked as read',
-            'updated_count' => (int)$updated,
+            'updated_count' => (int) $updated,
             'unread_count' => 0,
         ]);
     });
@@ -1423,7 +2007,8 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
     Route::delete('/notifications/{id}/', function (Request $request, $id) {
         $user = $request->user();
         $notification = \App\Models\BookingNotification::where('user_id', $user->id)->find($id);
-        if (!$notification) return response()->json(['message' => 'Not found'], 404);
+        if (!$notification)
+            return response()->json(['message' => 'Not found'], 404);
 
         $deletedId = $notification->id;
         $notification->delete();
@@ -1435,7 +2020,7 @@ Route::middleware(['auth:sanctum', 'api.role:admin,superadmin,facility_owner,ind
         return response()->json([
             'message' => 'Deleted',
             'deleted_id' => $deletedId,
-            'unread_count' => (int)$unreadCount,
+            'unread_count' => (int) $unreadCount,
         ]);
     });
 

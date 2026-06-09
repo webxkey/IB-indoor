@@ -13,39 +13,6 @@ class BookingSport extends Model
         'maximum_court','status','description','additional_charges',
         'advance_required','venue_id','average_rating','pricing_rules','blocked_slots','opening_hours'
     ];
-
-    protected $appends = ['image_url'];
-
-    public function getImageUrlAttribute()
-    {
-        if (!$this->image) {
-            return 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg';
-        }
-
-        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
-            // Fix local URLs and route them through the /api proxy
-            if (str_contains($this->image, '127.0.0.1') || str_contains($this->image, 'localhost')) {
-                $path = parse_url($this->image, PHP_URL_PATH);
-                if (str_starts_with($path, '/images/')) {
-                    return asset('api/indoor-admin/local-images/' . substr($path, 8));
-                }
-                if (str_starts_with($path, '/storage/')) {
-                    return asset('api/indoor-admin/local-storage/' . substr($path, 9));
-                }
-                return asset('api/indoor-admin' . $path);
-            }
-            return $this->image;
-        }
-
-        // Handle path-based images (stored in storage/app/public/sports)
-        return asset('api/indoor-admin/local-storage/' . $this->image);
-    }
-
-
-
-
-
-
    protected $attributes = [
         'image' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
         'available' => true,
@@ -61,6 +28,22 @@ class BookingSport extends Model
         'blocked_slots' => 'array',
         'opening_hours' => 'array',
     ];
+
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        if (!$this->image) {
+            return 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg';
+        }
+        
+        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
+            return $this->image;
+        }
+
+        $host = app()->runningInConsole() ? config('app.url') : request()->getSchemeAndHttpHost();
+        return rtrim($host, '/') . '/api/indoor-admin/local-storage/' . ltrim($this->image, '/');
+    }
 
     public function venue()
     {

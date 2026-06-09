@@ -6,279 +6,230 @@ use App\Http\Controllers\Controller;
 use App\Models\BookingBooking;
 use App\Models\BookingSport;
 use App\Models\BookingVenue;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
-    private function getDateWindow(Request $request, int $defaultDays = 7): array
-    {
-        $period = strtolower((string) $request->get('period', 'daily'));
-        $daysParam = $request->get('days');
-
-        $days = match ($period) {
-            'monthly' => 365,
-            'weekly' => 28,
-            default => 7,
-        };
-
-        if (is_numeric($daysParam) && (int) $daysParam > 0) {
-            $days = (int) $daysParam;
-        }
-
-        $startDate = Carbon::today()->subDays(max($days - 1, 0))->startOfDay();
-        $endDate = Carbon::today()->endOfDay();
-
-        return [$period, $startDate, $endDate, $days];
-    }
-
-    private function normalizeStatus(?string $status): string
-    {
-        return str_replace(['_', '-'], ' ', strtolower(trim((string) $status)));
-    }
-
-    private function getTimeSlotLabel(?string $startTime, ?string $endTime): string
-    {
-        if (!$startTime && !$endTime) {
-            return '';
-        }
-
-        $format = function (?string $value): string {
-            if (!$value) {
-                return '';
-            }
-
-            try {
-                return Carbon::createFromFormat('H:i:s', $value)->format('h:i A');
-            } catch (\Throwable $e) {
-                try {
-                    return Carbon::createFromFormat('H:i', $value)->format('h:i A');
-                } catch (\Throwable $e) {
-                    return $value;
-                }
-            }
-        };
-
-        $start = $format($startTime);
-        $end = $format($endTime);
-
-        return $start && $end ? $start . ' - ' . $end : ($start ?: $end);
-    }
-
-    private function getRevenueSummary(Collection $bookings): array
-    {
-        $totalRevenue = (float) $bookings->sum(fn ($booking) => (float) $booking->price);
-        $totalBookings = $bookings->count();
-
-        return [
-            'total_revenue' => number_format($totalRevenue, 2, '.', ''),
-            'total_bookings' => $totalBookings,
-            'average_booking_value' => number_format($totalBookings > 0 ? $totalRevenue / $totalBookings : 0, 2, '.', ''),
-        ];
-    }
-
-    /**
-     * Get dashboard statistics.
-     */
     public function getStats(Request $request)
     {
         $user = $request->user();
-        $venueId = $user->complex_id;
-        
-        $totalBookings = BookingBooking::where('complex_id_id', $venueId)->count();
-        $todayBookings = BookingBooking::where('complex_id_id', $venueId)->where('booking_date', now()->format('Y-m-d'))->count();
-        $pendingBookings = BookingBooking::where('complex_id_id', $venueId)->where('status', 'pending')->count();
-        $confirmedBookings = BookingBooking::where('complex_id_id', $venueId)->where('status', 'confirmed')->count();
-        $cancelledBookings = BookingBooking::where('complex_id_id', $venueId)->where('status', 'cancelled')->count();
-        
-        // REVENUE: Only count PAID bookings
-        $totalRevenue = BookingBooking::where('complex_id_id', $venueId)
-            ->where('payment_status', 'Paid')
-            ->sum('price');
-            
-        $todayRevenue = BookingBooking::where('complex_id_id', $venueId)
-            ->where('payment_status', 'Paid')
-            ->where('booking_date', now()->format('Y-m-d'))
-            ->sum('price');
-        
-        $sports = BookingSport::where('venue_id', $venueId)->get();
+        $venueId = $user?->complex_id;
+
+        if (!$venueId) {
+            return response()->json(['message' => 'Venue not found'], 404);
+        }
+
+        $bookings = BookingBooking::where('complex_id_id', $venueId)->get();
         $venue = BookingVenue::find($venueId);
+        $sports = BookingSport::where('venue_id', $venueId)->get();
 
-        return response()->json([
-            'total_bookings' => $totalBookings,
-            'today_bookings' => $todayBookings,
-            'pending_bookings' => $pendingBookings,
-            'confirmed_bookings' => $confirmedBookings,
-            'cancelled_bookings' => $cancelledBookings,
-            'completed_bookings' => $confirmedBookings, // Alias for confirmed in some frontend views
-            'total_revenue' => (string)$totalRevenue,
-            'today_revenue' => (string)$todayRevenue,
-            'total_sports' => $sports->count(),
-            'active_sports' => $sports->where('status', 'Active')->count(),
-            'venue_rating' => (float)($venue->rating ?? 0),
-            'total_reviews' => (int)($venue->reviews ?? 0),
-        ]);
-    }
+        $today = Carbon::today()->toDateString();
 
-    /**
-     * Get revenue report data.
-     */
-    public function revenueReport(Request $request)
-    {
-        $user = $request->user();
-        [$period, $startDate, $endDate, $days] = $this->getDateWindow($request);
-
-        $baseQuery = BookingBooking::where('complex_id_id', $user->complex_id)
-            ->where('payment_status', 'Paid')
-            ->whereBetween('booking_date', [$startDate->toDateString(), $endDate->toDateString()]);
-
-        $bookings = $baseQuery->get();
-
-        $rows = match ($period) {
-            'weekly' => $bookings->groupBy(fn ($booking) => Carbon::parse($booking->booking_date)->startOfWeek()->toDateString()),
-            'monthly' => $bookings->groupBy(fn ($booking) => Carbon::parse($booking->booking_date)->format('Y-m')),
-            default => $bookings->groupBy(fn ($booking) => Carbon::parse($booking->booking_date)->toDateString()),
+        $statusCount = static function ($rows, string $status): int {
+            return $rows->filter(function ($row) use ($status) {
+                return strtolower((string) $row->status) === $status;
+            })->count();
         };
 
-        $data = $rows->sortKeys()->map(function (Collection $group, string $key) use ($period) {
-            $revenue = (float) $group->sum(fn ($booking) => (float) $booking->price);
-            $bookingsCount = $group->count();
-
-            if ($period === 'weekly') {
-                $weekStart = Carbon::parse($key);
-                $weekEnd = (clone $weekStart)->endOfWeek();
-
-                return [
-                    'date' => $weekStart->toDateString(),
-                    'label' => $weekStart->format('M d') . ' - ' . $weekEnd->format('M d'),
-                    'revenue' => number_format($revenue, 2, '.', ''),
-                    'bookings' => $bookingsCount,
-                ];
-            }
-
-            if ($period === 'monthly') {
-                $month = Carbon::createFromFormat('Y-m', $key);
-
-                return [
-                    'date' => $month->startOfMonth()->toDateString(),
-                    'label' => $month->format('M Y'),
-                    'revenue' => number_format($revenue, 2, '.', ''),
-                    'bookings' => $bookingsCount,
-                ];
-            }
-
-            return [
-                'date' => $key,
-                'label' => Carbon::parse($key)->format('M d, Y'),
-                'revenue' => number_format($revenue, 2, '.', ''),
-                'bookings' => $bookingsCount,
-            ];
-        })->values();
-
         return response()->json([
-            'period' => $period,
-            'start_date' => $startDate->toDateString(),
-            'end_date' => $endDate->toDateString(),
-            'data' => $data,
-            'total_revenue' => number_format($bookings->sum(fn ($booking) => (float) $booking->price), 2, '.', ''),
             'total_bookings' => $bookings->count(),
-            'average_booking_value' => $this->getRevenueSummary($bookings)['average_booking_value'],
+            'today_bookings' => $bookings->filter(function ($b) use ($today) {
+                $bDate = $b->booking_date instanceof Carbon ? $b->booking_date->format('Y-m-d') : (string) $b->booking_date;
+                return substr($bDate, 0, 10) === $today && strtolower((string) $b->status) !== 'cancelled';
+            })->count(),
+            'pending_bookings' => $statusCount($bookings, 'pending'),
+            'confirmed_bookings' => $statusCount($bookings, 'confirmed'),
+            'cancelled_bookings' => $statusCount($bookings, 'cancelled'),
+            'completed_bookings' => $statusCount($bookings, 'completed'),
+            'refunded_bookings' => $statusCount($bookings, 'refunded'),
+            'total_revenue' => number_format((float) $bookings->filter(function ($b) {
+                return strtolower((string) $b->payment_status) === 'paid';
+            })->sum('price'), 2, '.', ''),
+            'today_revenue' => number_format((float) $bookings->filter(function ($b) use ($today) {
+                $bDate = $b->booking_date instanceof Carbon ? $b->booking_date->format('Y-m-d') : (string) $b->booking_date;
+                return substr($bDate, 0, 10) === $today && strtolower((string) $b->payment_status) === 'paid';
+            })->sum('price'), 2, '.', ''),
+            'total_refunded' => number_format((float) $bookings->filter(function ($b) {
+                return strtolower((string) $b->payment_status) === 'refunded';
+            })->sum('price'), 2, '.', ''),
+            'total_sports' => $sports->count(),
+            'active_sports' => $sports->filter(function ($sport) {
+                return strtolower((string) $sport->status) === 'active';
+            })->count(),
+            'venue_rating' => (float) ($venue?->rating ?? 0),
+            'total_reviews' => (int) ($venue?->reviews ?? 0),
         ]);
     }
 
-    /**
-     * Get booking report data.
-     */
     public function bookingReport(Request $request)
     {
         $user = $request->user();
-        [$period, $startDate, $endDate] = $this->getDateWindow($request);
+        $venueId = $user?->complex_id;
 
-        $bookings = BookingBooking::with(['sport', 'user', 'venue'])
-            ->where('complex_id_id', $user->complex_id)
-            ->whereBetween('booking_date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->orderBy('booking_date', 'desc')
-            ->orderBy('start_time', 'desc')
+        if (!$venueId) {
+            return response()->json(['message' => 'Venue not found'], 404);
+        }
+
+        $query = BookingBooking::where('complex_id_id', $venueId)
+            ->with('sport');
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('booking_date', '>=', $request->string('start_date'));
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('booking_date', '<=', $request->string('end_date'));
+        }
+
+        if ($request->filled('sport_id')) {
+            $query->where('game_id_id', $request->integer('sport_id'));
+        }
+
+        if ($request->filled('status')) {
+            $query->whereRaw('lower(status) = ?', [strtolower((string) $request->status)]);
+        }
+
+        $bookings = $query->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
 
         $summary = [
             'total' => $bookings->count(),
-            'confirmed' => $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->status) === 'confirmed' || $this->normalizeStatus($booking->status) === 'completed')->count(),
-            'cancelled' => $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->status) === 'cancelled')->count(),
-            'completed' => $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->status) === 'completed')->count(),
-            'pending' => $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->status) === 'pending')->count(),
-            'paid' => $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->payment_status) === 'paid')->count(),
-            'unpaid' => $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->payment_status) !== 'paid')->count(),
-            'total_revenue' => number_format($bookings->filter(fn ($booking) => $this->normalizeStatus($booking->payment_status) === 'paid')->sum(fn ($booking) => (float) $booking->price), 2, '.', ''),
+            'confirmed' => $bookings->filter(fn($booking) => strtolower((string) $booking->status) === 'confirmed')->count(),
+            'cancelled' => $bookings->filter(fn($booking) => strtolower((string) $booking->status) === 'cancelled')->count(),
+            'completed' => $bookings->filter(fn($booking) => strtolower((string) $booking->status) === 'completed')->count(),
+            'pending' => $bookings->filter(fn($booking) => strtolower((string) $booking->status) === 'pending')->count(),
+            'paid' => $bookings->filter(fn($booking) => strtolower((string) $booking->payment_status) === 'paid')->count(),
+            'unpaid' => $bookings->filter(fn($booking) => strtolower((string) $booking->payment_status) !== 'paid')->count(),
+            'refunded' => $bookings->filter(fn($booking) => strtolower((string) $booking->payment_status) === 'refunded')->count(),
+            'total_revenue' => number_format((float) $bookings->filter(fn($b) => strtolower((string) $b->payment_status) === 'paid')->sum('price'), 2, '.', ''),
         ];
 
-        $rows = $bookings->map(function ($booking) {
+        $payload = $bookings->map(function (BookingBooking $booking) {
             return [
                 'id' => $booking->id,
-                'venue_name' => optional($booking->venue)->name,
-                'sport_name' => $booking->game_name,
+                'user_name' => $booking->user_name,
+                'user_email' => $booking->user?->email,
+                'user_phone' => $booking->user_number,
                 'court_number' => $booking->court_number,
+                'sport_id' => $booking->game_id_id,
+                'sport_name' => $booking->sport?->name ?? $booking->game_name ?? 'N/A',
                 'booking_date' => optional($booking->booking_date)->format('Y-m-d') ?? (string) $booking->booking_date,
                 'start_time' => $booking->start_time,
                 'end_time' => $booking->end_time,
-                'time_slot' => $this->getTimeSlotLabel($booking->start_time, $booking->end_time),
-                'price' => (string) $booking->price,
-                'status' => ucfirst($this->normalizeStatus($booking->status)) ?: 'Pending',
-                'payment_status' => ucfirst($this->normalizeStatus($booking->payment_status)) ?: 'Pending',
-                'user_name' => $booking->user_name,
-                'user_email' => optional($booking->user)->email,
-                'user_phone' => $booking->user_number,
+                'time_slot' => $booking->time_slot ?? null,
                 'duration' => $booking->duration,
-                'notes' => $booking->notes,
+                'price' => (string) $booking->price,
+                'status' => $booking->status,
+                'payment_status' => $booking->payment_status,
+                'payment_method' => $booking->payment_method,
                 'is_permanent' => (bool) $booking->permanent_source_id,
+                'permanent_source_id' => $booking->permanent_source_id,
+                'booking_type' => $booking->permanent_source_id ? 'Permanent' : 'One-Time',
+                'notes' => $booking->notes,
+                'created_at' => optional($booking->created_at)->toDateTimeString(),
+                'updated_at' => optional($booking->updated_at)->toDateTimeString(),
             ];
         })->values();
 
         return response()->json([
-            'period' => $period,
-            'start_date' => $startDate->toDateString(),
-            'end_date' => $endDate->toDateString(),
-            'bookings' => $rows,
+            'bookings' => $payload,
             'summary' => $summary,
         ]);
     }
 
-    /**
-     * Get revenue broken down by sport.
-     */
+    public function revenueReport(Request $request)
+    {
+        $user = $request->user();
+        $venueId = $user?->complex_id;
+
+        if (!$venueId) {
+            return response()->json(['message' => 'Venue not found'], 404);
+        }
+
+        $period = strtolower((string) $request->query('period', 'daily'));
+        $query = BookingBooking::where('complex_id_id', $venueId);
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('booking_date', '>=', $request->string('start_date'));
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('booking_date', '<=', $request->string('end_date'));
+        }
+
+        $bookings = $query->get();
+
+        $groupKey = match ($period) {
+            'weekly' => fn(BookingBooking $booking) => Carbon::parse($booking->booking_date)->startOfWeek()->format('Y-m-d'),
+            'monthly' => fn(BookingBooking $booking) => Carbon::parse($booking->booking_date)->format('Y-m'),
+            default => fn(BookingBooking $booking) => Carbon::parse($booking->booking_date)->format('Y-m-d'),
+        };
+
+        $groupLabel = match ($period) {
+            'weekly' => fn(string $value) => Carbon::parse($value)->format('M d, Y'),
+            'monthly' => fn(string $value) => Carbon::parse($value . '-01')->format('M Y'),
+            default => fn(string $value) => Carbon::parse($value)->format('M d, Y'),
+        };
+
+        $rows = $bookings
+            ->groupBy($groupKey)
+            ->map(function ($rows, string $key) use ($groupLabel) {
+                return [
+                    'date' => $key,
+                    'label' => $groupLabel($key),
+                    'revenue' => number_format((float) $rows->filter(fn($b) => strtolower((string) $b->payment_status) === 'paid')->sum('price'), 2, '.', ''),
+                    'bookings' => $rows->count(),
+                ];
+            })
+            ->sortKeys()
+            ->values();
+
+        return response()->json([
+            'data' => $rows,
+            'total_revenue' => number_format((float) $bookings->filter(fn($b) => strtolower((string) $b->payment_status) === 'paid')->sum('price'), 2, '.', ''),
+            'total_bookings' => $bookings->count(),
+            'average_booking_value' => $bookings->filter(fn($b) => strtolower((string) $b->payment_status) === 'paid')->count() > 0
+                ? number_format((float) $bookings->filter(fn($b) => strtolower((string) $b->payment_status) === 'paid')->sum('price') / max($bookings->filter(fn($b) => strtolower((string) $b->payment_status) === 'paid')->count(), 1), 2, '.', '')
+                : '0.00',
+        ]);
+    }
+
     public function sportsRevenue(Request $request)
     {
         $user = $request->user();
-        $bookings = BookingBooking::with(['sport'])
-            ->where('complex_id_id', $user->complex_id)
-            ->where('payment_status', 'Paid')
+        $venueId = $user?->complex_id;
+
+        if (!$venueId) {
+            return response()->json(['message' => 'Venue not found'], 404);
+        }
+
+        $bookings = BookingBooking::where('complex_id_id', $venueId)
+            ->with('sport')
             ->get();
 
-        $totalRevenue = (float) $bookings->sum(fn ($booking) => (float) $booking->price);
+        $totalRevenue = (float) $bookings->filter(fn($b) => strtolower((string) $b->payment_status) === 'paid')->sum('price');
 
         $sports = $bookings
-            ->groupBy(fn ($booking) => $booking->game_id_id ?: $booking->game_name)
-            ->map(function (Collection $group) use ($totalRevenue) {
-                $first = $group->first();
-                $revenue = (float) $group->sum(fn ($booking) => (float) $booking->price);
-                $image = null;
-
-                if ($first && $first->sport) {
-                    $image = $first->sport->image_url ?? $first->sport->image ?? null;
-                }
+            ->groupBy(function (BookingBooking $booking) {
+                return $booking->sport?->id ?? $booking->game_id_id ?? 0;
+            })
+            ->map(function ($rows) use ($totalRevenue) {
+                $first = $rows->first();
+                $revenue = (float) $rows->filter(fn($b) => strtolower((string) $b->payment_status) === 'paid')->sum('price');
 
                 return [
-                    'sport_id' => (int) ($first->game_id_id ?? 0),
-                    'sport_name' => $first->game_name ?? 'Unknown Sport',
-                    'sport_image' => $image,
+                    'sport_id' => (int) ($first->sport?->id ?? $first->game_id_id ?? 0),
+                    'sport_name' => $first->sport?->name ?? $first->game_name ?? 'N/A',
+                    'sport_image' => $first->sport?->image ?? null,
                     'total_revenue' => number_format($revenue, 2, '.', ''),
-                    'total_bookings' => $group->count(),
-                    'percentage' => $totalRevenue > 0 ? round(($revenue / $totalRevenue) * 100, 1) : 0,
+                    'total_bookings' => $rows->count(),
+                    'percentage' => $totalRevenue > 0 ? round(($revenue / $totalRevenue) * 100, 2) : 0,
                 ];
             })
-            ->sortByDesc(fn ($item) => (float) $item['total_revenue'])
+            ->sortByDesc('total_revenue')
             ->values();
 
         return response()->json([
@@ -288,157 +239,148 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Get performance metrics.
-     */
     public function performance(Request $request)
     {
         $user = $request->user();
-        $venueId = $user->complex_id;
+        $venueId = $user?->complex_id;
+
+        if (!$venueId) {
+            return response()->json(['message' => 'Venue not found'], 404);
+        }
 
         $bookings = BookingBooking::where('complex_id_id', $venueId)->get();
-        $totalBookings = $bookings->count();
-        $paidBookings = $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->payment_status) === 'paid');
-        $completedBookings = $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->status) === 'completed');
-        $cancelledBookings = $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->status) === 'cancelled');
-        $noShowBookings = $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->status) === 'no show' || $this->normalizeStatus($booking->status) === 'no-show');
-        $confirmedBookings = $bookings->filter(fn ($booking) => $this->normalizeStatus($booking->status) === 'confirmed');
+        $total = $bookings->count();
 
-        $hourlyDistribution = collect(range(0, 23))->map(function (int $hour) use ($bookings) {
-            $count = $bookings->filter(function ($booking) use ($hour) {
-                $time = $booking->start_time ?: $booking->time_slot;
-                if (!$time) return false;
-                try {
-                    return Carbon::createFromFormat('H:i:s', $time)->hour === $hour;
-                } catch (\Throwable $e) {
-                    try {
-                        return Carbon::createFromFormat('H:i', $time)->hour === $hour;
-                    } catch (\Throwable $e) {
-                        return false;
-                    }
-                }
-            })->count();
-
-            return [
-                'hour' => $hour,
-                'label' => Carbon::createFromTime($hour)->format('g A'),
-                'count' => $count,
-            ];
-        })->values();
-
-        $dailyDistribution = collect(range(0, 6))->map(function (int $day) use ($bookings) {
-            $count = $bookings->filter(function ($booking) use ($day) {
-                if (!$booking->booking_date) return false;
-                return Carbon::parse($booking->booking_date)->dayOfWeek === $day;
-            })->count();
-
-            return [
-                'day' => $day,
-                'label' => Carbon::create()->startOfWeek()->addDays($day)->format('l'),
-                'count' => $count,
-            ];
-        })->values();
-
-        $courtUtilization = $bookings->groupBy(fn ($booking) => (string) ($booking->court_number ?? '1'))
-            ->map(function (Collection $group, string $court) use ($totalBookings) {
-                $count = $group->count();
+        $hourly = $bookings
+            ->groupBy(function (BookingBooking $booking) {
+                return Carbon::parse($booking->start_time)->format('H');
+            })
+            ->map(function ($rows, string $hour) use ($total) {
+                $count = $rows->count();
                 return [
-                    'court' => $court,
+                    'hour' => (int) $hour,
+                    'label' => Carbon::createFromTime((int) $hour, 0)->format('g A'),
+                    'count' => $count,
+                ];
+            })
+            ->sortBy('hour')
+            ->values();
+
+        $daily = $bookings
+            ->groupBy(function (BookingBooking $booking) {
+                return Carbon::parse($booking->booking_date)->dayOfWeekIso;
+            })
+            ->map(function ($rows, string $day) {
+                $labels = [1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat', 7 => 'Sun'];
+                return [
+                    'day' => (int) $day,
+                    'label' => $labels[(int) $day] ?? $day,
+                    'count' => $rows->count(),
+                ];
+            })
+            ->sortBy('day')
+            ->values();
+
+        $courtUtilization = $bookings
+            ->groupBy(fn(BookingBooking $booking) => (string) ($booking->court_number ?? '1'))
+            ->map(function ($rows, string $court) use ($total) {
+                $count = $rows->count();
+                return [
+                    'court' => 'Court ' . $court,
                     'bookings' => $count,
-                    'percentage' => $totalBookings > 0 ? round(($count / $totalBookings) * 100, 1) : 0,
+                    'percentage' => $total > 0 ? round(($count / $total) * 100, 2) : 0,
                 ];
             })
             ->sortByDesc('bookings')
             ->values();
 
-        $sportUtilization = $bookings->groupBy(fn ($booking) => $booking->game_name ?: 'Unknown Sport')
-            ->map(function (Collection $group, string $sportName) use ($totalBookings) {
-                $count = $group->count();
+        $sportUtilization = $bookings
+            ->groupBy(fn(BookingBooking $booking) => $booking->sport?->name ?? $booking->game_name ?? 'N/A')
+            ->map(function ($rows, string $sportName) use ($total) {
+                $count = $rows->count();
                 return [
                     'sport_name' => $sportName,
                     'bookings' => $count,
-                    'percentage' => $totalBookings > 0 ? round(($count / $totalBookings) * 100, 1) : 0,
+                    'percentage' => $total > 0 ? round(($count / $total) * 100, 2) : 0,
                 ];
             })
             ->sortByDesc('bookings')
             ->values();
 
-        $statusCounts = $bookings->groupBy(fn ($booking) => ucfirst($this->normalizeStatus($booking->status) ?: 'Pending'))
-            ->map(function (Collection $group, string $status) use ($totalBookings) {
-                $count = $group->count();
-                return [
-                    'status' => $status === 'No show' ? 'No-Show' : $status,
-                    'count' => $count,
-                    'percentage' => $totalBookings > 0 ? round(($count / $totalBookings) * 100, 1) : 0,
-                ];
-            })
-            ->sortByDesc('count')
-            ->values();
+        $statusCounts = $bookings->groupBy(function (BookingBooking $booking) {
+            return strtolower((string) $booking->status);
+        });
 
-        $busiestDay = $dailyDistribution->sortByDesc('count')->first();
-        $busiestHour = $hourlyDistribution->sortByDesc('count')->first();
+        $confirmed = $statusCounts->get('confirmed', collect())->count();
+        $cancelled = $statusCounts->get('cancelled', collect())->count();
+        $noShow = $statusCounts->get('no-show', collect())->count() + $statusCounts->get('no show', collect())->count();
+        $completed = $statusCounts->get('completed', collect())->count();
 
         return response()->json([
             'summary' => [
-                'total_bookings' => $totalBookings,
-                'completed' => $completedBookings->count(),
-                'cancelled' => $cancelledBookings->count(),
-                'no_show' => $noShowBookings->count(),
-                'confirmed' => $confirmedBookings->count(),
-                'completion_rate' => $totalBookings > 0 ? round(($completedBookings->count() / $totalBookings) * 100, 1) : 0,
-                'cancellation_rate' => $totalBookings > 0 ? round(($cancelledBookings->count() / $totalBookings) * 100, 1) : 0,
-                'no_show_rate' => $totalBookings > 0 ? round(($noShowBookings->count() / $totalBookings) * 100, 1) : 0,
-                'average_daily_bookings' => round($totalBookings / 7, 1),
-                'busiest_day' => $busiestDay['label'] ?? 'N/A',
-                'busiest_hour' => $busiestHour['label'] ?? 'N/A',
-                'avg_revenue_per_booking' => number_format($paidBookings->count() > 0 ? ((float) $paidBookings->sum(fn ($booking) => (float) $booking->price) / $paidBookings->count()) : 0, 2, '.', ''),
+                'total_bookings' => $total,
+                'completed' => $completed,
+                'cancelled' => $cancelled,
+                'no_show' => $noShow,
+                'confirmed' => $confirmed,
+                'completion_rate' => $total > 0 ? round(($completed / $total) * 100, 2) : 0,
+                'cancellation_rate' => $total > 0 ? round(($cancelled / $total) * 100, 2) : 0,
+                'no_show_rate' => $total > 0 ? round(($noShow / $total) * 100, 2) : 0,
+                'average_daily_bookings' => $bookings->groupBy(fn(BookingBooking $booking) => Carbon::parse($booking->booking_date)->toDateString())->count() > 0
+                    ? round($total / max($bookings->groupBy(fn(BookingBooking $booking) => Carbon::parse($booking->booking_date)->toDateString())->count(), 1), 2)
+                    : 0,
+                'busiest_day' => $daily->sortByDesc('count')->first()['label'] ?? 'N/A',
+                'busiest_hour' => $hourly->sortByDesc('count')->first()['label'] ?? 'N/A',
+                'avg_revenue_per_booking' => $total > 0 ? number_format((float) $bookings->filter(fn($b) => strtolower((string) $b->payment_status) === 'paid')->sum('price') / $total, 2, '.', '') : '0.00',
             ],
-            'hourly_distribution' => $hourlyDistribution,
-            'daily_distribution' => $dailyDistribution,
+            'hourly_distribution' => $hourly,
+            'daily_distribution' => $daily,
             'court_utilization' => $courtUtilization,
             'sport_utilization' => $sportUtilization,
-            'status_distribution' => $statusCounts,
+            'status_distribution' => [
+                ['status' => 'confirmed', 'count' => $confirmed, 'percentage' => $total > 0 ? round(($confirmed / $total) * 100, 2) : 0],
+                ['status' => 'cancelled', 'count' => $cancelled, 'percentage' => $total > 0 ? round(($cancelled / $total) * 100, 2) : 0],
+                ['status' => 'completed', 'count' => $completed, 'percentage' => $total > 0 ? round(($completed / $total) * 100, 2) : 0],
+                ['status' => 'no-show', 'count' => $noShow, 'percentage' => $total > 0 ? round(($noShow / $total) * 100, 2) : 0],
+            ],
         ]);
     }
 
-    /**
-     * Export dashboard data as CSV.
-     */
     public function exportCSV(Request $request)
     {
         $user = $request->user();
-        $venueId = $user->complex_id;
+        $venueId = $user?->complex_id;
+
+        if (!$venueId) {
+            return response()->json(['message' => 'Venue not found'], 404);
+        }
+
         $bookings = BookingBooking::where('complex_id_id', $venueId)
-            ->orderBy('booking_date', 'desc')
-            ->orderBy('start_time', 'desc')
+            ->with('sport')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
 
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="bookings_report.csv"',
-        ];
+        $csvContent = "Booking ID,Player Name,Court,Sport,Date,Start Time,End Time,Status,Payment Status,Revenue\n";
+        foreach ($bookings as $booking) {
+            $csvContent .= implode(',', [
+                $booking->id,
+                '"' . ($booking->user_name ?? 'N/A') . '"',
+                '"' . ($booking->court_number ?? 'N/A') . '"',
+                '"' . ($booking->sport?->name ?? $booking->game_name ?? 'N/A') . '"',
+                optional($booking->booking_date)->format('Y-m-d') ?? (string) $booking->booking_date,
+                $booking->start_time,
+                $booking->end_time,
+                $booking->status,
+                $booking->payment_status,
+                $booking->price ?? 0,
+            ]) . "\n";
+        }
 
-        $callback = function() use ($bookings) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, ['ID', 'Customer', 'Sport', 'Court', 'Date', 'Start Time', 'End Time', 'Price', 'Status', 'Payment']);
+        $filename = 'booking_report_' . now()->format('Y-m-d_His') . '.csv';
 
-            foreach ($bookings as $booking) {
-                fputcsv($file, [
-                    $booking->id,
-                    $booking->user_name,
-                    $booking->game_name,
-                    $booking->court_number,
-                    optional($booking->booking_date)->format('Y-m-d') ?? (string) $booking->booking_date,
-                    $booking->start_time,
-                    $booking->end_time,
-                    $booking->price,
-                    $booking->status,
-                    $booking->payment_status,
-                ]);
-            }
-            fclose($file);
-        };
-
-        return Response::stream($callback, 200, $headers);
+        return response()->streamDownload(function () use ($csvContent) {
+            echo $csvContent;
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 }

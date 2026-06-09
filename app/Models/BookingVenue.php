@@ -15,58 +15,6 @@ class BookingVenue extends Model
         'gallery_images_json','video_tour_url','description','terms',
         'social_links','analytics_enabled','venue_category'
     ];
-
-    protected $appends = ['image_url', 'cover_image_url'];
-
-    public function getImageUrlAttribute($value)
-    {
-        if (!$value) {
-            return 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg';
-        }
-
-        if (filter_var($value, FILTER_VALIDATE_URL)) {
-            if (str_contains($value, '127.0.0.1') || str_contains($value, 'localhost')) {
-                $path = parse_url($value, PHP_URL_PATH);
-                if (str_starts_with($path, '/images/')) {
-                    return asset('api/indoor-admin/local-images/' . substr($path, 8));
-                }
-                if (str_starts_with($path, '/storage/')) {
-                    return asset('api/indoor-admin/local-storage/' . substr($path, 9));
-                }
-                return asset('api/indoor-admin' . $path);
-            }
-            return $value;
-        }
-
-        return asset('api/indoor-admin/local-storage/' . $value);
-    }
-
-    public function getCoverImageUrlAttribute()
-    {
-        if (!$this->cover_image) {
-            return $this->image_url;
-        }
-
-        if (filter_var($this->cover_image, FILTER_VALIDATE_URL)) {
-            if (str_contains($this->cover_image, '127.0.0.1') || str_contains($this->cover_image, 'localhost')) {
-                $path = parse_url($this->cover_image, PHP_URL_PATH);
-                if (str_starts_with($path, '/images/')) {
-                    return asset('api/indoor-admin/local-images/' . substr($path, 8));
-                }
-                if (str_starts_with($path, '/storage/')) {
-                    return asset('api/indoor-admin/local-storage/' . substr($path, 9));
-                }
-                return asset('api/indoor-admin' . $path);
-            }
-            return $this->cover_image;
-        }
-
-        return asset('api/indoor-admin/local-storage/' . $this->cover_image);
-    }
-
-
-
-
    protected $attributes = [
         'image_url' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
     ];
@@ -76,6 +24,40 @@ class BookingVenue extends Model
         'gallery_images_json' => 'array',
         'social_links' => 'array',
     ];
+
+    protected $appends = ['cover_image_url', 'gallery_images_urls'];
+
+    public function getCoverImageUrlAttribute()
+    {
+        if (!$this->cover_image) {
+            return null;
+        }
+        
+        if (filter_var($this->cover_image, FILTER_VALIDATE_URL)) {
+            return $this->cover_image;
+        }
+
+        $host = app()->runningInConsole() ? config('app.url') : request()->getSchemeAndHttpHost();
+        return rtrim($host, '/') . '/api/indoor-admin/local-storage/' . ltrim($this->cover_image, '/');
+    }
+
+    public function getGalleryImagesUrlsAttribute()
+    {
+        $gallery = $this->gallery_images_json;
+        if (!is_array($gallery)) {
+            return [];
+        }
+        
+        $host = app()->runningInConsole() ? config('app.url') : request()->getSchemeAndHttpHost();
+        $baseUrl = rtrim($host, '/') . '/api/indoor-admin/local-storage/';
+
+        return array_map(function ($path) use ($baseUrl) {
+            if (filter_var($path, FILTER_VALIDATE_URL)) {
+                return $path;
+            }
+            return $baseUrl . ltrim($path, '/');
+        }, $gallery);
+    }
 
     public function sports()
     {
