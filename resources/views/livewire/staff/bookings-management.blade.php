@@ -977,8 +977,10 @@
 
                             <div class="mb-3">
                                 <label class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control @error('phoneNumber') is-invalid @enderror"
-                                    wire:model.debounce.500ms="phoneNumber" placeholder="Enter phone number">
+                                <input type="tel" class="form-control @error('phoneNumber') is-invalid @enderror"
+                                    wire:model.debounce.500ms="phoneNumber" 
+                                    placeholder="Enter phone number"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                                 @error('phoneNumber')
                                 <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -1468,7 +1470,7 @@
                                     }
                                 };
                             } else {
-                                alert('Popup blocked! Please allow popups for this site.');
+                                Swal.fire('Popup Blocked', 'Please allow popups for this site to use the timer window.', 'warning');
                             }
                         }
                     }
@@ -1538,7 +1540,7 @@
                     resolve();
                 }).catch(error => {
                     console.error('Error refreshing booking data:', error);
-                    alert('Error refreshing booking data. Please try again.');
+                    Swal.fire('Error', 'Error refreshing booking data. Please try again.', 'error');
                     reject(error);
                 });
             });
@@ -1559,7 +1561,7 @@
                     court,
                     dateKey
                 });
-                alert('Error: Unable to open booking modal. Missing required information.');
+                Swal.fire('Error', 'Unable to open booking modal. Missing required information.', 'error');
                 return;
             }
 
@@ -1574,7 +1576,7 @@
             const modalElement = document.getElementById('bookingModal');
             if (!modalElement) {
                 console.error('Booking modal element not found');
-                alert('Error: Booking modal not found.');
+                Swal.fire('Error', 'Booking modal not found.', 'error');
                 return;
             }
 
@@ -1598,7 +1600,7 @@
                 modal.show();
             }).catch(error => {
                 console.error('Error setting booking data:', error);
-                alert('Error opening booking form. Please try again.');
+                Swal.fire('Error', 'Error opening booking form. Please try again.', 'error');
                 updateCalendar();
             });
         }
@@ -1630,7 +1632,7 @@
             const modalElement = document.getElementById('timerModal');
             if (!modalElement) {
                 console.error('Timer modal element not found');
-                alert('Error: Timer modal not found.');
+                Swal.fire('Error', 'Timer modal not found.', 'error');
                 return;
             }
 
@@ -1654,39 +1656,58 @@
                 cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
 
                 newCancelBtn.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to cancel this booking?')) {
-                        // Extract booking details from timerId
-                        const parts = timerId.split('-');
-                        const game = parts[0];
-                        const dateKey = parts[1];
-                        const court = parts[2];
-                        const time = parts.slice(3).join(':').replace(/-/g, ':');
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: "Do you really want to cancel this booking?",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, cancel it!',
+                        cancelButtonText: 'No, keep it'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Extract booking details from timerId
+                            const parts = timerId.split('-');
+                            const game = parts[0];
+                            const dateKey = parts[1];
+                            const court = parts[2];
+                            const time = parts.slice(3).join(':').replace(/-/g, ':');
 
-                        console.log('Cancelling booking:', {
-                            game,
-                            dateKey,
-                            court,
-                            time
-                        });
-
-                        // Set selected booking data for cancellation
-                        @this.set('selectedGame', game);
-                        @this.set('selectedDate', dateKey);
-                        @this.set('selectedCourt', court);
-                        @this.set('selectedTime', time);
-
-                        // Call cancel booking
-                        @this.call('cancelBooking', timerState.bookingId).then(() => {
-                            modal.hide();
-                            showNotification('Booking Cancelled', 'The booking has been successfully cancelled.');
-                            refreshBookingData().then(() => {
-                                updateCalendar();
+                            console.log('Cancelling booking:', {
+                                game,
+                                dateKey,
+                                court,
+                                time
                             });
-                        }).catch(error => {
-                            console.error('Error cancelling booking:', error);
-                            alert('Error cancelling booking. Please try again.');
-                        });
-                    }
+
+                            // Set selected booking data for cancellation
+                            @this.set('selectedGame', game);
+                            @this.set('selectedDate', dateKey);
+                            @this.set('selectedCourt', court);
+                            @this.set('selectedTime', time);
+
+                            // Call cancel booking
+                            @this.call('cancelBooking', timerState.bookingId).then(() => {
+                                modal.hide();
+                                Swal.fire(
+                                    'Cancelled!',
+                                    'The booking has been successfully cancelled.',
+                                    'success'
+                                );
+                                refreshBookingData().then(() => {
+                                    updateCalendar();
+                                });
+                            }).catch(error => {
+                                console.error('Error cancelling booking:', error);
+                                Swal.fire(
+                                    'Error!',
+                                    'Error cancelling booking. Please try again.',
+                                    'error'
+                                );
+                            });
+                        }
+                    });
                 });
             }
 
@@ -2297,19 +2318,43 @@
         };
 
         window.unblockSlotJS = function(sportId, date, time, court) {
-            if (!confirm('Remove block from this slot?')) return;
-            @this.call('unblockSlot', sportId, date, time, court).then(() => {
-                // Refresh blocked data and redraw calendar
-                @this.get('sports').then(sportsArr => {
-                    if (sportsArr) {
-                        sportsArr.forEach(s => {
-                            const bs = s.blocked_slots ? (typeof s.blocked_slots === 'string' ? JSON.parse(s.blocked_slots) : s.blocked_slots) : {};
-                            blockedSlotsData[s.id] = bs;
-                        });
-                    }
-                    updateCalendar();
-                }).catch(() => updateCalendar());
-            }).catch(e => console.error('unblockSlot error', e));
+            Swal.fire({
+                title: 'Unblock Slot?',
+                text: "Are you sure you want to remove the block from this slot?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, unblock it!',
+                cancelButtonText: 'No, keep it blocked'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    @this.call('unblockSlot', sportId, date, time, court).then(() => {
+                        // Refresh blocked data and redraw calendar
+                        @this.get('sports').then(sportsArr => {
+                            if (sportsArr) {
+                                sportsArr.forEach(s => {
+                                    const bs = s.blocked_slots ? (typeof s.blocked_slots === 'string' ? JSON.parse(s.blocked_slots) : s.blocked_slots) : {};
+                                    blockedSlotsData[s.id] = bs;
+                                });
+                            }
+                            Swal.fire(
+                                'Unblocked!',
+                                'The slot has been unblocked.',
+                                'success'
+                            );
+                            updateCalendar();
+                        }).catch(() => updateCalendar());
+                    }).catch(e => {
+                        console.error('unblockSlot error', e);
+                        Swal.fire(
+                            'Error!',
+                            'Could not unblock the slot. Please try again.',
+                            'error'
+                        );
+                    });
+                }
+            });
         };
 
         window.openWaitlistModalJS = function(sportId, date, time, court) {
