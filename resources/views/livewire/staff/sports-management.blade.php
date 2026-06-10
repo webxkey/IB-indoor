@@ -129,6 +129,7 @@
                                     <option value="Basketball">Basketball</option>
                                     <option value="Pools">Pools</option>
                                     <option value="Pooltable">Pool Table</option>
+                                    <option value="Cricket & Football">Cricket & Football</option>
                                 </select>
                                 @error('game_name') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>

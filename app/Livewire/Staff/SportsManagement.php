@@ -82,7 +82,7 @@ class SportsManagement extends Component
         $this->complex_id = auth()->user()->complex_id;
 
         $validated = $this->validate([
-            'game_name' => 'required|string|in:Football,Cricket,Badminton,Basketball,Pools,Pooltable',
+            'game_name' => 'required|string|in:Football,Cricket,Badminton,Basketball,Pools,Pooltable,Cricket & Football',
             'game_type' => 'required|string',
             'rate_type' => 'required|string',
             'price' => 'required|numeric|min:0',
@@ -433,6 +433,9 @@ class SportsManagement extends Component
     {
         $n = strtolower((string) $name);
 
+        if (str_contains($n, 'cricket') && str_contains($n, 'football')) {
+            return asset('images/sports_images/cricket&football.jpg');
+        }
         if (str_contains($n, 'football')) {
             return asset('images/sports_images/football.jpg');
         }
