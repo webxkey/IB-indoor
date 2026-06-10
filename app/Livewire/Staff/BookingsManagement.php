@@ -96,12 +96,15 @@ class BookingsManagement extends Component
     {
         $sport = BookingSport::find($sportId);
         $sportName = $sport ? $sport->name : 'Sport';
+
+        $venue = \App\Models\BookingVenue::find($this->complex_id);
+        $venueName = $venue ? $venue->name : 'our venue';
         
         // Format date and time for better readability
         $formattedDate = Carbon::parse($date)->format('M d, Y');
         $formattedTime = Carbon::parse($time)->format('h:i A');
         
-        $message = "Slot Available: {$sportName} on {$formattedDate} at {$formattedTime} (Court {$court}) is now available. Book now at Sportynix!";
+        $message = "Slot Available at {$venueName}: {$sportName} on {$formattedDate} at {$formattedTime} (Court {$court}) is now available. Book now at Sportynix!";
         
         return $this->triggerSms($entry->customer_phone, $message);
     }
