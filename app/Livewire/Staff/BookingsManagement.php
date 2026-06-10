@@ -11,6 +11,7 @@ use App\Models\BookingBooking;
 use App\Models\BookingSport;
 use App\Models\BookingWaitlist;
 use App\Models\UserUser;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -52,6 +53,58 @@ class BookingsManagement extends Component
     public $waitlistCourt = '';
     public $waitlistName = '';
     public $waitlistPhone = '';
+
+    /**
+     * Trigger an SMS via the configured provider
+     */
+    protected function triggerSms($to, $message)
+    {
+        $enabled = env('PHONE_OTP_PROVIDER_ENABLED');
+        if ($enabled !== 'True' && $enabled !== true) {
+            Log::info("SMS sending disabled. Would have sent to {$to}: {$message}");
+            return false;
+        }
+
+        try {
+            $response = Http::withOptions(['verify' => false])
+                ->timeout(env('PHONE_OTP_PROVIDER_TIMEOUT_SECONDS', 5))
+                ->post(env('PHONE_OTP_PROVIDER_SEND_URL'), [
+                    'user_id' => env('PHONE_OTP_PROVIDER_USER_ID'),
+                    'api_key' => env('PHONE_OTP_PROVIDER_API_KEY'),
+                    'sender_id' => env('PHONE_OTP_PROVIDER_SENDER_ID'),
+                    'contact' => $to,
+                    'message' => $message,
+                ]);
+
+            if ($response->successful()) {
+                Log::info("SMS sent to {$to}: {$message}");
+                return true;
+            } else {
+                Log::error("SMS sending failed to {$to}: " . $response->body());
+                return false;
+            }
+        } catch (\Exception $e) {
+            Log::error("SMS sending exception for {$to}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Helper to send waitlist notification SMS
+     */
+    protected function sendWaitlistSms($entry, $sportId, $date, $time, $court)
+    {
+        $sport = BookingSport::find($sportId);
+        $sportName = $sport ? $sport->name : 'Sport';
+        
+        // Format date and time for better readability
+        $formattedDate = Carbon::parse($date)->format('M d, Y');
+        $formattedTime = Carbon::parse($time)->format('h:i A');
+        
+        $message = "Slot Available: {$sportName} on {$formattedDate} at {$formattedTime} (Court {$court}) is now available. Book now at Sportynix!";
+        
+        return $this->triggerSms($entry->customer_phone, $message);
+    }
 
     protected $rules = [
         'selectedGame' => 'required|string',
@@ -370,6 +423,8 @@ class BookingsManagement extends Component
                     ->first();
                 if ($waitlisted) {
                     $waitlisted->update(['status' => 'notified', 'notified_at' => now()]);
+                    // Send SMS notification
+                    $this->sendWaitlistSms($waitlisted, $booking->game_id_id, $booking->booking_date, $booking->start_time, $booking->court_number);
                 }
             } catch (\Exception $e) {}
 
@@ -709,13 +764,34 @@ class BookingsManagement extends Component
         $entry = BookingWaitlist::find($waitlistId);
         if ($entry) {
             $entry->update(['status' => 'notified', 'notified_at' => now()]);
-            session()->flash('message', "Notified {$entry->customer_name} ({$entry->customer_phone}) — slot is available.");
+            
+            // Send SMS notification
+            $this->sendWaitlistSms($entry, $this->waitlistSportId, $this->waitlistDate, $this->waitlistTime, $this->waitlistCourt);
+            
+            session()->flash('message', "Notified {$entry->customer_name} ({$entry->customer_phone}) via SMS — slot is available.");
             $this->openWaitlistModal(
                 $this->waitlistSportId,
                 $this->waitlistDate,
                 $this->waitlistTime,
                 $this->waitlistCourt
             );
+        }
+    }
+
+    public function notifyFirstInWaitlist()
+    {
+        $firstEntry = BookingWaitlist::where('sport_id', $this->waitlistSportId)
+            ->where('booking_date', $this->waitlistDate)
+            ->where('time_slot', $this->waitlistTime)
+            ->where('court_number', $this->waitlistCourt)
+            ->where('status', 'waiting')
+            ->orderBy('created_at', 'asc')
+            ->first();
+
+        if ($firstEntry) {
+            $this->notifyWaitlistNext($firstEntry->id);
+        } else {
+            session()->flash('error', 'No one waiting in the waitlist for this slot.');
         }
     }
 

@@ -1142,6 +1142,11 @@
                         </div>
                     </div>
                     <div class="modal-footer" style="background: #f8fafc;">
+                        @if(count($waitlistEntries) > 0)
+                        <button class="btn btn-sm btn-success me-auto" wire:click="notifyFirstInWaitlist" wire:loading.attr="disabled">
+                            <i class="fas fa-paper-plane me-1"></i>Send SMS
+                        </button>
+                        @endif
                         <button class="btn btn-sm btn-secondary" wire:click="closeWaitlistModal">Close</button>
                         <button class="btn btn-sm btn-info text-white" wire:click="addToWaitlist" wire:loading.attr="disabled">
                             <i class="fas fa-plus me-1"></i>Add to Waitlist
