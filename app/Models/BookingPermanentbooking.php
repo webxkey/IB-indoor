@@ -21,11 +21,13 @@ class BookingPermanentbooking extends Model
         'duration',
         'price',
         'complex_id',
-        'created_at'
+        'created_at',
+        'is_active'
     ];
 
     protected $casts = [
         'recurring_config' => 'array',
+        'is_active' => 'boolean'
     ];
 
     public function bookings()

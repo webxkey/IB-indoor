@@ -8,6 +8,7 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\On;
 use Carbon\Carbon;
 use App\Models\BookingBooking;
+use App\Models\BookingPermanentbooking;
 use App\Models\BookingSport;
 use App\Models\BookingWaitlist;
 use App\Models\UserUser;
@@ -331,17 +332,39 @@ class BookingsManagement extends Component
 
         // Create booking(s)
         if ($this->permanent) {
-            $sourceBookingId = null;
+            // Create a permanent source record first to satisfy foreign key constraint
+            // Fallback chain: specific user -> staff user as users_user -> first users_user (admin)
+            $finalUserId = $userUser?->id;
+            if (!$finalUserId) {
+                $finalUserId = UserUser::where('email', $staffUser->email)->first()?->id;
+            }
+            if (!$finalUserId) {
+                $finalUserId = UserUser::orderBy('id', 'asc')->first()?->id;
+            }
+
+            $permanentSource = BookingPermanentbooking::create([
+                'user_id' => $finalUserId,
+                'sport_id' => $sport->id,
+                'complex_id' => $this->complex_id,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'duration' => 60,
+                'price' => $sport->price ?? 1800.00,
+                'recurring_config' => [
+                    'months' => 1,
+                    'selected_days' => [Carbon::parse($this->selectedDate)->dayOfWeekIso],
+                ],
+                'is_active' => true,
+                'created_at' => now(),
+            ]);
+
             for ($i = 0; $i < 7; $i++) {
                 $bookingDate = Carbon::parse($this->selectedDate)->addDays($i)->format('Y-m-d');
-                $newBooking = BookingBooking::create(array_merge($bookingData, [
+                BookingBooking::create(array_merge($bookingData, [
                     'booking_date' => $bookingDate,
-                    'permanent_source_id' => $sourceBookingId,
+                    'permanent_source_id' => $permanentSource->id,
                     'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
                 ]));
-                if ($i === 0) {
-                    $sourceBookingId = $newBooking->id;
-                }
             }
         } else {
             BookingBooking::create(array_merge($bookingData, [
