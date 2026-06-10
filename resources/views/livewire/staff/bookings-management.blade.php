@@ -877,7 +877,7 @@
                 </h5>
             </div>
             <div class="card-body p-0">
-                <div class="game-tabs">
+                <div class="game-tabs" wire:ignore>
                     @forelse ($games as $index => $game)
                     @php
                     $icon = match(strtolower($game['name'])) {
@@ -900,7 +900,7 @@
                 </div>
 
                 @if(!empty($games))
-                <div class="date-navigation">
+                <div class="date-navigation" wire:ignore>
                     <button class="btn btn-outline-secondary date-btn" id="prevDay">
                         <i class="fas fa-chevron-left"></i>
                     </button>

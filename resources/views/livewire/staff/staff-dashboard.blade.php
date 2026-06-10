@@ -68,6 +68,54 @@
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
+    /* Stat Cards Styles */
+    .stat-card {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        border: none;
+        box-shadow: var(--small-shadow);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow);
+    }
+
+    .stat-card .card-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+
+    .stat-card h2 {
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 4px;
+    }
+
+    .stat-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        transition: all 0.3s ease;
+    }
+
+    .stat-icon.icon-sports { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #16a34a; }
+    .stat-icon.icon-bookings { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); color: #0284c7; }
+    .stat-icon.icon-revenue { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #d97706; }
+    .stat-icon.icon-canceled { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #dc2626; }
+
+    .stat-card:hover .stat-icon {
+        transform: scale(1.1) rotate(5deg);
+    }
+
     /* Slot Availability Styles */
     .slot-availability-section {
         background: var(--card-bg);
@@ -77,14 +125,17 @@
 
     .venue-card {
         background: var(--card-bg);
-        border-radius: var(--small-radius);
-        border: 1px solid #e2e8f0;
-        transition: all 0.3s ease;
+        border-radius: var(--border-radius);
+        border: 1px solid #f3f4f6;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
     }
 
     .venue-card:hover {
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        transform: translateY(-4px);
+        border-color: #e5e7eb;
     }
 
     .venue-header {
@@ -334,18 +385,18 @@
     <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card stat-card bg-success text-white h-100">
+            <div class="card stat-card h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="card-title opacity-75">Total Sports</h6>
+                            <h6 class="card-title text-muted">Total Sports</h6>
                             <h2 class="mb-0">{{ $sportsCount }}</h2>
-                            <small class="opacity-75">
+                            <small class="text-success fw-medium">
                                 <i class="fas fa-arrow-up me-1"></i>
                                 Increased from last month
                             </small>
                         </div>
-                        <div class="stat-icon">
+                        <div class="stat-icon icon-sports">
                             <i class="fas fa-calendar-check"></i>
                         </div>
                     </div>
@@ -359,12 +410,12 @@
                         <div>
                             <h6 class="card-title text-muted">Total Bookings</h6>
                             <h2 class="mb-0">{{ $bookingsCount }}</h2>
-                            <small class="text-muted">
-                                <i class="fas fa-arrow-up text-success me-1"></i>
+                            <small class="text-success fw-medium">
+                                <i class="fas fa-arrow-up me-1"></i>
                                 Increased from last month
                             </small>
                         </div>
-                        <div class="stat-icon">
+                        <div class="stat-icon icon-bookings">
                             <i class="fas fa-play-circle"></i>
                         </div>
                     </div>
@@ -378,13 +429,13 @@
                         <div>
                             <h6 class="card-title text-muted">Total Revenue</h6>
                             <h2 class="mb-0">{{$todaybookingRevenue}}</h2>
-                            <small class="text-muted">
-                                <i class="fas fa-arrow-down text-warning me-1"></i>
+                            <small class="text-danger fw-medium">
+                                <i class="fas fa-arrow-down me-1"></i>
                                 Decreased from last month
                             </small>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-map-marked-alt"></i>
+                        <div class="stat-icon icon-revenue">
+                            <i class="fas fa-money-bill-wave"></i>
                         </div>
                     </div>
                 </div>
@@ -395,14 +446,14 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="card-title text-muted">Canceled Booking</h6>
+                            <h6 class="card-title text-muted">Canceled Bookings</h6>
                             <h2 class="mb-0">{{$cancelledBookingsCount}}</h2>
-                            <small class="text-muted">
+                            <small class="text-warning fw-medium">
                                 On Discussion
                             </small>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-clock"></i>
+                        <div class="stat-icon icon-canceled">
+                            <i class="fas fa-times-circle"></i>
                         </div>
                     </div>
                 </div>
