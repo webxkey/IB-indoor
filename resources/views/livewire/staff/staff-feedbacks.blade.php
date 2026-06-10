@@ -202,7 +202,7 @@
                 <div class="review-card d-flex">
                     <!-- Profile Image -->
                     <img
-                        src="{{ $profile_picture_url }}"
+                        src="{{ $review->profile_picture_url ?: asset('storage/staff/user.png') }}"
                         alt="{{ $review->user->first_name ?? 'User' }}"
                         class="review-image rounded-circle me-3"
                         width="70" height="70">
