@@ -572,7 +572,6 @@
                     <div class="sidebar-brand mb-2">
                         <div class="d-flex align-items-center gap-0" style="font-size: 1.8rem;">
                             <span class="fw-bold">Sportynix Hub</span>
-                            <i class="fas fa-futbol text-success"></i>
                         </div>
 
                     </div>
