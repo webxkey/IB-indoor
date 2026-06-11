@@ -175,3 +175,51 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 // Real-time WebSocket updates via Laravel Reverb
 // Old polling system removed - now using efficient persistent WebSocket connections
 // No more /poll endpoint - all real-time updates come via WebSocket broadcasts
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPORARY TEST ROUTES FOR UI DEMONSTRATION
+// Visit these URLs in a new tab while your dashboard is open to see live updates
+// ─────────────────────────────────────────────────────────────────────────────
+
+Route::get('/ws-test/hold', function () {
+    $sport = BookingSport::where('venue_id', 2)->first();
+    if (!$sport) return "Error: No active sport found for venue 2";
+
+    $data = [
+        'venue_id'   => 2,
+        'sport_id'   => $sport->id,
+        'event_type' => 'slot.hold.created',
+        'date'       => now()->format('Y-m-d'),
+        'start_time' => '11:00:00',
+        'court'      => '1'
+    ];
+
+    broadcast(new SlotStateChanged($data));
+    return "✅ [SLOT HOLD] event broadcasted for {$sport->name} at 11:00 AM. Check your dashboard!";
+});
+
+Route::get('/ws-test/release', function () {
+    $sport = BookingSport::where('venue_id', 2)->first();
+    if (!$sport) return "Error: No active sport found for venue 2";
+
+    $data = [
+        'venue_id'   => 2,
+        'sport_id'   => $sport->id,
+        'event_type' => 'slot.hold.released',
+        'date'       => now()->format('Y-m-d'),
+        'start_time' => '11:00:00',
+        'court'      => '1'
+    ];
+
+    broadcast(new SlotStateChanged($data));
+    return "✅ [HOLD RELEASED] event broadcasted. The orange pulse should disappear.";
+});
+
+Route::get('/ws-test/booking', function () {
+    // We'll mock a booking created event
+    $booking = BookingBooking::where('complex_id_id', 2)->latest()->first();
+    if (!$booking) return "Error: No existing booking found to use as template";
+
+    broadcast(new BookingCreated($booking));
+    return "✅ [NEW BOOKING] event broadcasted for {$booking->user_name}. You should see a success toast and sound!";
+});

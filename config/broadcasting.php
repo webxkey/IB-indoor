@@ -59,7 +59,7 @@ return [
             'app_id' => env('REVERB_APP_ID', ''),
             'options' => [
                 'host' => env('REVERB_SERVER_HOST', '127.0.0.1'),
-                'port' => env('REVERB_SERVER_PORT', 8083),
+                'port' => env('REVERB_SERVER_PORT', 8080),
                 'scheme' => 'http',
                 'useTLS' => false,
             ],

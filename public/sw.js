@@ -41,6 +41,7 @@ self.addEventListener('fetch', event => {
 
     // Skip non-GET, browser extensions, and Livewire/API calls
     if (request.method !== 'GET') return;
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
     if (url.pathname.startsWith('/livewire')) return;
     if (url.pathname.startsWith('/api')) return;
     if (url.pathname.startsWith('/broadcasting')) return;

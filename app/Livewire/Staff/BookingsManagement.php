@@ -124,9 +124,9 @@ class BookingsManagement extends Component
     protected $listeners = [
         'setSelectedBookingData',
         'refreshBookings',
-        'echo:bookings.complex.{complex_id},booking.created' => 'handleNewBooking',
-        'echo:bookings.complex.{complex_id},booking.updated' => 'handleUpdatedBooking',
-        'echo:bookings.complex.{complex_id},booking.deleted' => 'handleDeletedBooking',
+        'echo:bookings.complex.{complex_id},.booking.created' => 'handleNewBooking',
+        'echo:bookings.complex.{complex_id},.booking.updated' => 'handleUpdatedBooking',
+        'echo:bookings.complex.{complex_id},.booking.deleted' => 'handleDeletedBooking',
     ];
 
     public function mount()
@@ -594,7 +594,7 @@ class BookingsManagement extends Component
      * Handle real-time booking creation via WebSocket
      * Called when a new booking is created from mobile app or staff dashboard
      */
-    #[On('echo:bookings.complex.{complex_id},booking.created')]
+    #[On('echo:bookings.complex.{complex_id},.booking.created')]
     public function handleNewBooking($data)
     {
         // Reload all bookings to show the new one
@@ -612,7 +612,7 @@ class BookingsManagement extends Component
      * Handle real-time booking updates via WebSocket
      * Called when a booking status, payment, or other details change
      */
-    #[On('echo:bookings.complex.{complex_id},booking.updated')]
+    #[On('echo:bookings.complex.{complex_id},.booking.updated')]
     public function handleUpdatedBooking($data)
     {
         Log::info('Real-time booking update received', [
@@ -635,7 +635,7 @@ class BookingsManagement extends Component
      * Handle real-time booking deletion via WebSocket
      * Called when a booking is cancelled or deleted
      */
-    #[On('echo:bookings.complex.{complex_id},booking.deleted')]
+    #[On('echo:bookings.complex.{complex_id},.booking.deleted')]
     public function handleDeletedBooking($data)
     {
         Log::info('Real-time booking deletion received', [
@@ -844,3 +844,4 @@ class BookingsManagement extends Component
         ]);
     }
 }
+

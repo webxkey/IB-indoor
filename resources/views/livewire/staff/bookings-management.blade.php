@@ -1303,18 +1303,35 @@
         }
 
         // Show notification for new bookings
-        function showNotification(title, message) {
-            // Remove any existing notifications first
+        function showNotification(type, title, message, duration = 8000) {
+            // Handle 2-argument calls: showNotification(title, message)
+            if (arguments.length === 2) {
+                message = title;
+                title = type;
+                type = 'success';
+            }
+
+            // Remove any existing notifications first to prevent stacking
             const existingNotifications = document.querySelectorAll('.booking-notification');
             existingNotifications.forEach(notif => notif.remove());
 
+            // Map type to icon and alert class
+            const iconClass = {
+                'success': 'fas fa-check-circle',
+                'info': 'fas fa-info-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'danger': 'fas fa-times-circle'
+            }[type] || 'fas fa-bell';
+
+            const alertClass = ['success', 'info', 'warning', 'danger'].includes(type) ? type : 'success';
+
             // Create a toast notification at the top
             const toastHtml = `
-            <div class="booking-notification alert alert-success alert-dismissible fade show position-fixed shadow-lg" 
+            <div class="booking-notification alert alert-${alertClass} alert-dismissible fade show position-fixed shadow-lg" 
                  style="top: 20px; right: 20px; z-index: 99999; min-width: 350px; max-width: 450px; animation: slideInRight 0.3s ease-out;" 
                  role="alert">
                 <div class="d-flex align-items-start">
-                    <i class="fas fa-check-circle fa-2x me-3 text-success"></i>
+                    <i class="${iconClass} fa-2x me-3 ${type === 'success' ? 'text-success' : ''}"></i>
                     <div class="flex-grow-1">
                         <h5 class="alert-heading mb-1"><strong>${title}</strong></h5>
                         <p class="mb-0">${message}</p>
@@ -1332,7 +1349,7 @@
             // Play notification sound
             playNotificationSound();
 
-            // Auto-remove after 8 seconds
+            // Auto-remove after duration
             setTimeout(() => {
                 if (notification && notification.parentNode) {
                     notification.classList.remove('show');
@@ -1340,7 +1357,7 @@
                         notification.remove();
                     }, 300);
                 }
-            }, 8000);
+            }, duration);
         } // Optional: Play notification sound
         function playNotificationSound() {
             try {
@@ -2379,14 +2396,27 @@
         // ========================================
         const channelName = `bookings.complex.${complexId}`;
 
-        // Subscribe to real-time booking updates via WebSocket
+        // Subscribe to real-time booking updates via WebSocket (Private Channel)
         // Wrapped in try-catch so a connection failure doesn't crash the calendar
         let channel = null;
         try {
-            channel = window.Echo && complexId ? window.Echo.channel(channelName) : null;
+            if (window.Echo && complexId) {
+                console.log('Subscribing to private channel:', channelName);
+                channel = window.Echo.private(channelName);
+                
+                // Debug listeners
+                channel.on('pusher:subscription_succeeded', () => {
+                    console.log('✅ Subscribed to private channel:', channelName);
+                });
+                
+                channel.on('pusher:subscription_error', (status) => {
+                    console.error('❌ Failed to subscribe to private channel:', channelName, status);
+                });
+            }
         } catch(e) {
             console.warn('Echo channel setup failed:', e);
         }
+
         if (!channel) {
             console.warn('Real-time updates unavailable (Reverb not connected). Calendar still works.');
         }
@@ -2484,7 +2514,11 @@
         // subscribe to slot state changes for sport {{ $sport->id }}
         try {
             if (window.Echo) {
-                window.Echo.channel('slots.venue.{{ $complex_id }}.sport.{{ $sport->id }}').listen('.slot_state_changed', function(data) {
+                const sportChannel = `slots.venue.{{ $complex_id }}.sport.{{ $sport->id }}`;
+                console.log('Subscribing to sport channel:', sportChannel);
+                
+                window.Echo.channel(sportChannel).listen('.slot_state_changed', function(data) {
+                    console.log('📡 RECEIVED SLOT STATE EVENT:', data);
                     var sportId = data.sport_id;
                     var date    = data.date;
                     var time    = data.start_time;
@@ -2549,44 +2583,5 @@
             updateCalendar();
         }
     });
-
-    /**
-     * Helper function to show toast notifications
-     */
-    function showNotification(type, title, message, duration = 3000) {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `booking-notification alert alert-${type} alert-dismissible fade show`;
-        notification.role = 'alert';
-        
-        const icon = getNotificationIcon(type);
-        notification.innerHTML = `
-            ${icon}
-            <strong>${title}:</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-
-        // Add to page
-        const container = document.querySelector('.container-fluid') || document.body;
-        container.insertBefore(notification, container.firstChild);
-
-        // Auto dismiss after duration
-        setTimeout(() => {
-            notification.remove();
-        }, duration);
-    }
-
-    /**
-     * Get icon for notification type
-     */
-    function getNotificationIcon(type) {
-        const icons = {
-            'success': '✅',
-            'info': 'ℹ️',
-            'warning': '⚠️',
-            'danger': '❌'
-        };
-        return icons[type] || '📢';
-    }
 </script>
 @endpush
