@@ -18,8 +18,8 @@ $existingBooking = BookingBooking::latest('id')->first();
 $newBooking = $existingBooking ? $existingBooking->replicate() : new BookingBooking();
 
 $newBooking->booking_date = $targetDate;
-$newBooking->start_time = '22:00:00';
-$newBooking->end_time = '23:00:00';
+$newBooking->start_time = '18:00:00';
+$newBooking->end_time = '19:00:00';
 $newBooking->court_number = '1';
 $newBooking->status = 'Confirmed';
 $newBooking->user_name = 'Live Transition Tester (10PM)';
@@ -39,7 +39,7 @@ $holdPayload = [
     'sport_id'   => $sportId,
     'event_type' => 'slot.hold.created',
     'date'       => $targetDate,
-    'start_time' => '22:00:00',
+    'start_time' => '18:00:00',
     'court'      => '1'
 ];
 broadcast(new SlotStateChanged($holdPayload));
@@ -57,7 +57,7 @@ $bookingPayload = [
     'sport_id'   => $sportId,
     'event_type' => 'booking.created',
     'date'       => $targetDate,
-    'start_time' => '22:00:00',
+    'start_time' => '1:00:00',
     'court'      => '1'
 ];
 broadcast(new SlotStateChanged($bookingPayload));
