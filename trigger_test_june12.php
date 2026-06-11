@@ -18,11 +18,11 @@ $existingBooking = BookingBooking::latest('id')->first();
 $newBooking = $existingBooking ? $existingBooking->replicate() : new BookingBooking();
 
 $newBooking->booking_date = $targetDate;
-$newBooking->start_time = '16:00:00';
-$newBooking->end_time = '17:00:00';
+$newBooking->start_time = '22:00:00';
+$newBooking->end_time = '23:00:00';
 $newBooking->court_number = '1';
 $newBooking->status = 'Confirmed';
-$newBooking->user_name = 'June 12 Tester';
+$newBooking->user_name = 'Live Transition Tester (10PM)';
 $newBooking->game_id_id = $sportId;
 $newBooking->complex_id_id = $venueId;
 $newBooking->game_name = 'Cricket & Football';
@@ -32,22 +32,37 @@ if (!$newBooking->user_number) $newBooking->user_number = '1234567890';
 
 $newBooking->save();
 
-// -- 2. Trigger HOLD Event for 15:00:00 on June 12 --
-echo "Triggering [Slot Hold] for {$targetDate} at 15:00...\n";
+// -- 2. Trigger HOLD Event for 22:00:00 on June 12 --
+echo "Triggering [Slot Hold] for {$targetDate} at 22:00...\n";
 $holdPayload = [
     'venue_id'   => $venueId,
     'sport_id'   => $sportId,
     'event_type' => 'slot.hold.created',
     'date'       => $targetDate,
-    'start_time' => '15:00:00',
+    'start_time' => '22:00:00',
     'court'      => '1'
 ];
 broadcast(new SlotStateChanged($holdPayload));
-echo "✅ Hold event broadcasted to Reverb!\n\n";
+echo "✅ Hold event broadcasted! Slot is now ORANGE.\n";
 
-sleep(2); // Pause so you can see the Hold before the Booking arrives
+echo "Waiting 4 seconds so you can see the hold...\n";
+sleep(4); 
 
-// -- 3. Trigger NEW BOOKING notification for 16:00:00 on June 12 --
-echo "Triggering [Booking Notify] for {$targetDate} at 16:00...\n";
+// -- 3. Trigger NEW BOOKING notification for 22:00:00 on June 12 --
+echo "Triggering [Booking Notify] for {$targetDate} at 22:00...\n";
+
+// Mimic the Django webhook payload which broadcasts over the slot channel
+$bookingPayload = [
+    'venue_id'   => $venueId,
+    'sport_id'   => $sportId,
+    'event_type' => 'booking.created',
+    'date'       => $targetDate,
+    'start_time' => '22:00:00',
+    'court'      => '1'
+];
+broadcast(new SlotStateChanged($bookingPayload));
+
+// Also fire the Laravel event just in case
 broadcast(new BookingCreated($newBooking));
-echo "✅ New Booking event broadcasted to Reverb!\n";
+
+echo "✅ New Booking event broadcasted! Slot should now be RED/BOOKED.\n";

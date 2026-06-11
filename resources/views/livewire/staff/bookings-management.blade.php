@@ -2427,6 +2427,7 @@
          * Listen for new bookings created from mobile app
          */
         channel.listen('.booking.created', (data) => {
+            console.log('📡 RECEIVED BOOKING EVENT:', data);
             // Show toast notification
             showNotification('success', 
                 '✨ New Booking',
@@ -2550,7 +2551,7 @@
                         }
                         showNotification('success', 'Booking Confirmed',
                             data.date + ' ' + data.start_time + ' Court ' + court + ' booked via mobile', 4000);
-                        Livewire.dispatch('refreshBookings');
+                        
                         refreshBookingData().then(function() {
                             if (typeof updateCalendar === 'function') updateCalendar();
                         });
@@ -2558,7 +2559,7 @@
                     } else if (data.event_type === 'booking.cancelled') {
                         showNotification('warning', 'Booking Cancelled',
                             data.date + ' ' + data.start_time + ' Court ' + court, 3500);
-                        Livewire.dispatch('refreshBookings');
+                        
                         refreshBookingData().then(function() {
                             if (typeof updateCalendar === 'function') updateCalendar();
                         });
