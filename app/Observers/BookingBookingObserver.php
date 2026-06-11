@@ -17,7 +17,7 @@ class BookingBookingObserver
     {
         try {
             // Broadcast the new booking to all admins watching this complex
-            broadcast(new BookingCreated($booking))->toOthers();
+            broadcast(new BookingCreated($booking));
             
             Log::info('BookingBooking created and broadcasted', [
                 'booking_id' => $booking->id,
@@ -39,7 +39,7 @@ class BookingBookingObserver
     {
         try {
             // Broadcast the updated booking
-            broadcast(new BookingUpdated($booking))->toOthers();
+            broadcast(new BookingUpdated($booking));
             
             Log::info('BookingBooking updated and broadcasted', [
                 'booking_id' => $booking->id,
@@ -61,7 +61,7 @@ class BookingBookingObserver
     {
         try {
             // Broadcast the deleted booking
-            broadcast(new BookingDeleted($booking->id, $booking->complex_id_id ?? 1))->toOthers();
+            broadcast(new BookingDeleted($booking->id, $booking->complex_id_id ?? 1));
             
             Log::info('BookingBooking deleted and broadcasted', [
                 'booking_id' => $booking->id,

@@ -1187,7 +1187,7 @@ Route::middleware('auth:sanctum')->group(function () {
         $bookings = BookingBooking::where('booking_date', now()->format('Y-m-d'))->get();
         foreach ($bookings as $booking) {
             try {
-                broadcast(new BookingCreated($booking))->toOthers();
+                broadcast(new BookingCreated($booking));
             } catch (\Exception $e) {
             }
         }
@@ -1199,7 +1199,7 @@ Route::middleware('auth:sanctum')->group(function () {
             ->where('complex_id_id', $complexId)->get();
         foreach ($bookings as $booking) {
             try {
-                broadcast(new BookingCreated($booking))->toOthers();
+                broadcast(new BookingCreated($booking));
             } catch (\Exception $e) {
             }
         }
@@ -1211,7 +1211,7 @@ Route::middleware('auth:sanctum')->group(function () {
         if (!$booking)
             return response()->json(['error' => 'Not found'], 404);
         try {
-            broadcast(new BookingCreated($booking))->toOthers();
+            broadcast(new BookingCreated($booking));
         } catch (\Exception $e) {
         }
         return response()->json(['status' => 'success']);
@@ -1235,7 +1235,7 @@ Route::get('/booking/refresh', function (Request $request) {
     $count = 0;
     foreach ($bookings as $booking) {
         try {
-            broadcast(new BookingCreated($booking))->toOthers();
+            broadcast(new BookingCreated($booking));
             $count++;
         } catch (\Exception $e) {
         }

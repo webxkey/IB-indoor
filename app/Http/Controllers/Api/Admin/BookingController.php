@@ -9,6 +9,7 @@ use App\Models\BookingVenue;
 use App\Models\BookingNotification;
 use App\Models\BookingPermanentbooking;
 use App\Models\User;
+use App\Models\UserUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -714,11 +715,15 @@ class BookingController extends Controller
     private function notifyStaff($venueId, string $type, string $title, string $message, array $data = [])
     {
         try {
-            $staffIds = User::where('complex_id', $venueId)
+            // 1. Find the staff users in Laravel table
+            $staffEmails = User::where('complex_id', $venueId)
                 ->whereIn('role', ['staff', 'facility_owner', 'indoor_admin'])
-                ->pluck('id');
+                ->pluck('email');
 
-            foreach ($staffIds as $staffId) {
+            // 2. Map them to the Django users_user table IDs (since the notification table has a FK to users_user)
+            $djangoStaffIds = UserUser::whereIn('email', $staffEmails)->pluck('id');
+
+            foreach ($djangoStaffIds as $staffId) {
                 BookingNotification::create([
                     'user_id' => $staffId,
                     'type' => $type,
