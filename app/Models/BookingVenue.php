@@ -13,16 +13,18 @@ class BookingVenue extends Model
         'county','location','postal_code','contact_number','email_address',
         'website','status','opening_hours','amenities','cover_image',
         'gallery_images_json','video_tour_url','description','terms',
-        'social_links','analytics_enabled','venue_category'
+        'social_links','analytics_enabled','venue_category', 'is_featured'
     ];
    protected $attributes = [
         'image_url' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
+        'is_featured' => false,
     ];
     protected $casts = [
         'opening_hours' => 'array',
         'amenities' => 'array',
         'gallery_images_json' => 'array',
         'social_links' => 'array',
+        'is_featured' => 'boolean',
     ];
 
     protected $appends = ['cover_image_url', 'gallery_images_urls'];

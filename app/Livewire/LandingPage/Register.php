@@ -274,7 +274,8 @@ class Register extends Component
                 // Create venue
                 // No Complex model: create only booking_venue and use its id for users.complex_id
             
-                $base_image_url = asset('storage/'.$coverImagePath);                $venue = BookingVenue::create([
+                $base_image_url = $coverImagePath ? asset('storage/'.$coverImagePath) : 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg';
+                $venue = BookingVenue::create([
                     'name' => $this->complex_name,
                     'complex_type' => $this->complex_type,
                     'address' => $this->address,
@@ -298,6 +299,7 @@ class Register extends Component
                     'reviews' => 0,
                     'analytics_enabled' => true,
                     'venue_category' => strtolower($this->complex_type),
+                    'is_featured' => false,
                 ]);
 
                 // Create sports (one per selected type)
@@ -369,11 +371,13 @@ class Register extends Component
                 return;
             }
 
-            session()->flash('error', 'An error occurred during registration. Please try again.');
+            $errorMessage = config('app.debug') ? 'Database error: ' . $e->getMessage() : 'An error occurred during registration. Please try again.';
+            session()->flash('error', $errorMessage);
         } catch (\Exception $e) {
             Log::error('Registration failed: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
-            session()->flash('error', 'An error occurred during registration. Please try again.');
+            $errorMessage = config('app.debug') ? 'Error: ' . $e->getMessage() : 'An error occurred during registration. Please try again.';
+            session()->flash('error', $errorMessage);
         }
     }
 
