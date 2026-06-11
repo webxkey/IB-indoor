@@ -2396,21 +2396,21 @@
         // ========================================
         const channelName = `bookings.complex.${complexId}`;
 
-        // Subscribe to real-time booking updates via WebSocket (Private Channel)
+        // Subscribe to real-time booking updates via WebSocket (Public Channel)
         // Wrapped in try-catch so a connection failure doesn't crash the calendar
         let channel = null;
         try {
             if (window.Echo && complexId) {
-                console.log('Subscribing to private channel:', channelName);
-                channel = window.Echo.private(channelName);
+                console.log('Subscribing to public channel:', channelName);
+                channel = window.Echo.channel(channelName);
                 
                 // Debug listeners
                 channel.on('pusher:subscription_succeeded', () => {
-                    console.log('✅ Subscribed to private channel:', channelName);
+                    console.log('✅ Subscribed to public channel:', channelName);
                 });
                 
                 channel.on('pusher:subscription_error', (status) => {
-                    console.error('❌ Failed to subscribe to private channel:', channelName, status);
+                    console.error('❌ Failed to subscribe to public channel:', channelName, status);
                 });
             }
         } catch(e) {
@@ -2509,8 +2509,11 @@
         // (slot holds, blocks, booking confirmed/cancelled from mobile)
         // ========================================
         window.heldSlots = window.heldSlots || {};
+        
+        console.log('DEBUG: Number of sports for WebSocket loop:', {{ count($sports ?? []) }});
 
         @foreach($sports ?? collect() as $sport)
+        console.log('DEBUG: Generating Echo listener for sport ID:', {{ $sport->id }});
         // subscribe to slot state changes for sport {{ $sport->id }}
         try {
             if (window.Echo) {
