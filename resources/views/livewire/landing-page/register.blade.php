@@ -710,6 +710,43 @@
             margin-right: 0.5rem;
         }
 
+        .password-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--primary);
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--primary-light);
+            padding: 5px 10px;
+            border-radius: 8px;
+            transition: var(--transition);
+            z-index: 100;
+            border: 1px solid var(--primary-light);
+            user-select: none;
+        }
+
+        .password-toggle:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .form-input.password-input {
+            padding-right: 45px;
+            width: 100%;
+        }
+
         @keyframes spin {
             to {
                 transform: rotate(360deg);
@@ -818,12 +855,22 @@
                             </div>
                             <div class="partition-form-group">
                                 <label for="password" class="form-label"><i class="fas fa-lock me-2"></i>Password </label>
-                                <input type="password" class="form-input @error('password') is-invalid @enderror" id="password" wire:model="password" required placeholder="Create a password">
+                                <div class="password-wrapper">
+                                    <input type="password" class="form-input password-input @error('password') is-invalid @enderror" id="password" wire:model="password" required placeholder="Create a password">
+                                    <div class="password-toggle" onclick="togglePasswordVisibility('password', this)">
+                                        <i class="fas fa-eye"></i> <span>SHOW</span>
+                                    </div>
+                                </div>
                                 @error('password') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="partition-form-group">
                                 <label for="password_confirmation" class="form-label"><i class="fas fa-lock me-2"></i>Confirm Password </label>
-                                <input type="password" class="form-input" id="password_confirmation" wire:model="password_confirmation" required placeholder="Confirm your password">
+                                <div class="password-wrapper">
+                                    <input type="password" class="form-input password-input" id="password_confirmation" wire:model="password_confirmation" required placeholder="Confirm your password">
+                                    <div class="password-toggle" onclick="togglePasswordVisibility('password_confirmation', this)">
+                                        <i class="fas fa-eye"></i> <span>SHOW</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -847,12 +894,24 @@
                             @error('complex_type') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
-                            <label for="county" class="form-label"><i class="fas fa-map me-2"></i>District / City </label>
-                            <select class="form-input @error('county') is-invalid @enderror" id="county" wire:model="county" required>
-                                <option value="">Select District / City</option>
-                                @foreach($availableCity as $c)<option value="{{ $c }}">{{ $c }}</option>@endforeach
+                            <label for="country" class="form-label"><i class="fas fa-globe me-2"></i>Country </label>
+                            <input type="text" class="form-input" id="country" wire:model="country" readonly disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="district" class="form-label"><i class="fas fa-map me-2"></i>District </label>
+                            <select class="form-input @error('district') is-invalid @enderror" id="district" wire:model.live="district" required>
+                                <option value="">Select District</option>
+                                @foreach($availableDistricts as $d)<option value="{{ $d }}">{{ $d }}</option>@endforeach
                             </select>
-                            @error('county') <div class="error-message">{{ $message }}</div> @enderror
+                            @error('district') <div class="error-message">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="form-group">
+                            <label for="city" class="form-label"><i class="fas fa-city me-2"></i>City </label>
+                            <select class="form-input @error('city') is-invalid @enderror" id="city" wire:model="city" required @if(empty($availableCities)) disabled @endif>
+                                <option value="">Select City</option>
+                                @foreach($availableCities as $c)<option value="{{ $c }}">{{ $c }}</option>@endforeach
+                            </select>
+                            @error('city') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
                             <label for="location" class="form-label" style="justify-content: space-between;">
@@ -1122,6 +1181,24 @@
             alert("Geolocation is not supported by this browser.");
             btn.innerHTML = originalText;
             btn.disabled = false;
+        }
+    }
+
+    function togglePasswordVisibility(inputId, toggleContainer) {
+        const input = document.getElementById(inputId);
+        const icon = toggleContainer.querySelector('i');
+        const text = toggleContainer.querySelector('span');
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+            text.innerText = 'HIDE';
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+            text.innerText = 'SHOW';
         }
     }
 </script>

@@ -35,7 +35,8 @@ class Register extends Component
     // Step 2: Venue  Info (directly to booking_venue)
     public $complex_name;
     public $complex_type = 'Indoor';
-    public $county;
+    public $district;
+    public $city;
     public $location;
     public $address;
     public $postal_code;
@@ -43,7 +44,8 @@ class Register extends Component
     public $email_address;
     public $website;
     public $status = 'New';
-    public $description;
+    public $description = "We are good and indoor games provides with sefty and trustfull ennjoy your play";
+    public $country = 'Sri Lanka';
 
     // Step 3: Facility Details
     public $opening_hours = [];
@@ -64,32 +66,42 @@ class Register extends Component
     public $twitter_url;
     public $instagram_url;
 
-    public $availableCity = [
-        'Colombo',
-        'Galle',
-        'Gampaha',
-        'Kandy',
-        'Jaffna',
-        'Nuwara Eliya',
-        'Kurunegala',
-        'Kalutara',
-        'vavuniya',
-        'puttalam',
-        'Anuradhapura',
-        'Trincomalee',
-        'Batticaloa',
-        'Matara',
-        'Hambantota',
-        'Badulla',
-        'Monaragala',
-        'Ratnapura',
-        'Kegalle',
-        'Matale',
-        'Polonnaruwa',
-        'Ampara',
-        'Mullaitivu'
-
+    public $availableDistricts = [
+        'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle', 'Gampaha',
+        'Hambantota', 'Jaffna', 'Kalutara', 'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala',
+        'Mannar', 'Matale', 'Matara', 'Monaragala', 'Mullaitivu', 'Nuwara Eliya',
+        'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
     ];
+
+    public $districtCityMap = [
+        'Ampara' => ['Addalaichenai', 'Akkaraipattu', 'Ampara', 'Bakmitiyawa', 'Central Camp', 'Damana', 'Dehiattakandiya', 'Hingurana', 'Irakkamam', 'Kalmunai', 'Karaitivu', 'Lahugala', 'Maha Oya', 'Maruthamunai', 'Navithanveli', 'Nintavur', 'Padiyatalawa', 'Pottuvil', 'Sainthamaruthu', 'Sammanthurai', 'Thirukkovil', 'Uhana'],
+        'Anuradhapura' => ['Anuradhapura', 'Eppawala', 'Galenbindunuwewa', 'Galnewa', 'Habarana', 'Horowpothana', 'Kahatagasdigiliya', 'Kebithigollewa', 'Kekirawa', 'Madirigiriya', 'Mihintale', 'Nochchiyagama', 'Padaviya', 'Palagala', 'Rajanganaya', 'Rambewa', 'Talawa', 'Tambuttegama', 'Thirappane'],
+        'Badulla' => ['Badulla', 'Bandarawela', 'Diyatalawa', 'Ella', 'Haldummulla', 'Hali Ela', 'Haputale', 'Kandaketiya', 'Lunugala', 'Mahiyanganaya', 'Meegahakiula', 'Passara', 'Rideemaliyadda', 'Soranathota', 'Uva Paranagama', 'Welimada'],
+        'Batticaloa' => ['Batticaloa', 'Chenkalady', 'Eravur', 'Kalkudah', 'Kaluwanchikudy', 'Kattankudy', 'Kiran', 'Kokkadicholai', 'Oddamavadi', 'Pasikudah', 'Vakarai', 'Valachchenai', 'Vavunathivu'],
+        'Colombo' => ['Angoda', 'Athurugiriya', 'Avissawella', 'Battaramulla', 'Bellanwila', 'Boralesgamuwa', 'Colombo', 'Dehiwala', 'Hanwella', 'Homagama', 'Kaduwela', 'Kesbewa', 'Kirulapone', 'Kolonnawa', 'Kottawa', 'Kotte', 'Maharagama', 'Malabe', 'Meegoda', 'Moratuwa', 'Mount Lavinia', 'Nawala', 'Nugegoda', 'Padukka', 'Pannipitiya', 'Piliyandala', 'Rajagiriya', 'Ratmalana', 'Talawatugoda', 'Wellampitiya'],
+        'Galle' => ['Ahangama', 'Akmeemana', 'Ambalangoda', 'Baddegama', 'Balapitiya', 'Batapola', 'Bentota', 'Boossa', 'Elpitiya', 'Galle', 'Gonapinuwala', 'Habaraduwa', 'Hikkaduwa', 'Imaduwa', 'Karandeniya', 'Karapitiya', 'Kosgoda', 'Nagoda', 'Neluwa', 'Pitigala', 'Thawalama', 'Unawatuna', 'Uragasmanhandiya', 'Yakkalamulla'],
+        'Gampaha' => ['Attanagalla', 'Biyagama', 'Delgoda', 'Divulapitiya', 'Dompe', 'Ekala', 'Gampaha', 'Ganemulla', 'Ja-Ela', 'Kadawatha', 'Katana', 'Katunayake', 'Kelaniya', 'Kiribathgoda', 'Kirindiwela', 'Mahara', 'Minuwangoda', 'Mirigama', 'Negombo', 'Nittambuwa', 'Ragama', 'Seeduwa', 'Veyangoda', 'Wattala', 'Welisara'],
+        'Hambantota' => ['Ambalantota', 'Angunukolapelessa', 'Beliatta', 'Hambantota', 'Hungama', 'Kataragama', 'Kirinda', 'Lunugamvehera', 'Middeniya', 'Sooriyawewa', 'Tangalle', 'Tissamaharama', 'Walasmulla', 'Weeraketiya'],
+        'Jaffna' => ['Achchuveli', 'Chankanai', 'Chavakachcheri', 'Delft', 'Jaffna', 'Karainagar', 'Kayts', 'Kodikamam', 'Kopay', 'Manipay', 'Nallur', 'Point Pedro', 'Tellippalai', 'Uduvil', 'Valvettithurai', 'Velanai'],
+        'Kalutara' => ['Agalawatta', 'Aluthgama', 'Bandaragama', 'Beruwala', 'Bulathsinhala', 'Dodangoda', 'Horana', 'Ingiriya', 'Kalutara', 'Matugama', 'Millaniya', 'Panadura', 'Payagala', 'Wadduwa', 'Walallavita'],
+        'Kandy' => ['Akurana', 'Ampitiya', 'Digana', 'Galagedara', 'Gampola', 'Gelioya', 'Kadugannawa', 'Kandy', 'Katugastota', 'Kundasale', 'Madawala', 'Nawalapitiya', 'Peradeniya', 'Pilimathalawa', 'Teldeniya', 'Wattegama'],
+        'Kegalle' => ['Aranayake', 'Bulathkohupitiya', 'Dehiowita', 'Deraniyagala', 'Galigamuwa', 'Kegalle', 'Kitulgala', 'Mawanella', 'Rambukkana', 'Ruwanwella', 'Thulhiriya', 'Warakapola', 'Yatiyanthota'],
+        'Kilinochchi' => ['Elephant Pass', 'Iranamadu', 'Kandawalai', 'Kilinochchi', 'Pallai', 'Paranthan', 'Poonakary', 'Ramanathapuram'],
+        'Kurunegala' => ['Alawwa', 'Bingiriya', 'Galgamuwa', 'Giriulla', 'Hettipola', 'Ibbagamuwa', 'Kuliyapitiya', 'Kurunegala', 'Maho', 'Mawathagama', 'Narammala', 'Nikaweratiya', 'Pannala', 'Polgahawela', 'Wariyapola'],
+        'Mannar' => ['Adampan', 'Madhu', 'Mannar', 'Murunkan', 'Nanattan', 'Pesalai', 'Talaimannar'],
+        'Matale' => ['Dambulla', 'Galewela', 'Inamaluwa', 'Laggala', 'Matale', 'Naula', 'Palapathwela', 'Pallepola', 'Rattota', 'Sigiriya', 'Ukuwela', 'Yatawatta'],
+        'Matara' => ['Akuressa', 'Deniyaya', 'Devinuwara', 'Dikwella', 'Hakmana', 'Kamburupitiya', 'Kirinda Puhulwella', 'Matara', 'Morawaka', 'Pasgoda', 'Pitabeddara', 'Thihagoda', 'Weligama'],
+        'Monaragala' => ['Badalkumbura', 'Bibile', 'Buttala', 'Kataragama', 'Madulla', 'Medagama', 'Monaragala', 'Sevanagala', 'Siyambalanduwa', 'Tanamalwila', 'Wellawaya'],
+        'Mullaitivu' => ['Mallavi', 'Mankulam', 'Mullaitivu', 'Mulliyawalai', 'Oddusuddan', 'Puthukudiyiruppu', 'Thunukkai', 'Welioya'],
+        'Nuwara Eliya' => ['Agarapathana', 'Ambewela', 'Bogawantalawa', 'Ginigathhena', 'Haggala', 'Hatton', 'Kotagala', 'Lindula', 'Maskeliya', 'Nanu Oya', 'Norwood', 'Nuwara Eliya', 'Pundaluoya', 'Ragala', 'Talawakele', 'Walapane'],
+        'Polonnaruwa' => ['Aralaganwila', 'Bakamuna', 'Dimbulagala', 'Elahera', 'Hingurakgoda', 'Kaduruwela', 'Lankapura', 'Medirigiriya', 'Polonnaruwa', 'Welikanda'],
+        'Puttalam' => ['Anamaduwa', 'Chilaw', 'Dankotuwa', 'Kalpitiya', 'Madampe', 'Marawila', 'Mundel', 'Nattandiya', 'Norochcholai', 'Puttalam', 'Wennappuwa'],
+        'Ratnapura' => ['Ayagama', 'Balangoda', 'Eheliyagoda', 'Elapatha', 'Embilipitiya', 'Godakawela', 'Kalawana', 'Kiriella', 'Kuruwita', 'Opanayake', 'Pelmadulla', 'Rakwana', 'Ratnapura'],
+        'Trincomalee' => ['China Bay', 'Gomarankadawala', 'Kantale', 'Kinniya', 'Kuchchaveli', 'Mutur', 'Nilaveli', 'Seruwila', 'Thampalakamam', 'Trincomalee', 'Verugal'],
+        'Vavuniya' => ['Cheddikulam', 'Nedunkeni', 'Omanthai', 'Puliyankulam', 'Vavuniya', 'Vavuniya North', 'Vavuniya South'],
+    ];
+
+    public $availableCities = [];
 
     public $availableAmenities = [
         'parking',
@@ -140,7 +152,8 @@ class Register extends Component
         return [
             'complex_name' => 'required|min:3|max:255',
             'complex_type' => 'required|in:Indoor,Outdoor,Both',
-            'county' => 'required',
+            'district' => 'required',
+            'city' => 'required',
             'location' => 'required',
             'address' => 'required|min:5|max:500',
             'postal_code' => 'nullable|max:20',
@@ -150,6 +163,64 @@ class Register extends Component
             'status' => 'required|in:Active,Inactive,Maintenance,New',
             'description' => 'required|min:10|max:1000',
         ];
+    }
+
+    public function updatedDistrict($value)
+    {
+        $this->availableCities = $this->districtCityMap[$value] ?? [];
+        $this->city = null;
+    }
+
+    /**
+     * Normalize locality values (mimicking Django logic)
+     */
+    private function normalizeLocality($value)
+    {
+        if (!$value) return $value;
+        // Basic normalization: trim and uppercase first letters
+        return ucwords(strtolower(trim($value)));
+    }
+
+    private function generateGeohash($latitude, $longitude, $precision = 5)
+    {
+        $alphabet = '0123456789bcdefghjkmnpqrstuvwxyz';
+        $bits = [16, 8, 4, 2, 1];
+        $geohash = '';
+        $is_even = true;
+        $latRange = [-90.0, 90.0];
+        $lonRange = [-180.0, 180.0];
+        $bit = 0;
+        $ch = 0;
+
+        while (strlen($geohash) < $precision) {
+            if ($is_even) {
+                $mid = ($lonRange[0] + $lonRange[1]) / 2;
+                if ($longitude > $mid) {
+                    $ch |= $bits[$bit];
+                    $lonRange[0] = $mid;
+                } else {
+                    $lonRange[1] = $mid;
+                }
+            } else {
+                $mid = ($latRange[0] + $latRange[1]) / 2;
+                if ($latitude > $mid) {
+                    $ch |= $bits[$bit];
+                    $latRange[0] = $mid;
+                } else {
+                    $latRange[1] = $mid;
+                }
+            }
+
+            $is_even = !$is_even;
+            if ($bit < 4) {
+                $bit++;
+            } else {
+                $geohash .= $alphabet[$ch];
+                $bit = 0;
+                $ch = 0;
+            }
+        }
+        return $geohash;
     }
 
     protected function step3Rules()
@@ -271,16 +342,34 @@ class Register extends Component
                     }
                 }
 
+                // Parse location for lat/lng and geohash
+                $lat = null;
+                $lng = null;
+                $geohash = null;
+                if ($this->location) {
+                    $parts = explode(',', $this->location);
+                    if (count($parts) === 2) {
+                        $lat = trim($parts[0]);
+                        $lng = trim($parts[1]);
+                        if (is_numeric($lat) && is_numeric($lng)) {
+                            $geohash = $this->generateGeohash((float)$lat, (float)$lng);
+                        }
+                    }
+                }
+
                 // Create venue
-                // No Complex model: create only booking_venue and use its id for users.complex_id
-            
                 $base_image_url = $coverImagePath ? asset('storage/'.$coverImagePath) : 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg';
                 $venue = BookingVenue::create([
                     'name' => $this->complex_name,
                     'complex_type' => $this->complex_type,
                     'address' => $this->address,
-                    'county' => $this->county,
-                    'location' => $this->location,
+                    'county' => $this->district, // district stored in county for backward compatibility
+                    'district' => $this->normalizeLocality($this->district),
+                    'city' => $this->normalizeLocality($this->city),
+                    'location' => $this->normalizeLocality($this->location),
+                    'lat' => $lat,
+                    'lng' => $lng,
+                    'geohash' => $geohash,
                     'postal_code' => $this->postal_code,
                     'contact_number' => $this->contact_number,
                     'email_address' => $this->email_address,
