@@ -446,6 +446,7 @@ class Register extends Component
                     'username_changes_used' => 0,
                     'accepted_tnc' => (bool) $this->terms,
                     'gender' => 'prefer_not_to_say',
+                    'allow_direct_team_add' => true,
                 ]);
             });
 

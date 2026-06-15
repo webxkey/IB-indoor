@@ -40,6 +40,7 @@ class UserUser extends Authenticatable
         'username_changes_used',
         'accepted_tnc',
         'gender',
+        'allow_direct_team_add',
     ];
 
     protected $hidden = [
