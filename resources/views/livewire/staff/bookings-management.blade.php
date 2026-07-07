@@ -1176,7 +1176,10 @@
                             <strong>Date:</strong> <span id="modalTimerDate">-</span><br>
                             <strong>Start Time:</strong> <span id="modalTimerGameStartTime">-</span>
                         </div>
-                        <div class="modal-timer" id="modalTimer">00:00:00</div>
+                        <div class="mb-2">
+                            <span class="badge bg-secondary" id="modalStatusBadge" style="font-size: 0.85rem;">Confirmed</span>
+                        </div>
+                        <div class="modal-timer" id="modalTimer" style="font-size: 2.5rem; font-weight: 700; font-variant-numeric: tabular-nums;">00:00:00</div>
                         <div class="d-flex justify-content-center gap-2 mt-3" id="timerControls">
                             <button type="button" class="btn btn-danger" id="cancelBookingBtn">
                                 <i class="fas fa-times me-2"></i>Cancel Booking
@@ -1185,15 +1188,221 @@
                     </div>
 
                     <div class="modal-footer d-flex flex-column align-items-center">
+                        <!-- Start Timer button: shown only when NOT playing -->
                         <button type="button" class="btn btn-primary btn-sm mb-2" id="newWindowBtn">
-                            <i class="fas fa-external-link-alt me-2"></i>Start Timer
+                            <i class="fas fa-play-circle me-2"></i>Start Timer
                         </button>
-                        <small class="text-muted">Timer will automatically update in the booking view</small>
+                        
+                        <!-- Running controls: shown when Playing -->
+                        <div id="modalRunningControls" class="d-none w-100 text-center">
+                            <div class="d-flex justify-content-center gap-2 mb-2">
+                                <button type="button" class="btn btn-warning btn-sm" id="modalPauseBtn">
+                                    <i class="fas fa-pause me-1"></i>Pause
+                                </button>
+                                <button type="button" class="btn btn-success btn-sm" id="modalForceCompleteBtn">
+                                    <i class="fas fa-check-circle me-1"></i>Force Complete
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted mt-1">Timer will automatically update in the booking view</small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- Payment Collection Modal for Completed/Played Bookings --}}
+    @if($showPaymentCollectModal && $paymentCollectBooking)
+    <div class="modal show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5);z-index:1070;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                <div class="modal-header text-white py-3" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                    <h6 class="modal-title fw-bold"><i class="fas fa-money-bill-wave me-2"></i>Collect Payment</h6>
+                    <button type="button" class="btn-close btn-close-white" wire:click="closePaymentCollectModal"></button>
+                </div>
+                <div class="modal-body p-3">
+                    @if(session()->has('success'))
+                        <div class="alert alert-success alert-dismissible fade show py-2 px-3 mb-3" style="font-size: 0.8rem;">
+                            {{ session('success') }}
+                            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    <div class="bg-light rounded-3 p-3 mb-3" style="font-size: 0.82rem;">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Booking ID:</span>
+                            <span class="fw-bold">#{{ $paymentCollectBooking->id }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Player:</span>
+                            <span class="fw-bold">{{ $paymentCollectBooking->user_name }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Phone:</span>
+                            <span class="fw-bold">{{ $paymentCollectBooking->user_number }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Sport:</span>
+                            <span class="fw-bold">{{ $paymentCollectBooking->game_name }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Court:</span>
+                            <span class="fw-bold">{{ $paymentCollectBooking->court_number }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Date:</span>
+                            <span class="fw-bold">{{ \Carbon\Carbon::parse($paymentCollectBooking->booking_date)->format('M d, Y') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Time:</span>
+                            <span class="fw-bold">{{ \Carbon\Carbon::parse($paymentCollectBooking->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($paymentCollectBooking->end_time)->format('h:i A') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Payment Status:</span>
+                            <span class="badge {{ strtolower($paymentCollectBooking->payment_status) === 'paid' ? 'bg-success' : 'bg-warning text-dark' }}">
+                                {{ ucfirst($paymentCollectBooking->payment_status ?: 'Unpaid') }}
+                            </span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted fw-bold">Amount:</span>
+                            <span class="fw-bold text-primary" style="font-size: 1.1rem;">LKR {{ number_format($paymentCollectBooking->price ?: 0, 2) }}</span>
+                        </div>
+                    </div>
+
+                    @if(strtolower($paymentCollectBooking->payment_status) !== 'paid')
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px;">Select Payment Method</label>
+                        <div class="d-flex gap-2">
+                            <div class="flex-fill text-center p-2 rounded-3 border {{ $paymentCollectMethod === 'cash' ? 'border-warning bg-warning bg-opacity-10 fw-bold' : 'bg-light' }}" 
+                                 style="cursor: pointer; font-size: 0.8rem;" wire:click="$set('paymentCollectMethod', 'cash')">
+                                <i class="fas fa-money-bill-wave d-block mb-1" style="font-size: 1.2rem;"></i>
+                                Cash
+                            </div>
+                            <div class="flex-fill text-center p-2 rounded-3 border {{ $paymentCollectMethod === 'card' ? 'border-warning bg-warning bg-opacity-10 fw-bold' : 'bg-light' }}" 
+                                 style="cursor: pointer; font-size: 0.8rem;" wire:click="$set('paymentCollectMethod', 'card')">
+                                <i class="fas fa-credit-card d-block mb-1" style="font-size: 1.2rem;"></i>
+                                Card
+                            </div>
+                            <div class="flex-fill text-center p-2 rounded-3 border {{ $paymentCollectMethod === 'upi' ? 'border-warning bg-warning bg-opacity-10 fw-bold' : 'bg-light' }}" 
+                                 style="cursor: pointer; font-size: 0.8rem;" wire:click="$set('paymentCollectMethod', 'upi')">
+                                <i class="fas fa-qrcode d-block mb-1" style="font-size: 1.2rem;"></i>
+                                UPI / QR
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+                <div class="modal-footer bg-light py-2 d-flex justify-content-between">
+                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="printPaymentReceipt()">
+                        <i class="fas fa-print me-1"></i>Print Receipt
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-secondary" wire:click="closePaymentCollectModal">Close</button>
+                        @if(strtolower($paymentCollectBooking->payment_status) !== 'paid')
+                        <button type="button" class="btn btn-sm btn-success fw-bold" wire:click="collectBookingPayment">
+                            <i class="fas fa-check-circle me-1"></i>Confirm Payment
+                        </button>
+                        @else
+                        <span class="badge bg-success py-2 px-3"><i class="fas fa-check me-1"></i>Already Paid</span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Hidden Printable Receipt --}}
+    <div id="printable-payment-receipt" style="display:none;">
+        <div style="font-family: 'Courier New', monospace; max-width: 300px; margin: 0 auto; padding: 10px; font-size: 12px;">
+            <div style="text-align: center; margin-bottom: 10px;">
+                <div style="font-size: 16px; font-weight: bold;">SPORTYNIX HUB</div>
+                <div style="font-size: 10px; color: #666;">Booking Receipt</div>
+                <div style="border-bottom: 1px dashed #000; margin: 8px 0;"></div>
+            </div>
+
+            <div style="margin-bottom: 6px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Receipt #:</span>
+                    <span style="font-weight: bold;">BKG-{{ $paymentCollectBooking->id }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Date:</span>
+                    <span>{{ \Carbon\Carbon::parse($paymentCollectBooking->booking_date)->format('M d, Y') }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Printed:</span>
+                    <span>{{ now()->format('M d, Y h:i A') }}</span>
+                </div>
+            </div>
+
+            <div style="border-bottom: 1px dashed #000; margin: 8px 0;"></div>
+
+            <div style="margin-bottom: 6px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Player:</span>
+                    <span style="font-weight: bold;">{{ $paymentCollectBooking->user_name }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Phone:</span>
+                    <span>{{ $paymentCollectBooking->user_number }}</span>
+                </div>
+            </div>
+
+            <div style="border-bottom: 1px dashed #000; margin: 8px 0;"></div>
+
+            <div style="margin-bottom: 6px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Sport:</span>
+                    <span style="font-weight: bold;">{{ $paymentCollectBooking->game_name }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Court:</span>
+                    <span>{{ $paymentCollectBooking->court_number }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Time Slot:</span>
+                    <span>{{ \Carbon\Carbon::parse($paymentCollectBooking->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($paymentCollectBooking->end_time)->format('h:i A') }}</span>
+                </div>
+            </div>
+
+            <div style="border-bottom: 1px dashed #000; margin: 8px 0;"></div>
+
+            <div style="margin-bottom: 6px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Payment Method:</span>
+                    <span style="font-weight: bold;">{{ ucfirst($paymentCollectBooking->payment_method ?: $paymentCollectMethod) }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Payment Status:</span>
+                    <span style="font-weight: bold;">{{ ucfirst($paymentCollectBooking->payment_status ?: 'Pending') }}</span>
+                </div>
+            </div>
+
+            <div style="border-top: 2px solid #000; border-bottom: 2px solid #000; margin: 8px 0; padding: 6px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold;">
+                    <span>TOTAL:</span>
+                    <span>LKR {{ number_format($paymentCollectBooking->price ?: 0, 2) }}</span>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 10px; font-size: 10px; color: #666;">
+                <div>Thank you for playing with us!</div>
+                <div>Please keep this receipt for your records.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function printPaymentReceipt() {
+            var printContents = document.getElementById('printable-payment-receipt').innerHTML;
+            var popupWin = window.open('', '_blank', 'width=420,height=600');
+            popupWin.document.open();
+            popupWin.document.write('<html><head><title>Booking Receipt</title><style>body{font-family: "Courier New", monospace; padding: 20px;} @media print { body { margin: 0; padding: 10px; } }</style></head><body onload="window.print();window.close()">' + printContents + '</body></html>');
+            popupWin.document.close();
+        }
+    </script>
+    @endif
 </div>
 
 @push('scripts')
@@ -1440,11 +1649,13 @@
                 }
             });
 
-            // Booked slot clicks (for timer)
+            // Booked slot clicks (for timer) — skip completed/played slots
             document.addEventListener('click', function(e) {
                 if (e.target.closest('.time-slot.booked')) {
-                    e.preventDefault();
                     const slot = e.target.closest('.time-slot.booked');
+                    // Skip completed slots — they use their own onclick for payment modal
+                    if (slot.dataset.completed === 'true') return;
+                    e.preventDefault();
                     const timerId = slot.dataset.timerId;
                     if (timerId) {
                         openTimerModal(timerId);
@@ -1452,13 +1663,32 @@
                 }
             });
 
-            // New window button for timer popup
-            const newWindowBtn = document.getElementById('newWindowBtn');
-            if (newWindowBtn) {
-                newWindowBtn.addEventListener('click', function() {
+            // New window button for timer popup — also starts the timer
+            const setupNewWindowBtn = document.getElementById('newWindowBtn');
+            if (setupNewWindowBtn) {
+                setupNewWindowBtn.addEventListener('click', function() {
                     if (activeModalTimerId) {
                         const timerState = activeTimers[activeModalTimerId];
                         if (timerState) {
+                            // Start the timer countdown if not already running
+                            if (!timerState.isRunning) {
+                                startTimer(activeModalTimerId);
+                            }
+
+                            // Update modal UI to show Running Controls
+                            const startBtn = document.getElementById('newWindowBtn');
+                            const runningCtrl = document.getElementById('modalRunningControls');
+                            const cancelBtnEl = document.getElementById('cancelBookingBtn');
+                            const statusBadge = document.getElementById('modalStatusBadge');
+                            if (startBtn) startBtn.classList.add('d-none');
+                            if (runningCtrl) runningCtrl.classList.remove('d-none');
+                            if (cancelBtnEl) cancelBtnEl.classList.add('d-none');
+                            if (statusBadge) {
+                                statusBadge.textContent = '▶ Playing';
+                                statusBadge.className = 'badge bg-primary';
+                            }
+
+                            // Close old popup if any
                             if (timerState.popupWindow && !timerState.popupWindow.closed) {
                                 timerState.popupWindow.close();
                                 timerState.popupWindow = null;
@@ -1467,7 +1697,7 @@
                             const newWindow = window.open(
                                 '/staff/timer_window.html',
                                 activeModalTimerId,
-                                'width=500,height=450,resizable=yes,scrollbars=no'
+                                'width=500,height=500,resizable=yes,scrollbars=no'
                             );
 
                             if (newWindow) {
@@ -1478,11 +1708,12 @@
                                             timerId: activeModalTimerId,
                                             totalDuration: timerState.totalDuration,
                                             remaining: timerState.remaining,
-                                            isRunning: timerState.isRunning,
+                                            isRunning: true,
                                             player: timerState.player,
                                             game: timerState.game,
                                             startTimeDisplay: timerState.startTimeDisplay,
-                                            bookingId: timerState.bookingId
+                                            bookingId: timerState.bookingId,
+                                            court: timerState.court
                                         });
                                     }
                                 };
@@ -1653,6 +1884,35 @@
                 return;
             }
 
+            // Calculate real remaining time from wall clock
+            const now = new Date();
+            const parts = timerId.split('-');
+            // timerId format: gameName-YYYY-MM-DD-courtNum-HH-MM-SS-000000
+            const dateStr = parts[1]; // YYYY-MM-DD as single part from formatDateKey
+            // Actually timerId = `${currentGame}-${dateKey}-${court}-${slot.time24.replace(/:/g, '-')}`
+            // dateKey = YYYY-MM-DD, court = number, time24 = HH:MM:SS.000000 => HH-MM-SS.000000
+            // So parts: [game, YYYY-MM-DD, court, HH-MM-SS.000000] 
+            // But dateKey itself has dashes: YYYY-MM-DD => split('-') gives [game, YYYY, MM, DD, court, HH, MM, SS.000000]
+            const gameNamePart = parts[0];
+            const yearPart = parts[1];
+            const monthPart = parts[2];
+            const dayPart = parts[3];
+            const courtPart = parts[4];
+            const hourPart = parseInt(parts[5], 10);
+            const minPart = parseInt(parts[6], 10);
+            
+            // Build start and end date objects for this slot
+            const slotStart = new Date(parseInt(yearPart), parseInt(monthPart) - 1, parseInt(dayPart), hourPart, minPart, 0);
+            const slotEnd = new Date(slotStart.getTime() + timerState.totalDuration * 1000);
+            
+            // Calculate actual remaining seconds from now
+            const realRemaining = Math.max(0, Math.floor((slotEnd.getTime() - now.getTime()) / 1000));
+            
+            // Only update remaining if the timer is Playing and we have a valid calculation
+            if (timerState.isRunning || timerState.status === 'Playing') {
+                timerState.remaining = realRemaining;
+            }
+
             const modal = new bootstrap.Modal(modalElement);
             document.getElementById('modalTimerPlayerName').textContent = timerState.player || 'N/A';
             document.getElementById('modalTimerGameName').textContent = timerState.game || 'N/A';
@@ -1660,6 +1920,36 @@
             document.getElementById('modalTimerDate').textContent = timerState.date || 'N/A';
             document.getElementById('modalTimerGameStartTime').textContent = timerState.startTimeDisplay || 'N/A';
             document.getElementById('modalTimer').textContent = formatTime(timerState.remaining);
+
+            // Update status badge
+            const statusBadgeEl = document.getElementById('modalStatusBadge');
+            if (statusBadgeEl) {
+                const isPlaying = timerState.isRunning || timerState.status === 'Playing';
+                if (isPlaying) {
+                    statusBadgeEl.textContent = '▶ Playing';
+                    statusBadgeEl.className = 'badge bg-primary';
+                    statusBadgeEl.style.fontSize = '0.85rem';
+                } else {
+                    statusBadgeEl.textContent = timerState.status || 'Confirmed';
+                    statusBadgeEl.className = 'badge bg-success';
+                    statusBadgeEl.style.fontSize = '0.85rem';
+                }
+            }
+
+            // Toggle Start Timer vs Running Controls visibility
+            const newWindowBtn = document.getElementById('newWindowBtn');
+            const runningControls = document.getElementById('modalRunningControls');
+            const isPlaying = timerState.isRunning || timerState.status === 'Playing';
+            
+            if (isPlaying) {
+                // Already playing — hide Start Timer, show Running Controls
+                if (newWindowBtn) newWindowBtn.classList.add('d-none');
+                if (runningControls) runningControls.classList.remove('d-none');
+            } else {
+                // Not playing — show Start Timer, hide Running Controls
+                if (newWindowBtn) newWindowBtn.classList.remove('d-none');
+                if (runningControls) runningControls.classList.add('d-none');
+            }
 
             if (!activeTimers[timerId]) {
                 activeTimers[timerId] = timerState;
@@ -1671,6 +1961,13 @@
                 // Remove old event listeners
                 const newCancelBtn = cancelBtn.cloneNode(true);
                 cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+                // Hide cancel button if already Playing
+                if (isPlaying) {
+                    newCancelBtn.classList.add('d-none');
+                } else {
+                    newCancelBtn.classList.remove('d-none');
+                }
 
                 newCancelBtn.addEventListener('click', function() {
                     Swal.fire({
@@ -1722,6 +2019,78 @@
                                     'Error cancelling booking. Please try again.',
                                     'error'
                                 );
+                            });
+                        }
+                    });
+                });
+            }
+
+            // Setup Pause/Resume button
+            const pauseBtn = document.getElementById('modalPauseBtn');
+            if (pauseBtn) {
+                const newPauseBtn = pauseBtn.cloneNode(true);
+                pauseBtn.parentNode.replaceChild(newPauseBtn, pauseBtn);
+                
+                // Set initial label
+                if (timerState.isRunning) {
+                    newPauseBtn.innerHTML = '<i class="fas fa-pause me-1"></i>Pause';
+                } else {
+                    newPauseBtn.innerHTML = '<i class="fas fa-play me-1"></i>Resume';
+                }
+
+                newPauseBtn.addEventListener('click', function() {
+                    if (timerState.isRunning) {
+                        pauseTimer(timerId);
+                        this.innerHTML = '<i class="fas fa-play me-1"></i>Resume';
+                    } else {
+                        startTimer(timerId);
+                        this.innerHTML = '<i class="fas fa-pause me-1"></i>Pause';
+                    }
+                });
+            }
+
+            // Setup Force Complete button
+            const forceCompleteBtn = document.getElementById('modalForceCompleteBtn');
+            if (forceCompleteBtn) {
+                const newForceBtn = forceCompleteBtn.cloneNode(true);
+                forceCompleteBtn.parentNode.replaceChild(newForceBtn, forceCompleteBtn);
+
+                newForceBtn.addEventListener('click', function() {
+                    Swal.fire({
+                        title: 'Force Complete?',
+                        text: "Mark this booking as completed now?",
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#198754',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, complete it!',
+                        cancelButtonText: 'No, keep playing'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Stop the timer
+                            if (timerState.intervalId) {
+                                clearInterval(timerState.intervalId);
+                                timerState.intervalId = null;
+                            }
+                            timerState.isRunning = false;
+                            timerState.remaining = 0;
+
+                            // Mark as played in DB
+                            @this.call('markAsPlayed', timerState.bookingId).then(success => {
+                                if (success) {
+                                    timerState.status = 'played';
+                                    modal.hide();
+                                    showNotification('✅ Session Complete', `${timerState.player}'s session has been force-completed.`);
+                                    refreshBookingData().then(() => updateCalendar());
+
+                                    // Notify popup window if open
+                                    if (timerState.popupWindow && !timerState.popupWindow.closed) {
+                                        try { timerState.popupWindow.onTimerComplete && timerState.popupWindow.onTimerComplete(); } catch(e) {}
+                                    }
+                                }
+                            }).catch(error => {
+                                console.error('Error force-completing booking:', error);
+                                Swal.fire('Error!', 'Could not complete booking. Please try again.', 'error');
                             });
                         }
                     });
@@ -1855,7 +2224,7 @@
                         const totalDuration = calculateDurationInSeconds(slot.time24, bookingInfo.end);
                         const isNoShow = bookingInfo.status === 'No-Show';
                         const isPlaying = bookingInfo.status === 'Playing';
-                        const isCompleted = bookingInfo.status === 'Completed';
+                        const isCompleted = bookingInfo.status === 'Completed' || bookingInfo.status === 'played' || bookingInfo.status === 'Played';
 
                         if (!activeTimers[timerId] || activeTimers[timerId].totalDuration !== totalDuration) {
                             activeTimers[timerId] = {
@@ -1882,8 +2251,17 @@
                         // Don't show timer for No-Show or Completed bookings
                         const hideTimer = isNoShow || isCompleted;
                         const timerDisplay = hideTimer ? '' : `<div id="${timerId}" class="timer-display ${isRunning ? 'timer-running' : ''} fw-bold text-primary">${displayTime}</div>`;
-                        const clickHandler = hideTimer ? '' : `onclick="openTimerModal('${timerId}')"`;
-                        const cursorStyle = hideTimer ? 'cursor: not-allowed; opacity: 0.7;' : 'cursor: pointer;';
+                        
+                        // Completed/played slots open payment modal; active slots open timer modal; No-Show is disabled
+                        let clickHandler = '';
+                        let cursorStyle = 'cursor: not-allowed; opacity: 0.7;';
+                        if (isCompleted) {
+                            clickHandler = `onclick="openPaymentCollectModal(${bookingInfo.id})"`;
+                            cursorStyle = 'cursor: pointer;';
+                        } else if (!isNoShow) {
+                            clickHandler = `onclick="openTimerModal('${timerId}')"`;
+                            cursorStyle = 'cursor: pointer;';
+                        }
 
                         // Different background colors based on status
                         let bgClass = 'bg-light';
@@ -1893,7 +2271,7 @@
 
                         bodyHtml += `
                         <td>
-                            <div class="time-slot booked d-flex align-items-center justify-content-between p-2 rounded shadow-sm ${bgClass} mb-0" data-timer-id="${timerId}" ${clickHandler} style="${cursorStyle}">
+                            <div class="time-slot booked d-flex align-items-center justify-content-between p-2 rounded shadow-sm ${bgClass} mb-0" data-timer-id="${timerId}" ${isCompleted ? 'data-completed="true"' : ''} ${clickHandler} style="${cursorStyle}">
                                 
                                 <!-- Left: Avatar + Booking Info -->
                                 <div class="d-flex align-items-center flex-shrink-0" style="min-width: 0;">
@@ -2182,7 +2560,10 @@
                     displayText = '▶ Playing';
                     break;
                 case 'Completed':
+                case 'played':
+                case 'Played':
                     badgeClass = 'bg-info';
+                    displayText = '✓ Completed';
                     break;
                 case 'Cancelled':
                     badgeClass = 'bg-danger';
@@ -2327,9 +2708,39 @@
         window.pauseTimer = pauseTimer;
         window.resetTimer = resetTimer;
 
+        // Bridge: popup timer window calls this to force-complete a booking
+        window.forceCompleteFromPopup = function(timerId, bookingId) {
+            const timerState = activeTimers[timerId];
+            if (timerState) {
+                // Stop the local timer
+                if (timerState.intervalId) {
+                    clearInterval(timerState.intervalId);
+                    timerState.intervalId = null;
+                }
+                timerState.isRunning = false;
+                timerState.remaining = 0;
+            }
+            // Mark as played in DB
+            @this.call('markAsPlayed', bookingId).then(success => {
+                if (success) {
+                    if (timerState) timerState.status = 'played';
+                    showNotification('✅ Session Complete', 'Booking has been force-completed from timer window.');
+                    refreshBookingData().then(() => updateCalendar());
+                }
+            }).catch(error => {
+                console.error('Error force-completing from popup:', error);
+            });
+        };
+
         // =========================================================
         // Feature #9 + #12: Bridge functions for calendar buttons
         // =========================================================
+
+        // Bridge: open payment collection modal for completed bookings
+        window.openPaymentCollectModal = function(bookingId) {
+            @this.call('openPaymentCollectModal', bookingId);
+        };
+
         window.openBlockModalJS = function(sportId, date, time, court) {
             @this.call('openBlockModal', sportId, date, time, court).catch(e => console.error('openBlockModal error', e));
         };

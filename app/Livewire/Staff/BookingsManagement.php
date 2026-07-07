@@ -55,6 +55,12 @@ class BookingsManagement extends Component
     public $waitlistName = '';
     public $waitlistPhone = '';
 
+    // Payment collection for completed bookings
+    public $showPaymentCollectModal = false;
+    public $paymentCollectBookingId = null;
+    public $paymentCollectMethod = 'cash';
+    public $paymentCollectBooking = null;
+
     /**
      * Trigger an SMS via the configured provider
      */
@@ -522,6 +528,43 @@ class BookingsManagement extends Component
 
         $this->refreshBookings();
         return true;
+    }
+
+    /**
+     * Open payment collection modal for a completed booking
+     */
+    public function openPaymentCollectModal($bookingId)
+    {
+        $booking = BookingBooking::find($bookingId);
+        if (!$booking) return;
+
+        $this->paymentCollectBookingId = $bookingId;
+        $this->paymentCollectBooking = $booking;
+        $this->paymentCollectMethod = $booking->payment_method ?: 'cash';
+        $this->showPaymentCollectModal = true;
+    }
+
+    public function closePaymentCollectModal()
+    {
+        $this->showPaymentCollectModal = false;
+        $this->paymentCollectBookingId = null;
+        $this->paymentCollectBooking = null;
+    }
+
+    public function collectBookingPayment()
+    {
+        if ($this->paymentCollectBookingId) {
+            $booking = BookingBooking::find($this->paymentCollectBookingId);
+            if ($booking) {
+                $booking->payment_status = 'Paid';
+                $booking->payment_method = $this->paymentCollectMethod;
+                $booking->save();
+
+                session()->flash('success', "Payment of LKR " . number_format($booking->price ?: 0, 2) . " collected successfully.");
+                $this->closePaymentCollectModal();
+                $this->refreshBookings();
+            }
+        }
     }
 
     /**
