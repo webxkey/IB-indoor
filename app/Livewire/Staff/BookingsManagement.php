@@ -535,7 +535,7 @@ class BookingsManagement extends Component
      */
     public function openPaymentCollectModal($bookingId)
     {
-        $booking = BookingBooking::find($bookingId);
+        $booking = BookingBooking::with('venue')->find($bookingId);
         if (!$booking) return;
 
         $this->paymentCollectBookingId = $bookingId;
@@ -561,7 +561,10 @@ class BookingsManagement extends Component
                 $booking->save();
 
                 session()->flash('success', "Payment of LKR " . number_format($booking->price ?: 0, 2) . " collected successfully.");
-                $this->closePaymentCollectModal();
+                
+                // Refresh local model with venue info loaded
+                $this->paymentCollectBooking = BookingBooking::with('venue')->find($this->paymentCollectBookingId);
+                
                 $this->refreshBookings();
             }
         }

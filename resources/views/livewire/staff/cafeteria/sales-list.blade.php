@@ -336,14 +336,26 @@
             </div>
         </div>
         
-        <script>
-            function printInvoice() {
-                var printContents = document.getElementById('printable-receipt').innerHTML;
-                var popupWin = window.open('', '_blank', 'width=420,height=600');
-                popupWin.document.open();
-                popupWin.document.write('<html><head><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"><style>body{font-family: monospace; padding: 20px;} hr{border-top:1px dashed #000;}</style></head><body onload="window.print();window.close()">' + printContents + '</body></html>');
-                popupWin.document.close();
-            }
-        </script>
     @endif
+
+    <script>
+        function printInvoice() {
+            var receiptEl = document.getElementById('printable-receipt');
+            if (!receiptEl) {
+                alert('Receipt not ready. Please try again.');
+                return;
+            }
+            var printContents = receiptEl.innerHTML;
+            var popupWin = window.open('', '_blank', 'width=420,height=600');
+            if (!popupWin || popupWin.closed || typeof popupWin.closed == 'undefined') {
+                alert('Popup blocked. Please allow popups for this site.');
+                return;
+            }
+            popupWin.document.open();
+        popupWin.document.write('<html><head><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"><style>body{font-family: monospace; padding: 20px;} hr{border-top:1px dashed #000;}</style></head><body>' + printContents + '</body></html>');
+        popupWin.document.close();
+        popupWin.focus();
+        popupWin.print();
+        }
+    </script>
 </div>

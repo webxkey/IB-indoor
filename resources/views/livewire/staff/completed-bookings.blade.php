@@ -174,77 +174,99 @@
                 
                 <div class="p-0 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     <!-- Printed Receipt Mockup -->
-                    <div id="printable-booking-receipt" class="bg-white p-6 text-slate-800 font-mono text-[11px] leading-relaxed">
-                        <div class="text-center mb-4">
-                            <h4 class="text-sm font-extrabold uppercase text-slate-900">{{ $selectedBooking->venue->name ?? 'Sport Complex Hub' }}</h4>
-                            <div class="text-[10px] text-slate-500">Booking Management Department</div>
-                            @if($selectedBooking->venue->address)
-                                <div class="text-[9px] text-slate-400">{{ $selectedBooking->venue->address }}</div>
-                            @endif
-                        </div>
-                        <div class="border-b border-dashed border-slate-300 my-2"></div>
-                        
-                        <div class="space-y-0.5 text-slate-600 mb-3">
-                            <div><strong>Booking ID:</strong> #{{ $selectedBooking->id }}</div>
-                            <div><strong>Issued Date:</strong> {{ now()->format('Y-m-d H:i:s') }}</div>
-                            <div><strong>Status:</strong> COMPLETED</div>
-                        </div>
+                    <div id="printable-booking-receipt" class="bg-white p-4 mx-auto my-3 shadow-sm border border-slate-100 rounded" style="font-family: 'Courier New', monospace; max-width: 320px; font-size: 12px; line-height: 1.5; color: #000;">
+                            <div style="text-align: center; margin-bottom: 10px;">
+                                <div style="font-size: 16px; font-weight: bold; text-transform: uppercase;">{{ $selectedBooking->venue->name ?? 'Thansher’s Futsal' }}</div>
+                                <div style="font-size: 10px; color: #555; margin-top: 2px;">Booking Management Department</div>
+                                <div style="font-size: 9px; color: #666;">{{ $selectedBooking->venue->address ?? 'Thihariya, Sri Lanka' }}</div>
+                                <div style="border-bottom: 1px dashed #000; margin: 8px 0;"></div>
+                            </div>
 
-                        <div class="border-b border-slate-200 my-2"></div>
-                        <div class="space-y-2 text-slate-800 text-xs">
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Player Name:</span>
-                                <span class="font-bold">{{ $selectedBooking->user_name }}</span>
+                            <div style="margin-bottom: 6px;">
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Booking ID:</span>
+                                    <span style="font-weight: bold;">#{{ $selectedBooking->id }}</span>
+                                </div>
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Issued Date:</span>
+                                    <span>{{ now()->format('Y-m-d H:i:s') }}</span>
+                                </div>
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Status:</span>
+                                    <span style="font-weight: bold; text-transform: uppercase;">{{ $selectedBooking->status }}</span>
+                                </div>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Phone Number:</span>
-                                <span class="font-bold">{{ $selectedBooking->user_number }}</span>
+
+                            <div style="border-bottom: 1px dashed #000; margin: 8px 0;"></div>
+
+                            <div style="margin-bottom: 6px;">
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Player Name:</span>
+                                    <span style="font-weight: bold;">{{ $selectedBooking->user_name }}</span>
+                                </div>
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Phone Number:</span>
+                                    <span style="font-weight: bold;">{{ $selectedBooking->user_number }}</span>
+                                </div>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Sport Activity:</span>
-                                <span class="font-bold">{{ $selectedBooking->game_name }}</span>
+
+                            <div style="border-bottom: 1px dashed #000; margin: 8px 0;"></div>
+
+                            <div style="margin-bottom: 6px;">
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Sport Activity:</span>
+                                    <span style="font-weight: bold;">{{ $selectedBooking->game_name }}</span>
+                                </div>
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Court / Slot:</span>
+                                    <span style="font-weight: bold;">Court {{ $selectedBooking->court_number }}</span>
+                                </div>
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Play Date:</span>
+                                    <span style="font-weight: bold;">{{ \Carbon\Carbon::parse($selectedBooking->booking_date)->format('l, M d, Y') }}</span>
+                                </div>
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Play Time:</span>
+                                    <span style="font-weight: bold;">{{ \Carbon\Carbon::parse($selectedBooking->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($selectedBooking->end_time)->format('h:i A') }}</span>
+                                </div>
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Duration:</span>
+                                    <span style="font-weight: bold;">
+                                        @if($selectedBooking->duration >= 60)
+                                            {{ number_format($selectedBooking->duration / 60, 1) }} hour(s)
+                                        @else
+                                            {{ $selectedBooking->duration ?: 60 }} mins
+                                        @endif
+                                    </span>
+                                </div>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Court / Slot:</span>
-                                <span class="font-bold">Court {{ $selectedBooking->court_number }}</span>
+
+                            <div style="border-bottom: 1px dashed #000; margin: 8px 0;"></div>
+
+                            <div style="margin-bottom: 6px;">
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Payment Mode:</span>
+                                    <span style="font-weight: bold; text-transform: uppercase;">{{ $selectedBooking->payment_method ?: 'Cash' }}</span>
+                                </div>
+                                <div class="flex-between" style="display: flex; justify-content: space-between;">
+                                    <span>Payment Status:</span>
+                                    <span style="font-weight: bold; text-transform: uppercase;">{{ $selectedBooking->payment_status ?: 'Paid' }}</span>
+                                </div>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Play Date:</span>
-                                <span class="font-bold">{{ \Carbon\Carbon::parse($selectedBooking->booking_date)->format('l, M d, Y') }}</span>
+
+                            <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; margin: 8px 0; padding: 6px 0;">
+                                <div class="flex-between" style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold;">
+                                    <span>TOTAL PAID:</span>
+                                    <span>LKR {{ number_format($selectedBooking->price ?: 0, 2) }}</span>
+                                </div>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Play Time:</span>
-                                <span class="font-bold">{{ \Carbon\Carbon::parse($selectedBooking->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($selectedBooking->end_time)->format('h:i A') }}</span>
+
+                            <div style="text-align: center; margin-top: 15px; font-size: 10px; color: #555;">
+                                <div>Thank you for playing with us!</div>
+                                <div style="margin-top: 2px;">Please bring this receipt for admission checks.</div>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-500">Duration:</span>
-                                <span class="font-bold">{{ $selectedBooking->duration ?: 1 }} hour(s)</span>
-                            </div>
-                        </div>
-                        <div class="border-b border-slate-200 my-2"></div>
-                        
-                        <div class="space-y-1 mt-2">
-                            <div class="flex justify-between text-slate-600">
-                                <span>Payment Mode:</span>
-                                <span class="font-semibold">{{ strtoupper($selectedBooking->payment_method ?: 'Cash') }}</span>
-                            </div>
-                            <div class="flex justify-between text-slate-600">
-                                <span>Payment Status:</span>
-                                <span class="font-semibold">{{ strtoupper($selectedBooking->payment_status ?: 'Paid') }}</span>
-                            </div>
-                            <div class="flex justify-between font-bold text-slate-900 border-t border-slate-200 pt-1 text-xs mt-1">
-                                <span>TOTAL PAID:</span>
-                                <span>LKR {{ number_format($selectedBooking->price ?: 0, 2) }}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="border-b border-dashed border-slate-300 my-2"></div>
-                        <div class="text-center mt-5 text-[10px] text-slate-400">
-                            <div>Thank you for playing with us!</div>
-                            <div>Please bring this receipt for admission checks.</div>
                         </div>
                     </div>
-                </div>
                 
                 <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
                     <button type="button" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600" wire:click="closeReceiptModal()">Close</button>
@@ -253,15 +275,6 @@
             </div>
         </div>
         
-        <script>
-            function printBookingReceipt() {
-                var printContents = document.getElementById('printable-booking-receipt').innerHTML;
-                var popupWin = window.open('', '_blank', 'width=420,height=600');
-                popupWin.document.open();
-                popupWin.document.write('<html><head><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"><style>body{font-family: monospace; padding: 20px;} hr{border-top:1px dashed #000;}</style></head><body onload="window.print();window.close()">' + printContents + '</body></html>');
-                popupWin.document.close();
-            }
-        </script>
     @endif
 
     <!-- Collect Payment Modal -->
@@ -318,4 +331,77 @@
             </div>
         </div>
     @endif
-</div>
+
+    <script>
+        function printBookingReceipt() {
+            var receiptEl = document.getElementById('printable-booking-receipt');
+            if (!receiptEl) {
+                alert('Receipt not ready. Please try again.');
+                return;
+            }
+            var printContents = receiptEl.innerHTML;
+            var popupWin = window.open('', '_blank', 'width=450,height=600');
+            if (!popupWin || popupWin.closed || typeof popupWin.closed == 'undefined') {
+                alert('Popup blocked. Please allow popups for this site.');
+                return;
+            }
+            popupWin.document.open();
+            popupWin.document.write(`
+                <html>
+                    <head>
+                        <title>Booking Receipt</title>
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                        <style>
+                            body {
+                                font-family: monospace;
+                                padding: 20px;
+                                color: #000;
+                                background-color: #fff;
+                            }
+                            hr {
+                                border-top: 1px dashed #000 !important;
+                                opacity: 1;
+                            }
+                            .flex {
+                                display: flex;
+                            }
+                            .justify-between {
+                                justify-content: space-between;
+                            }
+                            .text-slate-500 {
+                                color: #666;
+                            }
+                            .text-slate-600 {
+                                color: #444;
+                            }
+                            .font-bold {
+                                font-weight: bold;
+                            }
+                            .text-center {
+                                text-align: center;
+                            }
+                            .uppercase {
+                                text-transform: uppercase;
+                            }
+                            @media print {
+                                body {
+                                    margin: 0;
+                                    padding: 10px;
+                                }
+                                @page {
+                                    size: auto;
+                                    margin: 0mm;
+                                }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${printContents}
+                    </body>
+                </html>
+            `);
+            popupWin.document.close();
+            popupWin.focus();
+            popupWin.print();
+        }
+    </script>
