@@ -174,6 +174,11 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.completed-bookings') ? 'active' : '' }}" href="{{ route('staff.completed-bookings') }}">
+                                    <i class="fas fa-check-double me-2"></i> Completed Bookings
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('staff.sports') ? 'active' : '' }}" href="{{ route('staff.sports') }}">
                                     <i class="fas fa-map-marked-alt me-2"></i> Sports
                                 </a>
