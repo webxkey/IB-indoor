@@ -202,6 +202,32 @@
                     </div>
 
                     <div class="sidebar-section p-3 mt-3">
+                        <h6 class="text-muted text-uppercase mb-2">Cafeteria</h6>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.cafeteria.billing') ? 'active' : '' }}" href="{{ route('staff.cafeteria.billing') }}">
+                                    <i class="fas fa-cash-register me-2"></i> Billing Terminal
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.cafeteria.products') ? 'active' : '' }}" href="{{ route('staff.cafeteria.products') }}">
+                                    <i class="fas fa-utensils me-2"></i> Products & Categories
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.cafeteria.sales') ? 'active' : '' }}" href="{{ route('staff.cafeteria.sales') }}">
+                                    <i class="fas fa-history me-2"></i> Sales History
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.cafeteria.reports') ? 'active' : '' }}" href="{{ route('staff.cafeteria.reports') }}">
+                                    <i class="fas fa-chart-line me-2"></i> Sales Reports
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="sidebar-section p-3 mt-3">
                         <h6 class="text-muted text-uppercase">General</h6>
                         <ul class="nav flex-column">
                             <li class="nav-item">

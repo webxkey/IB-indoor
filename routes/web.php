@@ -107,6 +107,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/blogs-management', BlogsManagement::class)->name('blogs-management');
         Route::get('/tournaments', TournamentApprovals::class)->name('tournaments');
         Route::get('/announcements', AdminAnnouncements::class)->name('announcements');
+        
         Route::get('/settings', AdminSettings::class)->name('settings');
     });
 
@@ -122,6 +123,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/tournament', TournamentManagement::class)->name('tournament');
         Route::get('/announcements', StaffAnnouncements::class)->name('announcements');
         Route::get('/help', StaffHelp::class)->name('help');
+
+        // Cafeteria Staff Routes
+        Route::get('/cafeteria/billing', \App\Livewire\Staff\Cafeteria\Billing::class)->name('cafeteria.billing');
+        Route::get('/cafeteria/products', \App\Livewire\Staff\Cafeteria\Products::class)->name('cafeteria.products');
+        Route::get('/cafeteria/sales', \App\Livewire\Staff\Cafeteria\SalesList::class)->name('cafeteria.sales');
+        Route::get('/cafeteria/reports', \App\Livewire\Staff\Cafeteria\SalesReport::class)->name('cafeteria.reports');
 
         // Global notification polling endpoint
         Route::get('/notifications/poll', function (Request $request) {
