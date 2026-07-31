@@ -22,7 +22,8 @@ class BookingPermanentbooking extends Model
         'price',
         'complex_id',
         'created_at',
-        'is_active'
+        'is_active',
+        'status'
     ];
 
     protected $casts = [
@@ -33,5 +34,10 @@ class BookingPermanentbooking extends Model
     public function bookings()
     {
         return $this->hasMany(BookingBooking::class, 'permanent_source_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(UserUser::class, 'user_id');
     }
 }

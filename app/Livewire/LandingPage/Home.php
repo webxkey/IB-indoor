@@ -48,19 +48,19 @@ class Home extends Component
         $social = $this->landingPageSections->firstWhere('page_name', 'home-social');
 
         // 🖼 Assign safely with fallbacks
-        $this->heroImageUrl = optional($hero->images)[0] ?? 'https://via.placeholder.com/800x400';
+        $this->heroImageUrl = optional($hero)->images[0] ?? 'https://via.placeholder.com/800x400';
         $this->sectionTitle = $hero->section_title ?? '';
         $this->sectionDescription = $hero->section_description ?? '';
 
-        $this->bannerImageUrl = optional($banner1->images)[0] ?? 'https://via.placeholder.com/600x300';
-        $this->bannerImageUrl1 = optional($banner2->images)[0] ?? 'https://via.placeholder.com/600x300';
-        $this->bannerImageUrl2 = optional($banner3->images)[0] ?? 'https://via.placeholder.com/600x300';
+        $this->bannerImageUrl = optional($banner1)->images[0] ?? 'https://via.placeholder.com/600x300';
+        $this->bannerImageUrl1 = optional($banner2)->images[0] ?? 'https://via.placeholder.com/600x300';
+        $this->bannerImageUrl2 = optional($banner3)->images[0] ?? 'https://via.placeholder.com/600x300';
 
-        $this->aboutImageUrl = optional($about->images)[0] ?? 'https://via.placeholder.com/500x300';
+        $this->aboutImageUrl = optional($about)->images[0] ?? 'https://via.placeholder.com/500x300';
         $this->aboutTitle = $about->section_title ?? '';
         $this->aboutDescription = $about->section_description ?? '';
 
-        $this->socialImageUrl = optional($social->images)[0] ?? 'https://via.placeholder.com/400x400';
+        $this->socialImageUrl = optional($social)->images[0] ?? 'https://via.placeholder.com/400x400';
         $this->socialTitle = $social->section_title ?? '';
         $this->socialDescription = $social->section_description ?? '';
 

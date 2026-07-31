@@ -83,6 +83,72 @@
             color: var(--primary-color);
         }
 
+        .sidebar .cafeteria-main-toggle {
+            color: #0f172a !important;
+            font-weight: 700 !important;
+            font-size: 0.95rem !important;
+            background: transparent !important;
+            padding: 0.75rem 1rem !important;
+        }
+
+        .sidebar .cafeteria-main-toggle:hover {
+            color: #19722d !important;
+            background-color: #f8f9fa !important;
+        }
+
+        .sidebar .cafeteria-main-toggle i.fa-utensils {
+            color: #0f172a !important;
+        }
+
+        .sidebar .nav-link .submenu-arrow {
+            transition: transform 0.2s ease-in-out;
+            font-size: 0.75rem;
+            color: #475569 !important;
+        }
+
+        .sidebar .nav-link.collapsed .submenu-arrow {
+            transform: rotate(-90deg);
+        }
+
+        .sidebar .nav-link:not(.collapsed) .submenu-arrow {
+            transform: rotate(0deg);
+        }
+
+        .cafeteria-submenu-container {
+            display: none;
+        }
+
+        .cafeteria-submenu-container.open {
+            display: block !important;
+        }
+
+        .sidebar .submenu-nav {
+            border-left: 2px solid #cbd5e1;
+            margin-left: 1.25rem !important;
+            padding-left: 0.25rem;
+        }
+
+        .sidebar .submenu-nav .nav-link {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.88rem !important;
+            color: #334155 !important;
+            display: flex !important;
+            align-items: center !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .sidebar .submenu-nav .nav-link.active {
+            background-color: rgba(25, 114, 45, 0.12) !important;
+            color: #19722d !important;
+            font-weight: 600 !important;
+        }
+
+        .sidebar .submenu-nav .nav-link:hover {
+            background-color: #f1f5f9 !important;
+            color: #19722d !important;
+        }
+
         @media (max-width: 991.98px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -174,8 +240,8 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('staff.completed-bookings') ? 'active' : '' }}" href="{{ route('staff.completed-bookings') }}">
-                                    <i class="fas fa-check-double me-2"></i> Completed Bookings
+                                <a class="nav-link {{ request()->routeIs('staff.permanent-bookings') ? 'active' : '' }}" href="{{ route('staff.permanent-bookings') }}">
+                                    <i class="fas fa-calendar-alt me-2"></i> Permanent Bookings
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -183,16 +249,7 @@
                                     <i class="fas fa-map-marked-alt me-2"></i> Sports
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('staff.reports') ? 'active' : '' }}" href="{{ route('staff.reports') }}">
-                                    <i class="fas fa-chart-bar me-2"></i> Reports
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('staff.feedbacks') ? 'active' : '' }}" href="{{ route('staff.feedbacks') }}">
-                                    <i class="fa-solid fa-rss me-2"></i> Feedback
-                                </a>
-                            </li>
+                            
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('staff.tournament') ? 'active' : '' }}" href="{{ route('staff.tournament') }}">
                                     <i class="fas fa-trophy me-2"></i> Tournament
@@ -206,28 +263,48 @@
                         </ul>
                     </div>
 
-                    <div class="sidebar-section p-3 mt-3">
-                        <h6 class="text-muted text-uppercase mb-2">Cafeteria</h6>
+                    @php
+                        $isCafeteriaActive = request()->routeIs('staff.cafeteria.*');
+                    @endphp
+                    <div class="sidebar-section p-3 mt-2">
                         <ul class="nav flex-column">
                             <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('staff.cafeteria.billing') ? 'active' : '' }}" href="{{ route('staff.cafeteria.billing') }}">
-                                    <i class="fas fa-cash-register me-2"></i> Billing Terminal
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('staff.cafeteria.products') ? 'active' : '' }}" href="{{ route('staff.cafeteria.products') }}">
-                                    <i class="fas fa-utensils me-2"></i> Products & Categories
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('staff.cafeteria.sales') ? 'active' : '' }}" href="{{ route('staff.cafeteria.sales') }}">
-                                    <i class="fas fa-history me-2"></i> Sales History
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('staff.cafeteria.reports') ? 'active' : '' }}" href="{{ route('staff.cafeteria.reports') }}">
-                                    <i class="fas fa-chart-line me-2"></i> Sales Reports
-                                </a>
+                                <button type="button" 
+                                        id="cafeteriaToggleBtn"
+                                        class="nav-link cafeteria-main-toggle w-100 text-start border-0 bg-transparent d-flex align-items-center justify-content-between {{ !$isCafeteriaActive ? 'collapsed' : '' }}" 
+                                        aria-expanded="{{ $isCafeteriaActive ? 'true' : 'false' }}" 
+                                        aria-controls="cafeteriaSubmenu"
+                                        style="cursor: pointer;">
+                                    <span class="d-flex align-items-center">
+                                        <i class="fas fa-utensils me-2"></i>
+                                        <span class="fw-semibold">Cafeteria</span>
+                                    </span>
+                                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                                </button>
+                                <div class="cafeteria-submenu-container {{ $isCafeteriaActive ? 'open' : '' }}" id="cafeteriaSubmenu">
+                                    <ul class="nav flex-column submenu-nav mt-1">
+                                        <li class="nav-item">
+                                            <a class="nav-link {{ request()->routeIs('staff.cafeteria.billing') ? 'active' : '' }}" href="{{ route('staff.cafeteria.billing') }}">
+                                                <i class="fas fa-cash-register me-2"></i> Billing Terminal
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link {{ request()->routeIs('staff.cafeteria.products') ? 'active' : '' }}" href="{{ route('staff.cafeteria.products') }}">
+                                                <i class="fas fa-store me-2"></i> Products & Categories
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link {{ request()->routeIs('staff.cafeteria.sales') ? 'active' : '' }}" href="{{ route('staff.cafeteria.sales') }}">
+                                                <i class="fas fa-history me-2"></i> Sales History
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link {{ request()->routeIs('staff.cafeteria.reports') ? 'active' : '' }}" href="{{ route('staff.cafeteria.reports') }}">
+                                                <i class="fas fa-chart-line me-2"></i> Sales Reports
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </li>
                         </ul>
                     </div>
@@ -235,6 +312,19 @@
                     <div class="sidebar-section p-3 mt-3">
                         <h6 class="text-muted text-uppercase">General</h6>
                         <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.banners') ? 'active' : '' }}" href="{{ route('staff.banners') }}"><i class="fas fa-images me-2"></i> Banner Management</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.reports') ? 'active' : '' }}" href="{{ route('staff.reports') }}">
+                                    <i class="fas fa-chart-bar me-2"></i> Reports
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.feedbacks') ? 'active' : '' }}" href="{{ route('staff.feedbacks') }}">
+                                    <i class="fa-solid fa-rss me-2"></i> Feedback
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('staff.setting') ? 'active' : '' }}" href="{{ route('staff.setting') }}"><i class="fas fa-cog me-2"></i> Settings</a>
                             </li>
@@ -408,6 +498,25 @@
                         if (!isClickInsideSidebar && !isClickOnToggle) {
                             sidebar.classList.remove('show');
                         }
+                    }
+                });
+            }
+
+            const cafeteriaToggle = document.getElementById('cafeteriaToggleBtn');
+            const cafeteriaSubmenu = document.getElementById('cafeteriaSubmenu');
+            if (cafeteriaToggle && cafeteriaSubmenu) {
+                cafeteriaToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const isOpen = cafeteriaSubmenu.classList.contains('open');
+                    if (isOpen) {
+                        cafeteriaSubmenu.classList.remove('open');
+                        cafeteriaToggle.classList.add('collapsed');
+                        cafeteriaToggle.setAttribute('aria-expanded', 'false');
+                    } else {
+                        cafeteriaSubmenu.classList.add('open');
+                        cafeteriaToggle.classList.remove('collapsed');
+                        cafeteriaToggle.setAttribute('aria-expanded', 'true');
                     }
                 });
             }

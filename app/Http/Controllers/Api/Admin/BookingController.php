@@ -297,6 +297,7 @@ class BookingController extends Controller
                         'start_date' => $date,
                         'court' => $court
                     ],
+                    'status'           => 'Active',
                 ]);
                 $permanentSourceId = $permanentParent->id;
             }
@@ -346,10 +347,21 @@ class BookingController extends Controller
                     'user_number'          => $data['user_number'] ?? '',
                     'duration'             => $data['duration'] ?? 60,
                     'price'                => $data['price'],
+                    'advance_amount'       => 0,
+                    'amount_paid'          => 0,
+                    'balance_due'          => $data['price'],
+                    'financial_status'     => 'Pending',
+                    'is_initial_permanent_occurrence' => false,
+                    'offline_paid_amount'  => 0,
+                    'online_paid_amount'   => 0,
+                    'points_discount_amount' => 0,
+                    'requires_advance_payment' => false,
+                    'reward_status'        => 'not_eligible',
                     'payment_method'       => $data['payment_method'] ?? 'cash',
                     'payment_status'       => $data['payment_status'] ?? 'Pending',
                     'status'               => 'confirmed',
                     'notes'                => $data['notes'] ?? null,
+                    'admin_comments'       => 'web_book',
                     'is_challenge_booking' => false,
                     'permanent_source_id'  => $permanentSourceId,
                     'qr_code'              => 'QR' . strtoupper(substr(md5(uniqid('', true)), 0, 6)),

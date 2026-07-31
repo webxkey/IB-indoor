@@ -33,6 +33,16 @@ class BookingBooking extends Model
         'is_challenge_booking',
         'opponent_team_id',
         'team_id',
+        'advance_amount',
+        'amount_paid',
+        'balance_due',
+        'financial_status',
+        'is_initial_permanent_occurrence',
+        'offline_paid_amount',
+        'online_paid_amount',
+        'points_discount_amount',
+        'requires_advance_payment',
+        'reward_status',
     ];
 
     protected $casts = [

@@ -40,6 +40,14 @@ class BookingsManagement extends Component
     public $permanent = false;
     public $notes = '';
 
+    // Permanent Booking Preview Confirmation
+    public $showPermanentConfirmModal = false;
+    public $permanentAvailableDates = [];
+    public $permanentIgnoredDates = [];
+    public $pendingPermanentBookingData = [];
+    public $pendingPermanentSportId = null;
+    public $permanentDayName = '';
+
     // Slot blocking
     public $blockingSlot = null; // ['sportId'=>, 'date'=>, 'time'=>, 'court'=>]
     public $blockReason = 'Maintenance';
@@ -215,6 +223,7 @@ class BookingsManagement extends Component
                         'end' => $slotEnd,
                         'avatar' => $avatarUrl,
                         'id' => $booking->id,
+                        'admin_comments' => $booking->admin_comments,
                     ];
                 }
             }
@@ -326,11 +335,21 @@ class BookingsManagement extends Component
             'end_time' => $endTime,
             'duration' => 60,
             'price' => $sport->price ?? 1800.00,
+            'advance_amount' => 0,
+            'amount_paid' => 0,
+            'balance_due' => $sport->price ?? 1800.00,
+            'financial_status' => 'Pending',
+            'is_initial_permanent_occurrence' => false,
+            'offline_paid_amount' => 0,
+            'online_paid_amount' => 0,
+            'points_discount_amount' => 0,
+            'requires_advance_payment' => false,
+            'reward_status' => 'not_eligible',
             'payment_status' => 'Pending',
             'payment_method' => null,
             'status' => $this->status,
             'notes' => $this->notes ?: '',
-            'admin_comments' => '',
+            'admin_comments' => 'web_book',
             'is_challenge_booking' => false,
             'opponent_team_id' => null,
             'team_id' => null,
@@ -338,40 +357,67 @@ class BookingsManagement extends Component
 
         // Create booking(s)
         if ($this->permanent) {
-            // Create a permanent source record first to satisfy foreign key constraint
-            // Fallback chain: specific user -> staff user as users_user -> first users_user (admin)
-            $finalUserId = $userUser?->id;
-            if (!$finalUserId) {
-                $finalUserId = UserUser::where('email', $staffUser->email)->first()?->id;
-            }
-            if (!$finalUserId) {
-                $finalUserId = UserUser::orderBy('id', 'asc')->first()?->id;
+            $startDate = Carbon::parse($this->selectedDate);
+            $endDate   = $startDate->copy()->addDays(30);
+            $current   = $startDate->copy();
+            
+            $availableDates = [];
+            $ignoredDates   = [];
+
+            $blockedSlotsData = ($sport && $sport->blocked_slots)
+                ? (is_array($sport->blocked_slots) ? $sport->blocked_slots : json_decode($sport->blocked_slots, true))
+                : [];
+
+            while ($current->lte($endDate)) {
+                $dateStr = $current->format('Y-m-d');
+                $formattedDate = $current->format('D, M j, Y');
+
+                // Check existing non-cancelled booking
+                $existingBooking = BookingBooking::where('complex_id_id', $this->complex_id)
+                    ->where('game_name', $this->selectedGame)
+                    ->where('court_number', $this->selectedCourt)
+                    ->where('booking_date', $dateStr)
+                    ->where('start_time', $startTime)
+                    ->whereNotIn('status', ['Cancelled'])
+                    ->first();
+
+                // Check blocked slots
+                $isBlocked = false;
+                $courtKey = 'court_' . strtolower(str_replace(['court ', 'court'], '', trim(strtolower($this->selectedCourt))));
+                if (isset($blockedSlotsData[$dateStr][$startTime])) {
+                    $timeBlocks = $blockedSlotsData[$dateStr][$startTime];
+                    if (is_array($timeBlocks) && (isset($timeBlocks[$courtKey]) || isset($timeBlocks[$this->selectedCourt]))) {
+                        $isBlocked = true;
+                    }
+                }
+
+                if ($existingBooking || $isBlocked) {
+                    $reason = $isBlocked ? 'Slot Blocked' : 'Already Booked';
+                    if ($existingBooking && $existingBooking->user_name) {
+                        $reason .= " ({$existingBooking->user_name})";
+                    }
+                    $ignoredDates[] = [
+                        'date' => $dateStr,
+                        'formatted' => $formattedDate,
+                        'reason' => $reason
+                    ];
+                } else {
+                    $availableDates[] = [
+                        'date' => $dateStr,
+                        'formatted' => $formattedDate
+                    ];
+                }
+
+                $current->addWeek();
             }
 
-            $permanentSource = BookingPermanentbooking::create([
-                'user_id' => $finalUserId,
-                'sport_id' => $sport->id,
-                'complex_id' => $this->complex_id,
-                'start_time' => $startTime,
-                'end_time' => $endTime,
-                'duration' => 60,
-                'price' => $sport->price ?? 1800.00,
-                'recurring_config' => [
-                    'months' => 1,
-                    'selected_days' => [Carbon::parse($this->selectedDate)->dayOfWeekIso],
-                ],
-                'is_active' => true,
-                'created_at' => now(),
-            ]);
-
-            for ($i = 0; $i < 7; $i++) {
-                $bookingDate = Carbon::parse($this->selectedDate)->addDays($i)->format('Y-m-d');
-                BookingBooking::create(array_merge($bookingData, [
-                    'booking_date' => $bookingDate,
-                    'permanent_source_id' => $permanentSource->id,
-                    'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
-                ]));
-            }
+            $this->permanentAvailableDates     = $availableDates;
+            $this->permanentIgnoredDates       = $ignoredDates;
+            $this->pendingPermanentBookingData = $bookingData;
+            $this->pendingPermanentSportId     = $sport->id;
+            $this->permanentDayName            = $startDate->format('l');
+            $this->showPermanentConfirmModal   = true;
+            return;
         } else {
             BookingBooking::create(array_merge($bookingData, [
                 'booking_date' => $this->selectedDate,
@@ -407,6 +453,103 @@ class BookingsManagement extends Component
         }
 
         session()->flash('message', 'Booking created successfully!');
+    }
+
+    public function confirmPermanentBooking()
+    {
+        if (empty($this->pendingPermanentBookingData) || !$this->pendingPermanentSportId || empty($this->permanentAvailableDates)) {
+            $this->closePermanentConfirmModal();
+            return;
+        }
+
+        $sport = BookingSport::find($this->pendingPermanentSportId);
+        $staffUser = Auth::user();
+        $userUser = UserUser::where('phone_number', $this->phoneNumber)->first();
+
+        $finalUserId = $userUser?->id;
+        if (!$finalUserId && $staffUser) {
+            $finalUserId = UserUser::where('email', $staffUser->email)->first()?->id;
+        }
+        if (!$finalUserId) {
+            $finalUserId = UserUser::orderBy('id', 'asc')->first()?->id;
+        }
+
+        $startTime = Carbon::parse($this->selectedTime)->format('H:i:s');
+        $endTime   = Carbon::parse($this->selectedTime)->addHour()->format('H:i:s');
+
+        // Create permanent source record
+        $permanentSource = BookingPermanentbooking::create([
+            'user_id' => $finalUserId,
+            'sport_id' => $sport ? $sport->id : null,
+            'complex_id' => $this->complex_id,
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'duration' => 60,
+            'price' => $sport->price ?? 1800.00,
+            'recurring_config' => [
+                'months' => 1,
+                'selected_days' => [Carbon::parse($this->selectedDate)->dayOfWeekIso],
+            ],
+            'is_active' => true,
+            'status' => 'Active',
+            'created_at' => now(),
+        ]);
+
+        $bookedCount = 0;
+        foreach ($this->permanentAvailableDates as $item) {
+            $bookingDate = $item['date'];
+            BookingBooking::create(array_merge($this->pendingPermanentBookingData, [
+                'booking_date' => $bookingDate,
+                'permanent_source_id' => $permanentSource->id,
+                'qr_code' => 'QR' . strtoupper(substr(md5(uniqid()), 0, 6)),
+            ]));
+            $bookedCount++;
+        }
+
+        $ignoredCount = count($this->permanentIgnoredDates);
+
+        // Write notification
+        try {
+            \App\Models\BookingNotification::create([
+                'user_id' => auth()->id(),
+                'type' => 'booking_created',
+                'title' => 'Permanent Booking Created',
+                'message' => "Permanent booking created for {$this->selectedGame} on {$this->permanentDayName}s ({$bookedCount} slots booked, {$ignoredCount} ignored)",
+                'data' => ['game' => $this->selectedGame, 'date' => $this->selectedDate],
+                'is_read' => false,
+                'created_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Failed to write notification: ' . $e->getMessage());
+        }
+
+        $msg = "Permanent booking confirmed! {$bookedCount} slot(s) booked for {$this->permanentDayName}s over the next 30 days.";
+        if ($ignoredCount > 0) {
+            $msg .= " ({$ignoredCount} slot(s) skipped due to existing bookings/blocks).";
+        }
+
+        $this->closePermanentConfirmModal();
+        $this->loadSports();
+        $this->resetFields();
+
+        try {
+            $this->dispatch('bookingCreated');
+            $this->dispatch('closeModal');
+        } catch (\Exception $e) {
+            Log::warning('Broadcast event failed', ['error' => $e->getMessage()]);
+        }
+
+        session()->flash('message', $msg);
+    }
+
+    public function closePermanentConfirmModal()
+    {
+        $this->showPermanentConfirmModal = false;
+        $this->permanentAvailableDates = [];
+        $this->permanentIgnoredDates = [];
+        $this->pendingPermanentBookingData = [];
+        $this->pendingPermanentSportId = null;
+        $this->permanentDayName = '';
     }
 
     public function resetFields()
@@ -877,6 +1020,11 @@ class BookingsManagement extends Component
             $this->waitlistTime,
             $this->waitlistCourt
         );
+    }
+
+    public function redirectToCompletedBookings()
+    {
+        return redirect()->route('staff.completed-bookings');
     }
 
     public function render()

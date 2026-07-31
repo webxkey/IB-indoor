@@ -870,6 +870,12 @@
         </div>
         @endif
 
+        <div class="d-flex justify-content-end align-items-center mb-3">
+            <a href="{{ route('staff.completed-bookings') }}" class="btn btn-success d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-3 fw-bold">
+                <i class="fas fa-check-double"></i> Completed Bookings
+            </a>
+        </div>
+
         <div class="card booking-card">
             <div class="card-header booking-header">
                 <h5 class="mb-0 text-white">
@@ -1043,6 +1049,86 @@
                 </div>
             </div>
         </div>
+
+        {{-- Permanent Booking Preview & Confirmation Modal --}}
+        @if($showPermanentConfirmModal)
+        <div class="modal show d-block" tabindex="-1" style="background:rgba(0,0,0,0.6);z-index:1070;">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content shadow-lg border-0 rounded-3">
+                    <div class="modal-header bg-success text-white py-3">
+                        <h5 class="modal-title fw-bold text-white mb-0">
+                            <i class="fas fa-calendar-check me-2"></i>Permanent Booking Confirmation (30-Day Window)
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" wire:click="closePermanentConfirmModal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-success border-0 shadow-sm d-flex align-items-center gap-3 mb-4" style="background: #f0fdf4;">
+                            <i class="fas fa-info-circle fa-2x text-success"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-success">Recurring Schedule: Every {{ $permanentDayName }} for 30 Days</h6>
+                                <p class="small mb-0 text-slate-700">
+                                    <strong>Game:</strong> {{ $selectedGame }} &bull; 
+                                    <strong>Court:</strong> {{ $selectedCourt }} &bull; 
+                                    <strong>Time:</strong> {{ $selectedTime }} &bull; 
+                                    <strong>Customer:</strong> {{ $playerName }} ({{ $phoneNumber }})
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            {{-- Available Slots --}}
+                            <div class="col-md-6">
+                                <div class="card h-100 border-success shadow-sm">
+                                    <div class="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center py-2">
+                                        <span><i class="fas fa-check-circle me-1"></i> Available Slots (Will be booked)</span>
+                                        <span class="badge bg-white text-success fw-bold">{{ count($permanentAvailableDates) }}</span>
+                                    </div>
+                                    <div class="card-body p-2" style="max-height: 250px; overflow-y: auto;">
+                                        @forelse($permanentAvailableDates as $item)
+                                        <div class="d-flex align-items-center justify-content-between p-2 mb-1 bg-light rounded border border-success-subtle">
+                                            <span class="fw-semibold text-dark small"><i class="fas fa-calendar-day text-success me-2"></i>{{ $item['formatted'] }}</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle small">Available</span>
+                                        </div>
+                                        @empty
+                                        <p class="text-muted text-center small my-3">No available slots found for this time in the next 30 days.</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Ignored / Conflict Slots --}}
+                            <div class="col-md-6">
+                                <div class="card h-100 border-warning shadow-sm">
+                                    <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center py-2">
+                                        <span><i class="fas fa-exclamation-triangle me-1"></i> Ignored Slots (Already Booked/Blocked)</span>
+                                        <span class="badge bg-dark text-white fw-bold">{{ count($permanentIgnoredDates) }}</span>
+                                    </div>
+                                    <div class="card-body p-2" style="max-height: 250px; overflow-y: auto;">
+                                        @forelse($permanentIgnoredDates as $item)
+                                        <div class="d-flex align-items-center justify-content-between p-2 mb-1 bg-light rounded border border-warning-subtle">
+                                            <span class="fw-semibold text-dark small"><i class="fas fa-calendar-times text-warning me-2"></i>{{ $item['formatted'] }}</span>
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small">{{ $item['reason'] }}</span>
+                                        </div>
+                                        @empty
+                                        <p class="text-muted text-center small my-3">None! All slots are free and available to book.</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light px-4 py-3">
+                        <button type="button" class="btn btn-secondary" wire:click="closePermanentConfirmModal">Cancel</button>
+                        <button type="button" class="btn btn-success fw-bold px-4" 
+                                wire:click="confirmPermanentBooking" 
+                                @if(empty($permanentAvailableDates)) disabled @endif>
+                            <i class="fas fa-check me-2"></i>Confirm Permanent Booking ({{ count($permanentAvailableDates) }} Slots)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
 
         {{-- Feature #9: Block Slot Modal --}}
         @if($showBlockModal)
@@ -2337,7 +2423,7 @@
                                         src="${bookingInfo.avatar || '/'}"
                                         width="48" height="48">
                                     <div class="booking-info text-truncate">
-                                        <strong class="d-block text-dark text-truncate">${bookingInfo.player}</strong>
+                                        <strong class="d-block text-dark text-truncate">${bookingInfo.player} ${!bookingInfo.admin_comments ? '<i class="fas fa-mobile-alt ms-1 text-primary" title="Mobile App Booking"></i>' : ''}</strong>
                                         <small class="d-block text-muted text-truncate">${bookingInfo.phone}</small>
                                     </div>
                                 </div>

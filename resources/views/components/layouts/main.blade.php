@@ -1446,11 +1446,20 @@
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">Contact</a>
                     </li>
+                    @guest
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('Sign in') ? 'active' : '' }}" href="{{ route('login') }}">Sign in</a>
+                        <a class="nav-link {{ request()->routeIs('login') ? 'active' : '' }}" href="{{ route('login') }}">Sign in</a>
                     </li>
+                    @endguest
+                    @auth
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
+                    </li>
+                    @endauth
                 </ul>
+                @guest
                 <a href="{{ route('register') }}" class="btn btn-primary ms-lg-3 mt-3 mt-lg-0">Register</a>
+                @endguest
             </div>
             <!-- Mobile Navbar Toggler (visible only on mobile) -->
             <button class="navbar-toggler d-lg-none" type="button" id="mobileMenuBtn" aria-label="Open menu">
@@ -1476,11 +1485,20 @@
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">Contact</a>
             </li>
+            @guest
             <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('Sign in') ? 'active' : '' }}" href="{{ route('login') }}">Sign in</a>
+                <a class="nav-link {{ request()->routeIs('login') ? 'active' : '' }}" href="{{ route('login') }}">Sign in</a>
             </li>
+            @endguest
+            @auth
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
+            </li>
+            @endauth
         </ul>
+        @guest
         <a href="{{ route('register') }}" class="btn btn-primary">Register</a>
+        @endguest
     </div>
     <div class="mobile-sidebar-backdrop d-lg-none" id="mobileSidebarBackdrop"></div>
     <!-- Main Content -->
