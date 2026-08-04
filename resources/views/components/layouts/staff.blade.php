@@ -240,6 +240,11 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.finance') ? 'active' : '' }}" href="{{ route('staff.finance') }}">
+                                    <i class="fas fa-file-invoice-dollar me-2"></i> Finance
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('staff.permanent-bookings') ? 'active' : '' }}" href="{{ route('staff.permanent-bookings') }}">
                                     <i class="fas fa-calendar-alt me-2"></i> Permanent Bookings
                                 </a>

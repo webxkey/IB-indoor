@@ -701,6 +701,17 @@ class BookingsManagement extends Component
             if ($booking) {
                 $booking->payment_status = 'Paid';
                 $booking->payment_method = $this->paymentCollectMethod;
+                
+                $booking->financial_status = 'FullyPaid';
+                $booking->amount_paid = $booking->price;
+                $booking->balance_due = 0;
+                
+                if (strtolower($this->paymentCollectMethod) == 'cash') {
+                    $booking->offline_paid_amount = $booking->price;
+                } else {
+                    $booking->online_paid_amount = $booking->price;
+                }
+                
                 $booking->save();
 
                 session()->flash('success', "Payment of LKR " . number_format($booking->price ?: 0, 2) . " collected successfully.");

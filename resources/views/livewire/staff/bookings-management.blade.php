@@ -1370,10 +1370,10 @@
                                 <i class="fas fa-credit-card d-block mb-1" style="font-size: 1.2rem;"></i>
                                 Card
                             </div>
-                            <div class="flex-fill text-center p-2 rounded-3 border {{ $paymentCollectMethod === 'upi' ? 'border-warning bg-warning bg-opacity-10 fw-bold' : 'bg-light' }}" 
-                                 style="cursor: pointer; font-size: 0.8rem;" wire:click="$set('paymentCollectMethod', 'upi')">
-                                <i class="fas fa-qrcode d-block mb-1" style="font-size: 1.2rem;"></i>
-                                UPI / QR
+                            <div class="flex-fill text-center p-2 rounded-3 border {{ $paymentCollectMethod === 'transfer' ? 'border-warning bg-warning bg-opacity-10 fw-bold' : 'bg-light' }}" 
+                                 style="cursor: pointer; font-size: 0.8rem;" wire:click="$set('paymentCollectMethod', 'transfer')">
+                                <i class="fas fa-exchange-alt d-block mb-1" style="font-size: 1.2rem;"></i>
+                                Transfer
                             </div>
                         </div>
                     </div>

@@ -115,6 +115,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     //!! Staff & Facility Owner routes (both roles share the same URLs and route names)
     Route::middleware('role:staff,facility_owner')->prefix('staff')->name('staff.')->group(function () {
         Route::get('/dashboard', StaffDashboard::class)->name('dashboard');
+        Route::get('/finance', \App\Livewire\Staff\Finance::class)->name('finance');
+        Route::get('/online-payment', \App\Livewire\Staff\OnlinePayment::class)->name('online-payment');
         Route::get('/sports', SportsManagement::class)->name('sports');
         Route::get('/bookings', BookingsManagement::class)->name('bookings');
         Route::get('/permanent-bookings', \App\Livewire\Staff\PermanentBookings::class)->name('permanent-bookings');
