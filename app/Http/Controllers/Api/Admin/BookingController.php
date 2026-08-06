@@ -456,7 +456,58 @@ class BookingController extends Controller
             ]
         );
 
-        return response()->json($booking);
+        // Load relationships and return mapped response matching frontend Booking type
+        $booking->load(['sport', 'venue']);
+
+        // Calculate time completion status
+        $now = Carbon::now('Asia/Colombo');
+        $isTimeCompleted = false;
+        $displayStatus = $booking->status;
+
+        try {
+            $bookingDate = Carbon::parse($booking->booking_date)->format('Y-m-d');
+            $endAt = Carbon::parse("{$bookingDate} {$booking->end_time}", 'Asia/Colombo');
+            $startAt = Carbon::parse("{$bookingDate} {$booking->start_time}", 'Asia/Colombo');
+            if ($endAt->lte($startAt)) {
+                $endAt->addDay();
+            }
+            $isTimeCompleted = $now->gte($endAt);
+
+            if ($isTimeCompleted) {
+                $status = strtolower($booking->status);
+                if ($status === 'playing') $displayStatus = 'Played';
+                elseif ($status === 'no-show') $displayStatus = 'No-Show';
+                elseif ($status === 'cancelled') $displayStatus = 'Cancelled';
+                elseif ($status === 'confirmed' || $status === 'upcoming') $displayStatus = 'Not Played';
+            }
+        } catch (\Exception $e) {
+            Log::error("Error calculating time completion in updateStatus: " . $e->getMessage());
+        }
+
+        return response()->json([
+            'id'                  => $booking->id,
+            'venue_name'          => $booking->venue->name ?? '',
+            'sport_name'          => $booking->sport->name ?? $booking->game_name ?? '',
+            'court_number'        => $booking->court_number,
+            'booking_date'        => Carbon::parse($booking->booking_date)->format('Y-m-d'),
+            'start_time'          => $booking->start_time,
+            'end_time'            => $booking->end_time,
+            'time_slot'           => $booking->time_slot,
+            'price'               => (string) $booking->price,
+            'status'              => $booking->status,
+            'user_email'          => $booking->user->email ?? null,
+            'user_phone'          => $booking->user_number ?? null,
+            'user_name'           => $booking->user_name ?? '',
+            'is_permanent'        => (bool) $booking->permanent_source_id,
+            'is_challenge_booking'=> (bool) $booking->is_challenge_booking,
+            'notes'               => $booking->notes,
+            'payment_status'      => $booking->payment_status,
+            'qr_code'             => $booking->qr_code,
+            'is_time_completed'   => $isTimeCompleted,
+            'display_status'      => $displayStatus,
+            'created_at'          => $booking->created_at->toDateTimeString(),
+            'updated_at'          => $booking->updated_at->toDateTimeString(),
+        ]);
     }
 
     /**
@@ -676,6 +727,9 @@ class BookingController extends Controller
             return response()->json(['message' => 'Booking not found for this QR code.'], 404);
         }
 
+        // Load relationships for proper names
+        $booking->load(['sport', 'venue']);
+
         // Calculate whether the booking time slot has ended
         $now = Carbon::now('Asia/Colombo');
         $isTimeCompleted = false;
@@ -714,9 +768,31 @@ class BookingController extends Controller
             Log::error("Error calculating booking time completion: " . $e->getMessage());
         }
 
-        $data = $booking->toArray();
-        $data['is_time_completed'] = $isTimeCompleted;
-        $data['display_status'] = $displayStatus;
+        // Build response with field names matching the frontend Booking type
+        $data = [
+            'id'                  => $booking->id,
+            'venue_name'          => $booking->venue->name ?? '',
+            'sport_name'          => $booking->sport->name ?? $booking->game_name ?? '',
+            'court_number'        => $booking->court_number,
+            'booking_date'        => Carbon::parse($booking->booking_date)->format('Y-m-d'),
+            'start_time'          => $booking->start_time,
+            'end_time'            => $booking->end_time,
+            'time_slot'           => $booking->time_slot,
+            'price'               => (string) $booking->price,
+            'status'              => $booking->status,
+            'user_email'          => $booking->user->email ?? null,
+            'user_phone'          => $booking->user_number ?? null,
+            'user_name'           => $booking->user_name ?? '',
+            'is_permanent'        => (bool) $booking->permanent_source_id,
+            'is_challenge_booking'=> (bool) $booking->is_challenge_booking,
+            'notes'               => $booking->notes,
+            'payment_status'      => $booking->payment_status,
+            'qr_code'             => $booking->qr_code,
+            'is_time_completed'   => $isTimeCompleted,
+            'display_status'      => $displayStatus,
+            'created_at'          => $booking->created_at->toDateTimeString(),
+            'updated_at'          => $booking->updated_at->toDateTimeString(),
+        ];
 
         return response()->json($data);
     }
