@@ -260,7 +260,7 @@
                 </div>
                 <div class="summary-info">
                     <h6>Total Revenue (Paid)</h6>
-                    <h3>₹{{ number_format($totalRevenue, 2) }}</h3>
+                    <h3>Rs.{{ number_format($totalRevenue, 2) }}</h3>
                 </div>
             </div>
         </div>
@@ -271,7 +271,7 @@
                 </div>
                 <div class="summary-info">
                     <h6>Total Advance Collected</h6>
-                    <h3>₹{{ number_format($totalAdvance, 2) }}</h3>
+                    <h3>Rs.{{ number_format($totalAdvance, 2) }}</h3>
                 </div>
             </div>
         </div>
@@ -282,7 +282,7 @@
                 </div>
                 <div class="summary-info">
                     <h6>Total Balance Due</h6>
-                    <h3>₹{{ number_format($totalBalance, 2) }}</h3>
+                    <h3>Rs.{{ number_format($totalBalance, 2) }}</h3>
                 </div>
             </div>
         </div>
@@ -401,13 +401,13 @@
                                 @endif
                             </td>
                             <td class="text-end currency text-success">
-                                ₹{{ number_format($booking->price, 2) }}
+                                Rs.{{ number_format($booking->price, 2) }}
                             </td>
                             <td class="text-end currency text-info">
-                                ₹{{ number_format($booking->advance_amount, 2) }}
+                                Rs.{{ number_format($booking->advance_amount, 2) }}
                             </td>
                             <td class="text-end currency {{ $booking->balance_due > 0 ? 'text-warning' : 'text-muted' }}">
-                                ₹{{ number_format($booking->balance_due, 2) }}
+                                Rs.{{ number_format($booking->balance_due, 2) }}
                             </td>
                         </tr>
                     @empty
