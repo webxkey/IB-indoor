@@ -219,10 +219,10 @@
 
         <!-- Modal 1: Multi-Booking Package Builder Modal -->
         @if($showCreateModal)
-            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-                <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-100">
+            <div class="fixed inset-0 z-[1055] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+                <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden border border-slate-100 flex flex-col max-h-[88vh]">
                     <!-- Solid Green Header -->
-                    <div class="bg-emerald-700 text-white px-6 py-4 flex items-center justify-between">
+                    <div class="bg-emerald-700 text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
                         <div class="flex items-center gap-2">
                             <span class="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center font-extrabold text-base">+</span>
                             <h2 class="font-extrabold text-lg tracking-wide">Book Slot / Create Package</h2>
@@ -233,7 +233,7 @@
                     </div>
 
                     <!-- Modal Body -->
-                    <div class="p-6 max-h-[85vh] overflow-y-auto custom-scrollbar space-y-5">
+                    <div class="p-6 overflow-y-auto custom-scrollbar space-y-5 flex-1">
                         <!-- Top Section: Customer Details -->
                         <div class="p-2 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-3">
                             <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -498,8 +498,8 @@
                         </div>
 
                         <!-- Footer Actions -->
-                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <button type="button" wire:click="closeCreateModal" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-200">
+                        <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between flex-shrink-0">
+                            <button type="button" wire:click="closeCreateModal" class="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-100">
                                 Cancel
                             </button>
 
@@ -515,9 +515,9 @@
 
         <!-- Modal 2: Package View Details Modal (Grouped Date & Sport Wise) -->
         @if($showViewPackageModal && $viewPackageGroup)
-            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-                <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-100">
-                    <div class="bg-slate-900 text-white p-5 flex items-center justify-between">
+            <div class="fixed inset-0 z-[1055] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+                <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full my-auto overflow-hidden border border-slate-100 flex flex-col max-h-[88vh]">
+                    <div class="bg-slate-900 text-white p-5 flex items-center justify-between flex-shrink-0">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-2xl text-emerald-400">receipt_long</span>
                             <div>
@@ -530,7 +530,7 @@
                         </button>
                     </div>
 
-                    <div class="p-6 max-h-[75vh] overflow-y-auto custom-scrollbar space-y-5">
+                    <div class="p-6 overflow-y-auto custom-scrollbar space-y-5 flex-1">
                         <!-- Overview Header -->
                         <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl text-xs border border-slate-200/80">
                             <div>
@@ -601,7 +601,7 @@
                         </div>
                     </div>
 
-                    <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
+                    <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end flex-shrink-0">
                         <button wire:click="closeViewPackageModal" class="px-5 py-2.5 bg-slate-800 text-white font-bold rounded-xl text-xs hover:bg-slate-900">
                             Close Details
                         </button>
@@ -612,10 +612,10 @@
 
         <!-- Modal 3: Three-Level Package Cancellation Modal (Full Package, Day-Wise, or Slot-Wise) -->
         @if($showCancelModal && $cancelPackageGroup)
-            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-                <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
+            <div class="fixed inset-0 z-[1055] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+                <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full my-auto overflow-hidden border border-slate-100 flex flex-col max-h-[88vh]">
                     <!-- Modal Header -->
-                    <div class="bg-rose-600 text-white p-5 flex items-center justify-between">
+                    <div class="bg-rose-600 text-white p-5 flex items-center justify-between flex-shrink-0">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-2xl">cancel</span>
                             <div>
@@ -631,7 +631,7 @@
                     </div>
 
                     <!-- Modal Content -->
-                    <div class="p-6">
+                    <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
                         @if($cancelType === 'choose')
                             <!-- Step 1: 3-Level Choice Screen -->
                             <p class="text-xs font-semibold text-slate-700 mb-4">
@@ -758,7 +758,7 @@
 
                     <!-- Modal Footer for Choice view -->
                     @if($cancelType === 'choose')
-                        <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
+                        <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end flex-shrink-0">
                             <button wire:click="closeCancelModal" class="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-100">
                                 Close
                             </button>
@@ -770,9 +770,9 @@
 
         <!-- Modal 4: Result / Feedback Modal -->
         @if($showResultModal)
-            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-                <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-100">
-                    <div class="bg-emerald-600 text-white p-5 flex items-center justify-between">
+            <div class="fixed inset-0 z-[1055] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+                <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full my-auto overflow-hidden border border-slate-100 flex flex-col max-h-[88vh]">
+                    <div class="bg-emerald-600 text-white p-5 flex items-center justify-between flex-shrink-0">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-2xl">check_circle</span>
                             <div>
@@ -785,7 +785,7 @@
                         </button>
                     </div>
 
-                    <div class="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar space-y-4">
+                    <div class="p-6 overflow-y-auto custom-scrollbar space-y-4 flex-1">
                         @if(!empty($bookedSlots))
                             <div>
                                 <h4 class="text-xs font-extrabold text-emerald-700 uppercase tracking-wider mb-2">Confirmed Booked Slots ({{ count($bookedSlots) }})</h4>
@@ -821,7 +821,7 @@
                         @endif
                     </div>
 
-                    <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
+                    <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end flex-shrink-0">
                         <button wire:click="resetForm" class="px-5 py-2.5 bg-slate-800 text-white font-bold rounded-xl text-xs hover:bg-slate-900">
                             Done
                         </button>

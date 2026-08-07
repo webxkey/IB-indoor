@@ -55,7 +55,7 @@ class SportsManagement extends Component
 
     // Payment Policy Customization Fields
     public $advance_payment_required_override = false;
-    public $booking_payment_mode_override = 'venue_default'; // 'venue_default', 'pay_at_venue', 'partial', 'full', 'advance_or_full'
+    public $booking_payment_mode_override = ''; // '' (null), 'no_payment', 'advance_only', 'full_only', 'advance_or_full'
     public $advance_payment_type_override = 'percentage'; // 'percentage', 'fixed'
     public $advance_payment_value_override = 20;
 
@@ -176,10 +176,11 @@ class SportsManagement extends Component
         $charges['capacity_limit_enabled'] = (bool) $this->capacity_limit_enabled;
         $charges['max_persons_per_hour'] = $this->capacity_limit_enabled ? (int) $this->max_persons_per_hour : 1;
 
-        $isAdvanceMode = in_array($this->booking_payment_mode_override, ['partial', 'advance_or_full']);
-        if ($this->booking_payment_mode_override === 'venue_default') {
+        $mode = $this->booking_payment_mode_override;
+        $isAdvanceMode = in_array($mode, ['advance_only', 'advance_or_full', 'partial']);
+        if (empty($mode) || $mode === 'venue_default') {
             $venue = $this->venue;
-            if ($venue && ($venue->booking_payment_mode === 'partial' || $venue->advance_payment_required)) {
+            if ($venue && (in_array($venue->booking_payment_mode, ['partial', 'advance_only', 'advance_or_full']) || $venue->advance_payment_required)) {
                 $isAdvanceMode = true;
             }
         }
@@ -203,7 +204,7 @@ class SportsManagement extends Component
 
             // Payment policy customization
             'advance_payment_required_override' => $isAdvanceMode,
-            'booking_payment_mode_override' => $this->booking_payment_mode_override ?: 'venue_default',
+            'booking_payment_mode_override' => !empty($this->booking_payment_mode_override) ? $this->booking_payment_mode_override : null,
             'advance_payment_type_override' => $this->advance_payment_type_override ?: 'percentage',
             'advance_payment_value_override' => $advanceValue,
 
@@ -265,7 +266,7 @@ class SportsManagement extends Component
         $this->status = 'Active';
         $this->advance_required = false;
         $this->additional_charges = [];
-        $this->booking_payment_mode_override = 'full';
+        $this->booking_payment_mode_override = 'full_only';
         $this->advance_payment_type_override = 'percentage';
         $this->advance_payment_value_override = 20;
         $this->capacity_limit_enabled = false;
@@ -552,7 +553,18 @@ class SportsManagement extends Component
 
         // Customization fields
         $this->advance_payment_required_override = (bool) $sport->advance_payment_required_override;
-        $this->booking_payment_mode_override = $sport->booking_payment_mode_override ?? 'venue_default';
+        $rawMode = $sport->booking_payment_mode_override;
+        if (in_array($rawMode, ['pay_at_venue', 'no_payment'])) {
+            $this->booking_payment_mode_override = 'no_payment';
+        } elseif (in_array($rawMode, ['partial', 'advance_only'])) {
+            $this->booking_payment_mode_override = 'advance_only';
+        } elseif (in_array($rawMode, ['full', 'full_only'])) {
+            $this->booking_payment_mode_override = 'full_only';
+        } elseif ($rawMode === 'advance_or_full') {
+            $this->booking_payment_mode_override = 'advance_or_full';
+        } else {
+            $this->booking_payment_mode_override = '';
+        }
         $this->advance_payment_type_override = $sport->advance_payment_type_override ?? 'percentage';
         $this->advance_payment_value_override = $sport->advance_payment_value_override ?? 20;
 
@@ -600,10 +612,11 @@ class SportsManagement extends Component
         $charges['capacity_limit_enabled'] = (bool) $this->capacity_limit_enabled;
         $charges['max_persons_per_hour'] = $this->capacity_limit_enabled ? (int) $this->max_persons_per_hour : 1;
 
-        $isAdvanceMode = in_array($this->booking_payment_mode_override, ['partial', 'advance_or_full']);
-        if ($this->booking_payment_mode_override === 'venue_default') {
+        $mode = $this->booking_payment_mode_override;
+        $isAdvanceMode = in_array($mode, ['advance_only', 'advance_or_full', 'partial']);
+        if (empty($mode) || $mode === 'venue_default') {
             $venue = $this->venue;
-            if ($venue && ($venue->booking_payment_mode === 'partial' || $venue->advance_payment_required)) {
+            if ($venue && (in_array($venue->booking_payment_mode, ['partial', 'advance_only', 'advance_or_full']) || $venue->advance_payment_required)) {
                 $isAdvanceMode = true;
             }
         }
@@ -626,7 +639,7 @@ class SportsManagement extends Component
 
             // Payment policy customization
             'advance_payment_required_override' => $isAdvanceMode,
-            'booking_payment_mode_override' => $this->booking_payment_mode_override ?: 'venue_default',
+            'booking_payment_mode_override' => !empty($this->booking_payment_mode_override) ? $this->booking_payment_mode_override : null,
             'advance_payment_type_override' => $this->advance_payment_type_override ?: 'percentage',
             'advance_payment_value_override' => $advanceValue,
 

@@ -251,18 +251,18 @@
                                         @endif
 
                                         <div class="row g-3">
-                                            <div class="col-md-{{ in_array($booking_payment_mode_override, ['partial', 'advance_or_full']) ? '6' : '12' }}">
+                                            <div class="col-md-{{ in_array($booking_payment_mode_override, ['advance_only', 'advance_or_full', 'partial']) ? '6' : '12' }}">
                                                 <label class="form-label fw-semibold small">Payment Requirement Mode *</label>
                                                 <select class="form-select form-select-sm" wire:model.live="booking_payment_mode_override" {{ !$this->isOnlinePaymentEnabled ? 'disabled' : '' }}>
-                                                    <option value="venue_default">Use venue default</option>
-                                                    <option value="pay_at_venue">No online payment required</option>
-                                                    <option value="partial">Pay advance to book</option>
-                                                    <option value="full">Pay full amount to book</option>
+                                                    <option value="">Use venue default</option>
+                                                    <option value="no_payment">No online payment required</option>
+                                                    <option value="advance_only">Pay advance to book</option>
+                                                    <option value="full_only">Pay full amount to book</option>
                                                     <option value="advance_or_full">Allow advance or full payment</option>
                                                 </select>
                                             </div>
 
-                                            @if(in_array($booking_payment_mode_override, ['partial', 'advance_or_full']))
+                                            @if(in_array($booking_payment_mode_override, ['advance_only', 'advance_or_full', 'partial']))
                                             <div class="col-md-3">
                                                 <label class="form-label fw-semibold small">Deposit Type *</label>
                                                 <select class="form-select form-select-sm" wire:model="advance_payment_type_override" {{ !$this->isOnlinePaymentEnabled ? 'disabled' : '' }}>
@@ -799,18 +799,18 @@
                                         @endif
 
                                         <div class="row g-3">
-                                            <div class="col-md-{{ in_array($booking_payment_mode_override, ['partial', 'advance_or_full']) ? '6' : '12' }}">
+                                            <div class="col-md-{{ in_array($booking_payment_mode_override, ['advance_only', 'advance_or_full', 'partial']) ? '6' : '12' }}">
                                                 <label class="form-label fw-semibold small">Payment Requirement Mode *</label>
                                                 <select class="form-select form-select-sm" wire:model.live="booking_payment_mode_override" {{ !$this->isOnlinePaymentEnabled ? 'disabled' : '' }}>
-                                                    <option value="venue_default">Use venue default</option>
-                                                    <option value="pay_at_venue">No online payment required</option>
-                                                    <option value="partial">Pay advance to book</option>
-                                                    <option value="full">Pay full amount to book</option>
+                                                    <option value="">Use venue default</option>
+                                                    <option value="no_payment">No online payment required</option>
+                                                    <option value="advance_only">Pay advance to book</option>
+                                                    <option value="full_only">Pay full amount to book</option>
                                                     <option value="advance_or_full">Allow advance or full payment</option>
                                                 </select>
                                             </div>
 
-                                            @if(in_array($booking_payment_mode_override, ['partial', 'advance_or_full']))
+                                            @if(in_array($booking_payment_mode_override, ['advance_only', 'advance_or_full', 'partial']))
                                             <div class="col-md-3">
                                                 <label class="form-label fw-semibold small">Deposit Type *</label>
                                                 <select class="form-select form-select-sm" wire:model="advance_payment_type_override" {{ !$this->isOnlinePaymentEnabled ? 'disabled' : '' }}>
