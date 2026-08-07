@@ -231,24 +231,41 @@
 
                             {{-- Payment Policy Customization --}}
                             <div class="col-md-12">
-                                <div class="card border-primary border-opacity-25 bg-light">
-                                    <div class="card-header bg-primary bg-opacity-10 fw-bold small text-primary text-uppercase">
-                                        <i class="fas fa-credit-card me-1"></i> Payment Policy Customization
+                                <div class="card border-primary border-opacity-25 bg-light shadow-sm">
+                                    <div class="card-header bg-primary bg-opacity-10 fw-bold small text-primary text-uppercase d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-credit-card me-1"></i> Payment Policy Customization
+                                        </div>
+                                        @if(!$this->isOnlinePaymentEnabled)
+                                        <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle me-1"></i> Online Payment Disabled at Venue Level</span>
+                                        @endif
                                     </div>
                                     <div class="card-body">
+                                        @if(!$this->isOnlinePaymentEnabled)
+                                        <div class="alert alert-warning py-2 mb-3 small d-flex align-items-center">
+                                            <i class="fas fa-info-circle me-2 fa-lg text-warning"></i>
+                                            <div>
+                                                Online payment is currently <strong>disabled</strong> in your venue settings (<a href="{{ route('staff.setting') }}?section=payments" class="fw-bold text-dark text-decoration-underline" target="_blank">Venue Settings -&gt; Payment Options</a>). Online payment options are locked unless online payment is enabled for the venue.
+                                            </div>
+                                        </div>
+                                        @endif
+
                                         <div class="row g-3">
-                                            <div class="col-md-6">
+                                            <div class="col-md-{{ in_array($booking_payment_mode_override, ['partial', 'advance_or_full']) ? '6' : '12' }}">
                                                 <label class="form-label fw-semibold small">Payment Requirement Mode *</label>
-                                                <select class="form-select form-select-sm" wire:model="booking_payment_mode_override">
-                                                    <option value="full">Full Payment Required</option>
-                                                    <option value="partial">Partial / Advance Deposit Required</option>
-                                                    <option value="pay_at_venue">Pay at Venue</option>
+                                                <select class="form-select form-select-sm" wire:model.live="booking_payment_mode_override" {{ !$this->isOnlinePaymentEnabled ? 'disabled' : '' }}>
+                                                    <option value="venue_default">Use venue default</option>
+                                                    <option value="pay_at_venue">No online payment required</option>
+                                                    <option value="partial">Pay advance to book</option>
+                                                    <option value="full">Pay full amount to book</option>
+                                                    <option value="advance_or_full">Allow advance or full payment</option>
                                                 </select>
                                             </div>
 
+                                            @if(in_array($booking_payment_mode_override, ['partial', 'advance_or_full']))
                                             <div class="col-md-3">
                                                 <label class="form-label fw-semibold small">Deposit Type *</label>
-                                                <select class="form-select form-select-sm" wire:model="advance_payment_type_override">
+                                                <select class="form-select form-select-sm" wire:model="advance_payment_type_override" {{ !$this->isOnlinePaymentEnabled ? 'disabled' : '' }}>
                                                     <option value="percentage">Percentage (%)</option>
                                                     <option value="fixed">Fixed Amount (LKR)</option>
                                                 </select>
@@ -256,8 +273,9 @@
 
                                             <div class="col-md-3">
                                                 <label class="form-label fw-semibold small">Deposit Value *</label>
-                                                <input type="number" class="form-control form-control-sm" wire:model="advance_payment_value_override" min="0" step="0.01">
+                                                <input type="number" class="form-control form-control-sm" wire:model="advance_payment_value_override" min="0" step="0.01" placeholder="e.g. 20" {{ !$this->isOnlinePaymentEnabled ? 'disabled' : '' }}>
                                             </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -265,10 +283,19 @@
 
                             {{-- Capacity / Pool Hourly Limit Customization --}}
                             <div class="col-md-12">
-                                <div class="card border-info border-opacity-25 bg-light">
-                                    <div class="card-header bg-info bg-opacity-10 fw-bold small text-info text-uppercase">
-                                        <i class="fas fa-users me-1"></i> Hourly Swimmer / Person Access Limit (Pools & Sports)
+                                <div class="card border-info border-opacity-25 bg-light shadow-sm">
+                                    <div class="card-header bg-info bg-opacity-10 fw-bold small text-info text-uppercase d-flex justify-content-between align-items-center py-2">
+                                        <div>
+                                            <i class="fas fa-users me-1"></i> Hourly Swimmer / Person Access Limit (Pools & Sports)
+                                        </div>
+                                        <div class="form-check form-switch m-0 text-lowercase">
+                                            <input class="form-check-input" type="checkbox" id="capacity_limit_enabled_add" wire:model.live="capacity_limit_enabled">
+                                            <label class="form-check-label fw-bold text-dark text-capitalize" for="capacity_limit_enabled_add">
+                                                Enable Limit
+                                            </label>
+                                        </div>
                                     </div>
+                                    @if($capacity_limit_enabled)
                                     <div class="card-body">
                                         <div class="row g-3">
                                             <div class="col-md-6">
@@ -278,6 +305,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @endif
                                 </div>
                             </div>
 
@@ -478,6 +506,70 @@
                             <label class="form-label fw-semibold">Book X Days in Advance</label>
                             <input type="number" class="form-control" wire:model="pricingRules.advance_days" placeholder="e.g. 3">
                             <small class="text-muted">Discount applies if booked this many days early</small>
+                        </div>
+
+                        {{-- Private Booking & Full Rental Options inside Pricing Modal --}}
+                        <div class="col-md-12 mt-3">
+                            <div class="card border-success border-opacity-25 bg-light shadow-sm">
+                                <div class="card-header bg-success bg-opacity-10 fw-bold small text-success text-uppercase d-flex justify-content-between align-items-center py-2">
+                                    <div>
+                                        <i class="fas fa-user-lock me-1"></i> Private Booking & Full Rental Options
+                                    </div>
+                                    <div class="form-check form-switch m-0 text-lowercase">
+                                        <input class="form-check-input" type="checkbox" id="private_booking_enabled_modal" wire:model.live="pricingRules.private_booking_enabled">
+                                        <label class="form-check-label fw-bold text-dark text-capitalize" for="private_booking_enabled_modal">
+                                            Enable Private Booking
+                                        </label>
+                                    </div>
+                                </div>
+                                @if($pricingRules['private_booking_enabled'] ?? false)
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold small">Private Pricing Type *</label>
+                                            <select class="form-select form-select-sm" wire:model.live="pricingRules.private_booking_pricing_mode">
+                                                <option value="flat_total">Fixed private total for the whole selected range</option>
+                                                <option value="hourly_flat">Private hourly rate multiplied by selected duration</option>
+                                                <option value="normal_total">Use normal calculated slot total</option>
+                                                <option value="normal_multiplier">Normal calculated slot total multiplied by private multiplier</option>
+                                            </select>
+                                        </div>
+
+                                        @php $pMode = $pricingRules['private_booking_pricing_mode'] ?? 'flat_total'; @endphp
+
+                                        @if(in_array($pMode, ['flat_total', 'hourly_flat']))
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold small">
+                                                {{ $pMode === 'hourly_flat' ? 'Private Hourly Rate (LKR/hr) *' : 'Private Flat Rate Price (LKR) *' }}
+                                            </label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-white">LKR</span>
+                                                <input type="number" class="form-control form-control-sm" wire:model="pricingRules.private_booking_price" min="0" step="0.01" placeholder="{{ $pMode === 'hourly_flat' ? 'e.g. 5000' : 'e.g. 15000' }}">
+                                            </div>
+                                            <small class="text-muted">{{ $pMode === 'hourly_flat' ? 'Private rate charged per hour' : 'Total flat rate for entire private rental' }}</small>
+                                        </div>
+                                        @endif
+
+                                        @if($pMode === 'normal_multiplier')
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold small">Private Price Multiplier *</label>
+                                            <input type="number" class="form-control form-control-sm" wire:model="pricingRules.private_booking_price_multiplier" step="0.1" min="1.0" placeholder="1.5">
+                                            <small class="text-muted">Multiplied against normal calculated slot total (e.g. 1.5x)</small>
+                                        </div>
+                                        @endif
+
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold small">Minimum Booking Slots (Hours) *</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" class="form-control form-control-sm" wire:model="pricingRules.private_booking_min_slots" min="1" max="24" placeholder="3">
+                                                <span class="input-group-text bg-light text-muted">Slots / Hrs</span>
+                                            </div>
+                                            <small class="text-info"><i class="fas fa-info-circle me-1"></i>Saved as {{ ((int)($pricingRules['private_booking_min_slots'] ?? 3)) * 60 }} min in table (`private_booking_min_duration_minutes`).</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                     @error('pricingRules.peak_price') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
@@ -687,24 +779,41 @@
 
                             {{-- Payment Policy Customization --}}
                             <div class="col-md-12">
-                                <div class="card border-primary border-opacity-25 bg-light">
-                                    <div class="card-header bg-primary bg-opacity-10 fw-bold small text-primary text-uppercase">
-                                        <i class="fas fa-credit-card me-1"></i> Payment Policy Customization
+                                <div class="card border-primary border-opacity-25 bg-light shadow-sm">
+                                    <div class="card-header bg-primary bg-opacity-10 fw-bold small text-primary text-uppercase d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-credit-card me-1"></i> Payment Policy Customization
+                                        </div>
+                                        @if(!$this->isOnlinePaymentEnabled)
+                                        <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle me-1"></i> Online Payment Disabled at Venue Level</span>
+                                        @endif
                                     </div>
                                     <div class="card-body">
+                                        @if(!$this->isOnlinePaymentEnabled)
+                                        <div class="alert alert-warning py-2 mb-3 small d-flex align-items-center">
+                                            <i class="fas fa-info-circle me-2 fa-lg text-warning"></i>
+                                            <div>
+                                                Online payment is currently <strong>disabled</strong> in your venue settings (<a href="{{ route('staff.setting') }}?section=payments" class="fw-bold text-dark text-decoration-underline" target="_blank">Venue Settings -&gt; Payment Options</a>). Online payment options are locked unless online payment is enabled for the venue.
+                                            </div>
+                                        </div>
+                                        @endif
+
                                         <div class="row g-3">
-                                            <div class="col-md-6">
+                                            <div class="col-md-{{ in_array($booking_payment_mode_override, ['partial', 'advance_or_full']) ? '6' : '12' }}">
                                                 <label class="form-label fw-semibold small">Payment Requirement Mode *</label>
-                                                <select class="form-select form-select-sm" wire:model="booking_payment_mode_override">
-                                                    <option value="full">Full Payment Required</option>
-                                                    <option value="partial">Partial / Advance Deposit Required</option>
-                                                    <option value="pay_at_venue">Pay at Venue</option>
+                                                <select class="form-select form-select-sm" wire:model.live="booking_payment_mode_override" {{ !$this->isOnlinePaymentEnabled ? 'disabled' : '' }}>
+                                                    <option value="venue_default">Use venue default</option>
+                                                    <option value="pay_at_venue">No online payment required</option>
+                                                    <option value="partial">Pay advance to book</option>
+                                                    <option value="full">Pay full amount to book</option>
+                                                    <option value="advance_or_full">Allow advance or full payment</option>
                                                 </select>
                                             </div>
 
+                                            @if(in_array($booking_payment_mode_override, ['partial', 'advance_or_full']))
                                             <div class="col-md-3">
                                                 <label class="form-label fw-semibold small">Deposit Type *</label>
-                                                <select class="form-select form-select-sm" wire:model="advance_payment_type_override">
+                                                <select class="form-select form-select-sm" wire:model="advance_payment_type_override" {{ !$this->isOnlinePaymentEnabled ? 'disabled' : '' }}>
                                                     <option value="percentage">Percentage (%)</option>
                                                     <option value="fixed">Fixed Amount (LKR)</option>
                                                 </select>
@@ -712,8 +821,9 @@
 
                                             <div class="col-md-3">
                                                 <label class="form-label fw-semibold small">Deposit Value *</label>
-                                                <input type="number" class="form-control form-control-sm" wire:model="advance_payment_value_override" min="0" step="0.01">
+                                                <input type="number" class="form-control form-control-sm" wire:model="advance_payment_value_override" min="0" step="0.01" placeholder="e.g. 20" {{ !$this->isOnlinePaymentEnabled ? 'disabled' : '' }}>
                                             </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -721,10 +831,19 @@
 
                             {{-- Capacity / Pool Hourly Limit Customization --}}
                             <div class="col-md-12">
-                                <div class="card border-info border-opacity-25 bg-light">
-                                    <div class="card-header bg-info bg-opacity-10 fw-bold small text-info text-uppercase">
-                                        <i class="fas fa-users me-1"></i> Hourly Swimmer / Person Access Limit (Pools & Sports)
+                                <div class="card border-info border-opacity-25 bg-light shadow-sm">
+                                    <div class="card-header bg-info bg-opacity-10 fw-bold small text-info text-uppercase d-flex justify-content-between align-items-center py-2">
+                                        <div>
+                                            <i class="fas fa-users me-1"></i> Hourly Swimmer / Person Access Limit (Pools & Sports)
+                                        </div>
+                                        <div class="form-check form-switch m-0 text-lowercase">
+                                            <input class="form-check-input" type="checkbox" id="capacity_limit_enabled_edit" wire:model.live="capacity_limit_enabled">
+                                            <label class="form-check-label fw-bold text-dark text-capitalize" for="capacity_limit_enabled_edit">
+                                                Enable Limit
+                                            </label>
+                                        </div>
                                     </div>
+                                    @if($capacity_limit_enabled)
                                     <div class="card-body">
                                         <div class="row g-3">
                                             <div class="col-md-6">
@@ -734,6 +853,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @endif
                                 </div>
                             </div>
 
@@ -808,7 +928,6 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize modals

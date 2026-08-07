@@ -11,7 +11,11 @@ class BookingSport extends Model
     protected $fillable = [
         'name','price','image','available','game_type','rate_type',
         'maximum_court','status','description','additional_charges',
-        'advance_required','venue_id','average_rating','pricing_rules','blocked_slots','opening_hours'
+        'advance_required','venue_id','average_rating','pricing_rules','blocked_slots','opening_hours',
+        'advance_payment_required_override','booking_payment_mode_override',
+        'advance_payment_type_override','advance_payment_value_override',
+        'private_booking_price','private_booking_min_duration_minutes',
+        'private_booking_price_multiplier','private_booking_pricing_mode'
     ];
    protected $attributes = [
         'image' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',

@@ -119,6 +119,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/online-payment', \App\Livewire\Staff\OnlinePayment::class)->name('online-payment');
         Route::get('/sports', SportsManagement::class)->name('sports');
         Route::get('/bookings', BookingsManagement::class)->name('bookings');
+        Route::get('/custom-booking', \App\Livewire\Staff\CustomBooking::class)->name('custom-booking');
         Route::get('/permanent-bookings', \App\Livewire\Staff\PermanentBookings::class)->name('permanent-bookings');
         Route::get('/completed-bookings', \App\Livewire\Staff\CompletedBookings::class)->name('completed-bookings');
         Route::get('/reports', StaffReport::class)->name('reports');

@@ -55,19 +55,33 @@ class SportsManagement extends Component
 
     // Payment Policy Customization Fields
     public $advance_payment_required_override = false;
-    public $booking_payment_mode_override = 'full'; // 'full', 'partial', 'pay_at_venue'
+    public $booking_payment_mode_override = 'venue_default'; // 'venue_default', 'pay_at_venue', 'partial', 'full', 'advance_or_full'
     public $advance_payment_type_override = 'percentage'; // 'percentage', 'fixed'
     public $advance_payment_value_override = 20;
 
+    public function getVenueProperty()
+    {
+        $venueId = $this->complex_id ?: auth()->user()->complex_id;
+        return $venueId ? BookingVenue::find($venueId) : null;
+    }
+
+    public function getIsOnlinePaymentEnabledProperty()
+    {
+        $venue = $this->venue;
+        return $venue ? filter_var($venue->online_payments_enabled ?? true, FILTER_VALIDATE_BOOLEAN) : true;
+    }
+
     // Capacity / Limited Persons Allowed Limit Per Hour (Pool & Sports)
+    public $capacity_limit_enabled = false;
     public $max_persons_per_hour = 10;
 
     // Private Booking Customization Fields
     public $private_booking_enabled = false;
     public $private_booking_price = '';
+    public $private_booking_min_slots = 3;
     public $private_booking_min_duration_minutes = 180;
     public $private_booking_price_multiplier = 1.00;
-    public $private_booking_pricing_mode = 'flat_total'; // 'flat_total', 'normal_total'
+    public $private_booking_pricing_mode = 'flat_total'; // 'flat_total', 'hourly_flat', 'normal_total', 'normal_multiplier'
 
     public function mount()
     {
@@ -159,7 +173,19 @@ class SportsManagement extends Component
         $imagePath = $this->getDefaultImageForName($validated['game_name']);
 
         $charges = is_array($this->additional_charges) ? $this->additional_charges : [];
-        $charges['max_persons_per_hour'] = (int) $this->max_persons_per_hour;
+        $charges['capacity_limit_enabled'] = (bool) $this->capacity_limit_enabled;
+        $charges['max_persons_per_hour'] = $this->capacity_limit_enabled ? (int) $this->max_persons_per_hour : 1;
+
+        $isAdvanceMode = in_array($this->booking_payment_mode_override, ['partial', 'advance_or_full']);
+        if ($this->booking_payment_mode_override === 'venue_default') {
+            $venue = $this->venue;
+            if ($venue && ($venue->booking_payment_mode === 'partial' || $venue->advance_payment_required)) {
+                $isAdvanceMode = true;
+            }
+        }
+        $advanceValue = ($isAdvanceMode && !empty($this->advance_payment_value_override))
+            ? (float) $this->advance_payment_value_override
+            : null;
 
         $createdSport = BookingSport::create([
             'venue_id' => $venueId,
@@ -172,18 +198,18 @@ class SportsManagement extends Component
             'image' => $imagePath,
             'description' => $validated['description'] ?? null,
             'additional_charges' => json_encode($charges),
-            'advance_required' => $validated['advance_required'],
+            'advance_required' => $isAdvanceMode,
             'average_rating' => 0.0,
 
             // Payment policy customization
-            'advance_payment_required_override' => $this->advance_payment_required_override,
-            'booking_payment_mode_override' => $this->booking_payment_mode_override,
-            'advance_payment_type_override' => $this->advance_payment_type_override,
-            'advance_payment_value_override' => $this->advance_payment_value_override ? (float) $this->advance_payment_value_override : null,
+            'advance_payment_required_override' => $isAdvanceMode,
+            'booking_payment_mode_override' => $this->booking_payment_mode_override ?: 'venue_default',
+            'advance_payment_type_override' => $this->advance_payment_type_override ?: 'percentage',
+            'advance_payment_value_override' => $advanceValue,
 
             // Private booking customization
             'private_booking_price' => (!empty($this->private_booking_price) && $this->private_booking_enabled) ? (float) $this->private_booking_price : null,
-            'private_booking_min_duration_minutes' => (int) ($this->private_booking_min_duration_minutes ?: 180),
+            'private_booking_min_duration_minutes' => max(60, ((int) ($this->private_booking_min_slots ?: 3)) * 60),
             'private_booking_price_multiplier' => (float) ($this->private_booking_price_multiplier ?: 1.00),
             'private_booking_pricing_mode' => $this->private_booking_pricing_mode ?: 'flat_total',
         ]);
@@ -193,7 +219,7 @@ class SportsManagement extends Component
             $pool = \DB::table('pools_pool')->where('venue_id', $venueId)->first();
             if ($pool) {
                 \DB::table('pools_pool')->where('id', $pool->id)->update([
-                    'capacity' => (int) $this->max_persons_per_hour,
+                    'capacity' => $this->capacity_limit_enabled ? (int) $this->max_persons_per_hour : 1,
                     'private_booking_price' => (!empty($this->private_booking_price) && $this->private_booking_enabled) ? (float) $this->private_booking_price : null,
                     'private_request_enabled' => $this->private_booking_enabled,
                 ]);
@@ -225,9 +251,11 @@ class SportsManagement extends Component
             'booking_payment_mode_override',
             'advance_payment_type_override',
             'advance_payment_value_override',
+            'capacity_limit_enabled',
             'max_persons_per_hour',
             'private_booking_enabled',
             'private_booking_price',
+            'private_booking_min_slots',
             'private_booking_min_duration_minutes',
             'private_booking_price_multiplier',
             'private_booking_pricing_mode',
@@ -240,8 +268,10 @@ class SportsManagement extends Component
         $this->booking_payment_mode_override = 'full';
         $this->advance_payment_type_override = 'percentage';
         $this->advance_payment_value_override = 20;
+        $this->capacity_limit_enabled = false;
         $this->max_persons_per_hour = 10;
         $this->private_booking_enabled = false;
+        $this->private_booking_min_slots = 3;
         $this->private_booking_min_duration_minutes = 180;
         $this->private_booking_price_multiplier = 1.00;
         $this->private_booking_pricing_mode = 'flat_total';
@@ -264,24 +294,39 @@ class SportsManagement extends Component
             'sunday'    => ['enabled' => false, 'start_time' => '17:00', 'end_time' => '22:00'],
         ];
 
-        $savedSchedule = $rules['peak_schedule'] ?? [];
-        $mergedSchedule = array_replace_recursive($defaultSchedule, $savedSchedule);
-
-        foreach ($mergedSchedule as $day => $val) {
-            $mergedSchedule[$day]['enabled'] = filter_var($val['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $savedSchedule = $rules['peak_hours'] ?? $rules['peak_schedule'] ?? [];
+        $normalizedSaved = [];
+        foreach ($savedSchedule as $day => $val) {
+            $normalizedSaved[$day] = [
+                'enabled'    => filter_var($val['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'start_time' => $val['start'] ?? $val['start_time'] ?? '17:00',
+                'end_time'   => $val['end'] ?? $val['end_time'] ?? '22:00',
+            ];
         }
 
-        $this->pricingRules = array_merge([
-            'peak_price' => '',
-            'offpeak_price' => '',
-            'weekend_price' => '',
-            'advance_discount' => '',
-            'advance_days' => '',
-            'peak_schedule_enabled' => false,
-        ], $rules);
+        $mergedSchedule = array_replace_recursive($defaultSchedule, $normalizedSaved);
+        $overrideEnabled = filter_var($rules['override_peak_hours'] ?? $rules['peak_schedule_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-        $this->pricingRules['peak_schedule_enabled'] = filter_var($this->pricingRules['peak_schedule_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
-        $this->pricingRules['peak_schedule'] = $mergedSchedule;
+        $privateBookingEnabled = !empty($sport->private_booking_price) || ($sport->private_booking_pricing_mode === 'normal_total' && $sport->private_booking_price_multiplier > 1);
+        $minDurationMinutes = (int) ($sport->private_booking_min_duration_minutes ?: 180);
+        $minSlots = max(1, (int) round($minDurationMinutes / 60));
+
+        $this->pricingRules = [
+            'mode'                                 => $rules['mode'] ?? 'override',
+            'peak_price'                           => $rules['peak_price'] ?? '',
+            'offpeak_price'                        => $rules['offpeak_price'] ?? '',
+            'weekend_price'                        => $rules['weekend_price'] ?? '',
+            'advance_discount'                     => $rules['advance_discount'] ?? '',
+            'advance_days'                         => $rules['advance_days'] ?? '',
+            'peak_schedule_enabled'                => $overrideEnabled,
+            'peak_schedule'                        => $mergedSchedule,
+            'private_booking_enabled'              => $privateBookingEnabled,
+            'private_booking_price'                => $sport->private_booking_price ?? '',
+            'private_booking_min_slots'            => $minSlots,
+            'private_booking_pricing_mode'        => $sport->private_booking_pricing_mode ?? 'flat_total',
+            'private_booking_price_multiplier'     => $sport->private_booking_price_multiplier ?? 1.00,
+        ];
+
         $this->showPricingModal = true;
     }
 
@@ -290,14 +335,19 @@ class SportsManagement extends Component
         $this->showPricingModal = false;
         $this->pricingEditSportId = null;
         $this->pricingRules = [
-            'peak_price' => '',
-            'offpeak_price' => '',
-            'weekend_price' => '',
-            'peak_start_time' => '17:00',
-            'peak_end_time' => '22:00',
-            'peak_days' => ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-            'advance_discount' => '',
-            'advance_days' => '',
+            'mode'                                 => 'override',
+            'peak_price'                           => '',
+            'offpeak_price'                        => '',
+            'weekend_price'                        => '',
+            'advance_discount'                     => '',
+            'advance_days'                         => '',
+            'peak_schedule_enabled'                => false,
+            'peak_schedule'                        => [],
+            'private_booking_enabled'              => false,
+            'private_booking_price'                => '',
+            'private_booking_min_slots'            => 3,
+            'private_booking_pricing_mode'        => 'flat_total',
+            'private_booking_price_multiplier'     => 1.00,
         ];
     }
 
@@ -307,15 +357,69 @@ class SportsManagement extends Component
             'pricingRules.peak_price' => 'nullable|numeric|min:0',
             'pricingRules.offpeak_price' => 'nullable|numeric|min:0',
             'pricingRules.weekend_price' => 'nullable|numeric|min:0',
-            'pricingRules.peak_start_time' => 'nullable|string',
-            'pricingRules.peak_end_time' => 'nullable|string',
             'pricingRules.advance_discount' => 'nullable|numeric|min:0|max:100',
             'pricingRules.advance_days' => 'nullable|integer|min:1',
+            'pricingRules.private_booking_price' => 'nullable|numeric|min:0',
+            'pricingRules.private_booking_min_slots' => 'nullable|integer|min:1',
         ]);
 
         $sport = BookingSport::find($this->pricingEditSportId);
         if ($sport) {
-            $sport->update(['pricing_rules' => $this->pricingRules]);
+            $overridePeakHours = filter_var($this->pricingRules['peak_schedule_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+            $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            $peakHoursFormatted = [];
+
+            foreach ($days as $day) {
+                $dayData = $this->pricingRules['peak_schedule'][$day] ?? [];
+                $peakHoursFormatted[$day] = [
+                    'enabled' => filter_var($dayData['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'start'   => $dayData['start_time'] ?? $dayData['start'] ?? '17:00',
+                    'end'     => $dayData['end_time'] ?? $dayData['end'] ?? '22:00',
+                ];
+            }
+
+            $payload = [
+                'mode'                  => 'override',
+                'override_peak_hours'   => $overridePeakHours,
+                'peak_price'            => (string) ($this->pricingRules['peak_price'] ?? ''),
+                'offpeak_price'         => (string) ($this->pricingRules['offpeak_price'] ?? ''),
+                'weekend_price'         => (string) ($this->pricingRules['weekend_price'] ?? ''),
+                'advance_discount'      => (string) ($this->pricingRules['advance_discount'] ?? ''),
+                'advance_days'          => (string) ($this->pricingRules['advance_days'] ?? ''),
+                'peak_hours'            => $peakHoursFormatted,
+                'peak_schedule_enabled' => $overridePeakHours,
+                'peak_schedule'         => $this->pricingRules['peak_schedule'] ?? [],
+            ];
+
+            $privateEnabled = filter_var($this->pricingRules['private_booking_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $privatePrice = ($privateEnabled && !empty($this->pricingRules['private_booking_price']))
+                ? (float) $this->pricingRules['private_booking_price']
+                : null;
+            $minSlots = (int) ($this->pricingRules['private_booking_min_slots'] ?? 3);
+            $minMinutes = max(60, $minSlots * 60);
+            $pricingMode = $this->pricingRules['private_booking_pricing_mode'] ?? 'flat_total';
+            $priceMultiplier = (float) ($this->pricingRules['private_booking_price_multiplier'] ?? 1.00);
+
+            $sport->update([
+                'pricing_rules'                        => $payload,
+                'private_booking_price'                => $privatePrice,
+                'private_booking_min_duration_minutes' => $minMinutes,
+                'private_booking_pricing_mode'        => $pricingMode,
+                'private_booking_price_multiplier'     => $priceMultiplier,
+            ]);
+
+            // Sync with pools_pool if this sport is Pools
+            if (strtolower($sport->name) === 'pools' || strtolower($sport->name) === 'pool') {
+                $pool = \DB::table('pools_pool')->where('venue_id', $sport->venue_id)->first();
+                if ($pool) {
+                    \DB::table('pools_pool')->where('id', $pool->id)->update([
+                        'private_booking_price'   => $privatePrice,
+                        'private_request_enabled' => $privateEnabled,
+                    ]);
+                }
+            }
+
             session()->flash('message', 'Pricing rules saved successfully!');
         }
         $this->closePricingModal();
@@ -448,14 +552,18 @@ class SportsManagement extends Component
 
         // Customization fields
         $this->advance_payment_required_override = (bool) $sport->advance_payment_required_override;
-        $this->booking_payment_mode_override = $sport->booking_payment_mode_override ?? 'full';
+        $this->booking_payment_mode_override = $sport->booking_payment_mode_override ?? 'venue_default';
         $this->advance_payment_type_override = $sport->advance_payment_type_override ?? 'percentage';
         $this->advance_payment_value_override = $sport->advance_payment_value_override ?? 20;
 
         $this->max_persons_per_hour = $this->additional_charges['max_persons_per_hour'] ?? 10;
+        $this->capacity_limit_enabled = isset($this->additional_charges['capacity_limit_enabled']) 
+            ? (bool) $this->additional_charges['capacity_limit_enabled'] 
+            : ($this->max_persons_per_hour > 1 || strtolower($sport->name) === 'pools' || strtolower($sport->name) === 'pool');
 
         $this->private_booking_price = $sport->private_booking_price;
         $this->private_booking_min_duration_minutes = $sport->private_booking_min_duration_minutes ?? 180;
+        $this->private_booking_min_slots = max(1, (int) round(($this->private_booking_min_duration_minutes) / 60));
         $this->private_booking_price_multiplier = $sport->private_booking_price_multiplier ?? 1.00;
         $this->private_booking_pricing_mode = $sport->private_booking_pricing_mode ?? 'flat_total';
         $this->private_booking_enabled = !empty($sport->private_booking_price) || ($sport->private_booking_pricing_mode === 'normal_total' && $sport->private_booking_price_multiplier > 1);
@@ -489,7 +597,19 @@ class SportsManagement extends Component
         }
 
         $charges = is_array($this->additional_charges) ? $this->additional_charges : [];
-        $charges['max_persons_per_hour'] = (int) $this->max_persons_per_hour;
+        $charges['capacity_limit_enabled'] = (bool) $this->capacity_limit_enabled;
+        $charges['max_persons_per_hour'] = $this->capacity_limit_enabled ? (int) $this->max_persons_per_hour : 1;
+
+        $isAdvanceMode = in_array($this->booking_payment_mode_override, ['partial', 'advance_or_full']);
+        if ($this->booking_payment_mode_override === 'venue_default') {
+            $venue = $this->venue;
+            if ($venue && ($venue->booking_payment_mode === 'partial' || $venue->advance_payment_required)) {
+                $isAdvanceMode = true;
+            }
+        }
+        $advanceValue = ($isAdvanceMode && !empty($this->advance_payment_value_override))
+            ? (float) $this->advance_payment_value_override
+            : null;
 
         $sport->update([
             'venue_id' => $venueId,
@@ -502,17 +622,17 @@ class SportsManagement extends Component
             'image' => $imagePath,
             'description' => $validated['description'] ?? null,
             'additional_charges' => json_encode($charges),
-            'advance_required' => $validated['advance_required'],
+            'advance_required' => $isAdvanceMode,
 
             // Payment policy customization
-            'advance_payment_required_override' => $this->advance_payment_required_override,
-            'booking_payment_mode_override' => $this->booking_payment_mode_override,
-            'advance_payment_type_override' => $this->advance_payment_type_override,
-            'advance_payment_value_override' => $this->advance_payment_value_override ? (float) $this->advance_payment_value_override : null,
+            'advance_payment_required_override' => $isAdvanceMode,
+            'booking_payment_mode_override' => $this->booking_payment_mode_override ?: 'venue_default',
+            'advance_payment_type_override' => $this->advance_payment_type_override ?: 'percentage',
+            'advance_payment_value_override' => $advanceValue,
 
             // Private booking customization
             'private_booking_price' => (!empty($this->private_booking_price) && $this->private_booking_enabled) ? (float) $this->private_booking_price : null,
-            'private_booking_min_duration_minutes' => (int) ($this->private_booking_min_duration_minutes ?: 180),
+            'private_booking_min_duration_minutes' => max(60, ((int) ($this->private_booking_min_slots ?: 3)) * 60),
             'private_booking_price_multiplier' => (float) ($this->private_booking_price_multiplier ?: 1.00),
             'private_booking_pricing_mode' => $this->private_booking_pricing_mode ?: 'flat_total',
         ]);
@@ -522,7 +642,7 @@ class SportsManagement extends Component
             $pool = \DB::table('pools_pool')->where('venue_id', $venueId)->first();
             if ($pool) {
                 \DB::table('pools_pool')->where('id', $pool->id)->update([
-                    'capacity' => (int) $this->max_persons_per_hour,
+                    'capacity' => $this->capacity_limit_enabled ? (int) $this->max_persons_per_hour : 1,
                     'private_booking_price' => (!empty($this->private_booking_price) && $this->private_booking_enabled) ? (float) $this->private_booking_price : null,
                     'private_request_enabled' => $this->private_booking_enabled,
                 ]);

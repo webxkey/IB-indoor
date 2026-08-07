@@ -938,7 +938,10 @@
         </div>
         @endif
 
-        <div class="d-flex justify-content-end align-items-center mb-3">
+        <div class="d-flex justify-content-end align-items-center mb-3 gap-2">
+            <a href="{{ route('staff.custom-booking') }}" class="btn btn-primary d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-3 fw-bold me-2">
+                <i class="fas fa-plus-circle"></i> Custom Booking
+            </a>
             <a href="{{ route('staff.completed-bookings') }}" class="btn btn-success d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-3 fw-bold">
                 <i class="fas fa-check-double"></i> Completed Bookings
             </a>
@@ -1090,62 +1093,42 @@
                             </div>
                             @endif
 
-                            <div class="mb-3">
-                                <label class="form-label">Player Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control @error('playerName') is-invalid @enderror"
-                                    wire:model.debounce.500ms="playerName" placeholder="Enter player name">
-                                @error('playerName')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control @error('phoneNumber') is-invalid @enderror"
-                                    wire:model.debounce.500ms="phoneNumber" 
-                                    placeholder="Enter phone number"
-                                    oninput="this.value = this.value.replace(/[^0-9]/g, '');">
-                                @error('phoneNumber')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Status</label>
-                                        <select class="form-select @error('status') is-invalid @enderror"
-                                            wire:model="status">
-                                            <option value="Confirmed">Confirmed</option>
-                                            <option value="Pending">Pending</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                            <option value="No-Show">No-Show</option>
-                                            <option value="Playing">Playing</option>
-                                        </select>
-                                        @error('status')
+                                        <label class="form-label">Player Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control @error('playerName') is-invalid @enderror"
+                                            wire:model.debounce.500ms="playerName" placeholder="Enter player name">
+                                        @error('playerName')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <div class="form-check form-switch mt-4">
-                                            <input class="form-check-input" type="checkbox" wire:model="permanent">
-                                            <label class="form-check-label">Permanent Booking</label>
-                                        </div>
+                                        <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                                        <input type="tel" class="form-control @error('phoneNumber') is-invalid @enderror"
+                                            wire:model.debounce.500ms="phoneNumber" 
+                                            placeholder="Enter phone number"
+                                            oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                                        @error('phoneNumber')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Notes</label>
-                                <textarea class="form-control @error('notes') is-invalid @enderror"
-                                    wire:model.debounce.500ms="notes" rows="3"
-                                    placeholder="Additional notes..."></textarea>
-                                @error('notes')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                            <div class="d-flex align-items-center gap-4 mb-3 p-3 bg-light rounded border">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="permanentCheck" wire:model="permanent">
+                                    <label class="form-check-label fw-semibold" for="permanentCheck">Permanent Booking</label>
+                                </div>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="isPrivateCheck" wire:model.live="is_private">
+                                    <label class="form-check-label fw-bold text-dark" for="isPrivateCheck">
+                                        <i class="fas fa-lock text-warning me-1"></i> Private Booking
+                                    </label>
+                                </div>
                             </div>
 
                             @error('general')
@@ -1739,7 +1722,6 @@
 
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     function printPaymentReceipt() {
         var receiptEl = document.getElementById('printable-payment-receipt');
@@ -2867,7 +2849,7 @@
                                     <!-- Top Header: Player Avatar + Info + Badges -->
                                     <div class="d-flex align-items-center justify-content-between w-100 pb-1 border-bottom border-dark border-opacity-10" style="flex-shrink: 0;">
                                         <div class="d-flex align-items-center flex-shrink-0" style="min-width: 0;">
-                                            <img src="${safeAvatarSrc}"
+                                    <img src="${safeAvatarSrc}"
                                                 onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(bookingInfo.player)}&background=0ea5e9&color=fff';"
                                                 alt=""
                                                 class="rounded-circle shadow-sm me-2"
@@ -2875,6 +2857,7 @@
                                                 style="object-fit: cover; flex-shrink: 0;">
                                             <div class="booking-info text-start text-truncate" style="padding: 0;">
                                                 <strong class="d-inline text-dark text-truncate" style="font-size: 0.82rem;">${bookingInfo.player}</strong>
+                                                ${bookingInfo.is_private ? '<i class="fas fa-lock ms-1 text-warning" title="Private Booking"></i>' : ''}
                                                 ${!bookingInfo.admin_comments ? '<i class="fas fa-mobile-alt ms-1 text-primary" style="font-size:0.75rem;" title="Mobile App Booking"></i>' : ''}
                                                 <small class="d-block text-muted text-truncate" style="font-size: 0.72rem;">${bookingInfo.phone}</small>
                                             </div>
@@ -2884,6 +2867,7 @@
                                             <span class="badge bg-dark text-white" style="font-size: 0.7rem;">${span}h (${span * 60}m)</span>
                                             ${statusBadge}
                                             ${bookingInfo.permanent_source_id ? `<span class="badge bg-dark text-white">P</span>` : ''}
+                                            ${bookingInfo.is_private ? `<span class="badge bg-warning text-dark" title="Private Booking"><i class="fas fa-lock me-1"></i>Private</span>` : ''}
                                         </div>
                                     </div>
 
@@ -2931,7 +2915,7 @@
                                             width="36" height="36"
                                             style="object-fit: cover; flex-shrink: 0;">
                                         <div class="booking-info text-truncate">
-                                            <strong class="d-block text-dark text-truncate">${bookingInfo.player} ${!bookingInfo.admin_comments ? '<i class="fas fa-mobile-alt ms-1 text-primary" title="Mobile App Booking"></i>' : ''}</strong>
+                                            <strong class="d-block text-dark text-truncate">${bookingInfo.player} ${bookingInfo.is_private ? '<i class="fas fa-lock ms-1 text-warning" title="Private Booking"></i>' : ''} ${!bookingInfo.admin_comments ? '<i class="fas fa-mobile-alt ms-1 text-primary" title="Mobile App Booking"></i>' : ''}</strong>
                                             <small class="d-block text-muted text-truncate">${bookingInfo.phone}</small>
                                         </div>
                                     </div>
@@ -2947,6 +2931,7 @@
                                     <!-- Right: Badges + Waitlist -->
                                     <div class="badges d-flex flex-column align-items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
                                         ${bookingInfo.permanent_source_id ? `<span class="badge bg-dark text-white">P</span>` : ''}
+                                        ${bookingInfo.is_private ? `<span class="badge bg-warning text-dark" title="Private Booking"><i class="fas fa-lock"></i></span>` : ''}
                                         ${sportId ? `
                                         <button class="slot-action-btn mt-1"
                                                 style="background:#0ea5e9;color:#fff;border-color:#0369a1;"

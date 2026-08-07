@@ -150,6 +150,7 @@
         'team'          => ['fa-users',       'Team',         'Team Member'],
         'opening_time'  => ['fa-clock',       'Hours',        'Opening Time'],
         'sports'        => ['fa-futbol',      'Sports',       'Sports Settings'],
+        'payments'      => ['fa-credit-card', 'Payments',     'Payment Options'],
         'cctv'          => ['fa-video',       'CCTV',         'CCTV Cameras'],
     ];
     @endphp
@@ -1102,6 +1103,163 @@
                     @endif
                 </div>
             </div>
+            @elseif($activeSection === 'payments')
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+                    <div>
+                        <h4 class="fw-bold mb-1"><i class="fas fa-credit-card text-success me-2"></i>Payment Methods & Policy</h4>
+                        <p class="text-muted small mb-0">Enable payment methods and set online & bank transfer advance deposit requirements for venue bookings.</p>
+                    </div>
+                    <button class="btn btn-success font-weight-bold" wire:click="savePaymentOptions" wire:loading.attr="disabled">
+                        <span wire:loading wire:target="savePaymentOptions" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="fas fa-save me-1"></i> Save Payment Settings
+                    </button>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Method 1: Online Payments -->
+                    <div class="col-md-12">
+                        <div class="card border-primary border-opacity-25 shadow-sm">
+                            <div class="card-header bg-primary bg-opacity-10 d-flex justify-content-between align-items-center py-3">
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-primary"><i class="fas fa-globe me-2"></i>1. Online Payment Gateway (Card / Digital)</h6>
+                                    <small class="text-muted">Allow customers to make payments online through credit/debit card gateway.</small>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input" type="checkbox" id="online_payments_enabled" wire:model.live="online_payments_enabled" style="width:2.5em;height:1.25em;cursor:pointer;">
+                                    <label class="form-check-label fw-bold text-dark ms-2" for="online_payments_enabled">
+                                        {{ $online_payments_enabled ? 'Enabled' : 'Disabled' }}
+                                    </label>
+                                </div>
+                            </div>
+                            @if($online_payments_enabled)
+                            <div class="card-body bg-light">
+                                <div class="row g-3">
+                                    <div class="col-md-{{ $online_booking_payment_mode === 'partial' ? '6' : '12' }}">
+                                        <label class="form-label fw-semibold small">Online Payment Requirement *</label>
+                                        <select class="form-select" wire:model.live="online_booking_payment_mode">
+                                            <option value="full">Full Payment Required (100% upfront)</option>
+                                            <option value="partial">Partial / Advance Deposit Required</option>
+                                        </select>
+                                        <small class="text-muted">Specify if customer must pay full amount or advance deposit online</small>
+                                    </div>
+
+                                    @if($online_booking_payment_mode === 'partial')
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold small">Advance Deposit Type *</label>
+                                        <select class="form-select" wire:model="online_advance_payment_type">
+                                            <option value="percentage">Percentage (%)</option>
+                                            <option value="fixed">Fixed Amount (LKR)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold small">Advance Deposit Value *</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" wire:model="online_advance_payment_value" min="0" step="0.01" placeholder="20">
+                                            <span class="input-group-text bg-white">{{ $online_advance_payment_type === 'percentage' ? '%' : 'LKR' }}</span>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Method 2: Bank Transfer -->
+                    <div class="col-md-12">
+                        <div class="card border-info border-opacity-25 shadow-sm">
+                            <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center py-3">
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-info"><i class="fas fa-university me-2"></i>2. Bank Transfer Payment</h6>
+                                    <small class="text-muted">Allow customers to submit bank transfer receipts for venue bookings.</small>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input" type="checkbox" id="bank_transfer_payments_enabled" wire:model.live="bank_transfer_payments_enabled" style="width:2.5em;height:1.25em;cursor:pointer;">
+                                    <label class="form-check-label fw-bold text-dark ms-2" for="bank_transfer_payments_enabled">
+                                        {{ $bank_transfer_payments_enabled ? 'Enabled' : 'Disabled' }}
+                                    </label>
+                                </div>
+                            </div>
+                            @if($bank_transfer_payments_enabled)
+                            <div class="card-body bg-light">
+                                <div class="row g-3">
+                                    <div class="col-md-{{ $bank_booking_payment_mode === 'partial' ? '6' : '12' }}">
+                                        <label class="form-label fw-semibold small">Bank Transfer Requirement *</label>
+                                        <select class="form-select" wire:model.live="bank_booking_payment_mode">
+                                            <option value="full">Full Payment Transfer (100% upfront)</option>
+                                            <option value="partial">Partial / Advance Deposit Transfer</option>
+                                        </select>
+                                        <small class="text-muted">Specify if customer must transfer full amount or advance deposit</small>
+                                    </div>
+
+                                    @if($bank_booking_payment_mode === 'partial')
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold small">Advance Deposit Type *</label>
+                                        <select class="form-select" wire:model="bank_advance_payment_type">
+                                            <option value="percentage">Percentage (%)</option>
+                                            <option value="fixed">Fixed Amount (LKR)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold small">Advance Deposit Value *</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" wire:model="bank_advance_payment_value" min="0" step="0.01" placeholder="20">
+                                            <span class="input-group-text bg-white">{{ $bank_advance_payment_type === 'percentage' ? '%' : 'LKR' }}</span>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Method 3 & 4: Cash at Venue & POS Card Machine at Venue -->
+                    <div class="col-md-6">
+                        <div class="card border-success border-opacity-25 shadow-sm h-100">
+                            <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center py-3">
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-success"><i class="fas fa-money-bill-wave me-2"></i>3. Cash Payment at Venue</h6>
+                                    <small class="text-muted">Allow offline cash collection at reception.</small>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input" type="checkbox" id="cash_payments_enabled" wire:model="cash_payments_enabled" style="width:2.5em;height:1.25em;cursor:pointer;">
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted small mb-0">Customers pay in cash directly at venue desk before playing.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card border-secondary border-opacity-25 shadow-sm h-100">
+                            <div class="card-header bg-secondary bg-opacity-10 d-flex justify-content-between align-items-center py-3">
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-credit-card me-2"></i>4. POS Card Machine at Venue</h6>
+                                    <small class="text-muted">Allow card payments via desk POS terminal.</small>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input" type="checkbox" id="venue_card_payments_enabled" wire:model="venue_card_payments_enabled" style="width:2.5em;height:1.25em;cursor:pointer;">
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted small mb-0">Customers swipe/tap credit/debit card on desk POS card reader.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top text-end">
+                    <button class="btn btn-success btn-lg px-4" wire:click="savePaymentOptions" wire:loading.attr="disabled">
+                        <span wire:loading wire:target="savePaymentOptions" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="fas fa-check-circle me-1"></i> Save Payment Options & Policy
+                    </button>
+                </div>
+            </div>
             @elseif($activeSection === 'cctv')
             <div>
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -1664,8 +1822,6 @@
     </div>{{-- /settings-wrapper --}}
 </div>{{-- /container-fluid --}}
 
-<!-- Include Bootstrap JS and dependencies -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
     function togglePassword(button) {

@@ -41,6 +41,7 @@ class BookingsManagement extends Component
     public $num_persons = 1;
     public $status = 'Confirmed';
     public $permanent = false;
+    public $is_private = false;
     public $notes = '';
 
     // Multi-slot Cancellation Modal
@@ -252,6 +253,7 @@ class BookingsManagement extends Component
                             'phone' => $booking->user_number ?? 'N/A',
                             'status' => $booking->status ?? 'Pending',
                             'permanent_source_id' => $booking->permanent_source_id,
+                            'is_private' => (bool) $booking->is_private,
                             'end' => $slotEnd,
                             'avatar' => $avatarUrl,
                             'id' => $booking->id,
@@ -265,6 +267,7 @@ class BookingsManagement extends Component
                                     'phone' => $booking->user_number ?? 'N/A',
                                     'num_persons' => $numPersons,
                                     'status' => $booking->status ?? 'Pending',
+                                    'is_private' => (bool) $booking->is_private,
                                     'avatar' => $avatarUrl,
                                 ]
                             ]
@@ -279,6 +282,7 @@ class BookingsManagement extends Component
                             'phone' => $booking->user_number ?? 'N/A',
                             'num_persons' => $numPersons,
                             'status' => $booking->status ?? 'Pending',
+                            'is_private' => (bool) $booking->is_private,
                             'avatar' => $avatarUrl,
                         ];
                     }
@@ -451,7 +455,17 @@ class BookingsManagement extends Component
             'num_persons' => $numPersonsCount,
         ]);
 
-        $unitPrice = $sport->price ?? 1800.00;
+        $unitPrice = (float) ($sport->price ?? 1800.00);
+        if ($this->is_private) {
+            $charges = is_array($sport->additional_charges) ? $sport->additional_charges : (json_decode($sport->additional_charges, true) ?? []);
+            if (!empty($sport->private_booking_price)) {
+                $unitPrice = (float) $sport->private_booking_price;
+            } elseif (!empty($charges['private_booking_price'])) {
+                $unitPrice = (float) $charges['private_booking_price'];
+            } elseif (!empty($charges['private_price'])) {
+                $unitPrice = (float) $charges['private_price'];
+            }
+        }
         $totalBookingPrice = $unitPrice * $numPersonsCount;
 
         $bookingData = [
@@ -484,7 +498,7 @@ class BookingsManagement extends Component
             'notes' => $this->notes ?: '',
             'admin_comments' => $adminCommentsPayload,
             'is_challenge_booking' => false,
-            'is_private' => false,
+            'is_private' => (bool) $this->is_private,
             'opponent_team_id' => null,
             'team_id' => null,
         ];

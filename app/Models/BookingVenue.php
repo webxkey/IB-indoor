@@ -14,7 +14,10 @@ class BookingVenue extends Model
         'website','status','opening_hours','amenities','cover_image',
         'gallery_images_json','video_tour_url','description','terms',
         'social_links','analytics_enabled','venue_category', 'is_featured',
-        'city', 'district', 'geohash', 'lat', 'lng'
+        'city', 'district', 'geohash', 'lat', 'lng',
+        'advance_payment_required', 'advance_payment_type', 'advance_payment_value',
+        'bank_transfer_payments_enabled', 'cash_payments_enabled', 'online_payments_enabled',
+        'venue_card_payments_enabled', 'booking_payment_mode'
     ];
    protected $attributes = [
         'image_url' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
