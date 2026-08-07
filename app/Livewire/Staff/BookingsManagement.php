@@ -38,6 +38,7 @@ class BookingsManagement extends Component
     public $selectedCourt = '';
     public $playerName = '';
     public $phoneNumber = '';
+    public $num_persons = 1;
     public $status = 'Confirmed';
     public $permanent = false;
     public $notes = '';
@@ -222,6 +223,15 @@ class BookingsManagement extends Component
                     $hours = max(1, (int) $startTime->diffInHours($endTime));
                 }
 
+                // Extract num_persons from admin_comments if available
+                $numPersons = 1;
+                if (!empty($booking->admin_comments) && str_contains($booking->admin_comments, '{')) {
+                    $json = json_decode($booking->admin_comments, true);
+                    if (isset($json['num_persons'])) {
+                        $numPersons = max(1, (int) $json['num_persons']);
+                    }
+                }
+
                 for ($i = 0; $i < $hours; $i++) {
                     $slotKey = $startTime->copy()->addHours($i)->format('H:i:s');
                     $slotEnd = $startTime->copy()->addHours($i + 1)->format('H:i:s');
@@ -233,16 +243,45 @@ class BookingsManagement extends Component
                         $avatarUrl = Storage::url($user->profile_picture);
                     }
 
-                    $this->bookingdetails[$game][$date][$court][$slotKey] = [
-                        'player' => $booking->user_name ?? 'Unknown',
-                        'phone' => $booking->user_number ?? 'N/A',
-                        'status' => $booking->status ?? 'Pending',
-                        'permanent_source_id' => $booking->permanent_source_id,
-                        'end' => $slotEnd,
-                        'avatar' => $avatarUrl,
-                        'id' => $booking->id,
-                        'admin_comments' => $booking->admin_comments,
-                    ];
+                    $isCancelled = strtolower($booking->status ?? '') === 'cancelled';
+                    $personCountForSlot = $isCancelled ? 0 : $numPersons;
+
+                    if (!isset($this->bookingdetails[$game][$date][$court][$slotKey])) {
+                        $this->bookingdetails[$game][$date][$court][$slotKey] = [
+                            'player' => $booking->user_name ?? 'Unknown',
+                            'phone' => $booking->user_number ?? 'N/A',
+                            'status' => $booking->status ?? 'Pending',
+                            'permanent_source_id' => $booking->permanent_source_id,
+                            'end' => $slotEnd,
+                            'avatar' => $avatarUrl,
+                            'id' => $booking->id,
+                            'admin_comments' => $booking->admin_comments,
+                            'num_persons' => $numPersons,
+                            'total_persons' => $personCountForSlot,
+                            'bookings_list' => [
+                                [
+                                    'id' => $booking->id,
+                                    'player' => $booking->user_name ?? 'Unknown',
+                                    'phone' => $booking->user_number ?? 'N/A',
+                                    'num_persons' => $numPersons,
+                                    'status' => $booking->status ?? 'Pending',
+                                    'avatar' => $avatarUrl,
+                                ]
+                            ]
+                        ];
+                    } else {
+                        if (!$isCancelled) {
+                            $this->bookingdetails[$game][$date][$court][$slotKey]['total_persons'] += $personCountForSlot;
+                        }
+                        $this->bookingdetails[$game][$date][$court][$slotKey]['bookings_list'][] = [
+                            'id' => $booking->id,
+                            'player' => $booking->user_name ?? 'Unknown',
+                            'phone' => $booking->user_number ?? 'N/A',
+                            'num_persons' => $numPersons,
+                            'status' => $booking->status ?? 'Pending',
+                            'avatar' => $avatarUrl,
+                        ];
+                    }
                 }
             }
         } catch (\Exception $e) {
@@ -406,6 +445,15 @@ class BookingsManagement extends Component
             $endHour = 24;
         }
 
+        $numPersonsCount = max(1, (int) ($this->num_persons ?? 1));
+        $adminCommentsPayload = json_encode([
+            'web_book' => true,
+            'num_persons' => $numPersonsCount,
+        ]);
+
+        $unitPrice = $sport->price ?? 1800.00;
+        $totalBookingPrice = $unitPrice * $numPersonsCount;
+
         $bookingData = [
             'user_id_id' => $userUser?->id, // null if no users_user record
             'complex_id_id' => $this->complex_id,
@@ -419,10 +467,10 @@ class BookingsManagement extends Component
             'start_time' => $startTime,
             'end_time' => $endTime,
             'duration' => 60,
-            'price' => $sport->price ?? 1800.00,
+            'price' => $totalBookingPrice,
             'advance_amount' => 0,
             'amount_paid' => 0,
-            'balance_due' => $sport->price ?? 1800.00,
+            'balance_due' => $totalBookingPrice,
             'financial_status' => 'Pending',
             'is_initial_permanent_occurrence' => false,
             'offline_paid_amount' => 0,
@@ -434,12 +482,17 @@ class BookingsManagement extends Component
             'payment_method' => null,
             'status' => $this->status,
             'notes' => $this->notes ?: '',
-            'admin_comments' => 'web_book',
+            'admin_comments' => $adminCommentsPayload,
             'is_challenge_booking' => false,
             'is_private' => false,
             'opponent_team_id' => null,
             'team_id' => null,
         ];
+
+        // Determine max capacity for selected game
+        $charges = is_array($sport->additional_charges) ? $sport->additional_charges : (json_decode($sport->additional_charges, true) ?? []);
+        $gameKeyLower = strtolower($this->selectedGame);
+        $maxCapForGame = (int) ($charges['max_persons_per_hour'] ?? ($gameKeyLower === 'pools' || $gameKeyLower === 'pool' ? 10 : 1));
 
         // Create booking(s)
         if ($this->permanent) {
@@ -458,14 +511,30 @@ class BookingsManagement extends Component
                 $dateStr = $current->format('Y-m-d');
                 $formattedDate = $current->format('D, M j, Y');
 
-                // Check existing non-cancelled booking
-                $existingBooking = BookingBooking::where('complex_id_id', $this->complex_id)
-                    ->where('game_name', $this->selectedGame)
+                // Check existing non-cancelled bookings
+                $existingBookings = BookingBooking::where('complex_id_id', $this->complex_id)
+                    ->whereRaw('LOWER(game_name) = ?', [strtolower($this->selectedGame)])
                     ->where('court_number', $this->selectedCourt)
                     ->where('booking_date', $dateStr)
                     ->where('start_time', $startTime)
-                    ->whereNotIn('status', ['Cancelled'])
-                    ->first();
+                    ->whereRaw('LOWER(status) != ?', ['cancelled'])
+                    ->get();
+
+                $alreadyBookedPersons = 0;
+                foreach ($existingBookings as $eb) {
+                    $pCount = 1;
+                    if (!empty($eb->admin_comments) && str_contains($eb->admin_comments, '{')) {
+                        $jPayload = json_decode($eb->admin_comments, true);
+                        if (isset($jPayload['num_persons'])) {
+                            $pCount = max(1, (int) $jPayload['num_persons']);
+                        }
+                    }
+                    $alreadyBookedPersons += $pCount;
+                }
+
+                $isCapacityExceeded = ($maxCapForGame > 1)
+                    ? (($alreadyBookedPersons + $numPersonsCount) > $maxCapForGame)
+                    : ($existingBookings->count() > 0);
 
                 // Check blocked slots
                 $isBlocked = false;
@@ -477,10 +546,10 @@ class BookingsManagement extends Component
                     }
                 }
 
-                if ($existingBooking || $isBlocked) {
-                    $reason = $isBlocked ? 'Slot Blocked' : 'Already Booked';
-                    if ($existingBooking && $existingBooking->user_name) {
-                        $reason .= " ({$existingBooking->user_name})";
+                if ($isCapacityExceeded || $isBlocked) {
+                    $reason = $isBlocked ? 'Slot Blocked' : ($maxCapForGame > 1 ? "Capacity Full ({$alreadyBookedPersons}/{$maxCapForGame} Booked)" : 'Already Booked');
+                    if ($existingBookings->count() > 0 && $existingBookings->first()->user_name && $maxCapForGame <= 1) {
+                        $reason .= " ({$existingBookings->first()->user_name})";
                     }
                     $ignoredDates[] = [
                         'date' => $dateStr,
@@ -521,14 +590,30 @@ class BookingsManagement extends Component
                 $slotEndDisplay   = Carbon::parse($slotEndStr)->format('g:i A');
                 $slotLabel        = "{$slotStartDisplay} – {$slotEndDisplay}";
 
-                // 1. Check existing booking
-                $existingBooking = BookingBooking::where('complex_id_id', $this->complex_id)
-                    ->where('game_name', $this->selectedGame)
+                // Check existing non-cancelled bookings for this slot
+                $existingBookings = BookingBooking::where('complex_id_id', $this->complex_id)
+                    ->whereRaw('LOWER(game_name) = ?', [strtolower($this->selectedGame)])
                     ->where('court_number', $this->selectedCourt)
                     ->where('booking_date', $this->selectedDate)
                     ->where('start_time', $slotStartStr)
-                    ->whereNotIn('status', ['Cancelled'])
-                    ->first();
+                    ->whereRaw('LOWER(status) != ?', ['cancelled'])
+                    ->get();
+
+                $alreadyBookedPersons = 0;
+                foreach ($existingBookings as $eb) {
+                    $pCount = 1;
+                    if (!empty($eb->admin_comments) && str_contains($eb->admin_comments, '{')) {
+                        $jPayload = json_decode($eb->admin_comments, true);
+                        if (isset($jPayload['num_persons'])) {
+                            $pCount = max(1, (int) $jPayload['num_persons']);
+                        }
+                    }
+                    $alreadyBookedPersons += $pCount;
+                }
+
+                $isCapacityExceeded = ($maxCapForGame > 1)
+                    ? (($alreadyBookedPersons + $numPersonsCount) > $maxCapForGame)
+                    : ($existingBookings->count() > 0);
 
                 // 2. Check blocked slots
                 $isBlocked = false;
@@ -543,8 +628,15 @@ class BookingsManagement extends Component
                     $isBlocked = true;
                 }
 
-                if ($existingBooking || $isBlocked) {
-                    $reason = $isBlocked ? 'Blocked' : ('Booked' . ($existingBooking?->user_name ? " by {$existingBooking->user_name}" : ''));
+                if ($isCapacityExceeded || $isBlocked) {
+                    if ($isBlocked) {
+                        $reason = 'Blocked';
+                    } elseif ($maxCapForGame > 1) {
+                        $reason = "Capacity Full ({$alreadyBookedPersons}/{$maxCapForGame} Booked)";
+                    } else {
+                        $firstUser = $existingBookings->first()?->user_name;
+                        $reason = 'Booked' . ($firstUser ? " by {$firstUser}" : '');
+                    }
                     $skippedSlots[] = "{$slotLabel} ({$reason})";
                     continue;
                 }
@@ -1340,12 +1432,23 @@ class BookingsManagement extends Component
 
     public function render()
     {
+        $maxCapacityMap = [];
+        if (!empty($this->sports)) {
+            foreach ($this->sports as $s) {
+                $gameKey = strtolower($s->name);
+                $charges = is_array($s->additional_charges) ? $s->additional_charges : (json_decode($s->additional_charges, true) ?? []);
+                $maxPersons = $charges['max_persons_per_hour'] ?? ($gameKey === 'pools' || $gameKey === 'pool' ? 10 : 1);
+                $maxCapacityMap[$gameKey] = (int) $maxPersons;
+            }
+        }
+
         return view('livewire.staff.bookings-management', [
             'games'          => $this->games ?? [],
             'bookingdetails' => $this->bookingdetails ?? [],
             'complex_id'     => $this->complex_id,
             'opening_hours'  => $this->opening_hours ?? [],
             'sports'         => $this->sports ?? collect(),
+            'maxCapacityMap' => $maxCapacityMap,
         ]);
     }
 }

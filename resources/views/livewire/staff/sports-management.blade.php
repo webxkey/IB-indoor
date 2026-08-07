@@ -77,13 +77,53 @@
 
                 <div class="card-body">
                     <h5 class="card-title">{{ $sport->name }}</h5>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Hourly Rate:</span>
-                        <span class="fw-bold">Rs. {{ number_format($sport->price) }}</span>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">Hourly Base Rate:</span>
+                        <span class="fw-bold text-dark">Rs. {{ number_format($sport->price) }}</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Available Courts:</span>
-                        <span class="fw-bold">{{ $sport->maximum_court }}</span>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">Available Courts:</span>
+                        <span class="fw-bold text-dark">{{ $sport->maximum_court }}</span>
+                    </div>
+
+                    @php
+                        $rules = is_array($sport->pricing_rules) ? $sport->pricing_rules : (json_decode($sport->pricing_rules, true) ?? []);
+                        $charges = is_array($sport->additional_charges) ? $sport->additional_charges : (json_decode($sport->additional_charges, true) ?? []);
+                        $maxPersons = $charges['max_persons_per_hour'] ?? null;
+                    @endphp
+
+                    @if(!empty($rules['peak_price']))
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">Peak Rate ({{ \Carbon\Carbon::parse($rules['peak_start_time'] ?? '17:00')->format('g:i A') }} - {{ \Carbon\Carbon::parse($rules['peak_end_time'] ?? '22:00')->format('g:i A') }}):</span>
+                        <span class="fw-bold text-primary">Rs. {{ number_format($rules['peak_price']) }}</span>
+                    </div>
+                    @endif
+
+                    @if($maxPersons)
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">Max Swimmers/Limit:</span>
+                        <span class="badge bg-info text-dark fw-bold">{{ $maxPersons }} Persons/Hr</span>
+                    </div>
+                    @endif
+
+                    @if(!empty($sport->private_booking_price))
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">Private Rental:</span>
+                        <span class="badge bg-success fw-bold">Rs. {{ number_format($sport->private_booking_price) }}</span>
+                    </div>
+                    @endif
+
+                    <div class="mt-2 pt-2 border-top">
+                        <small class="text-muted d-block mb-1">Payment Policy:</small>
+                        @if($sport->booking_payment_mode_override === 'pay_at_venue')
+                            <span class="badge bg-warning text-dark">Pay at Venue</span>
+                        @elseif($sport->booking_payment_mode_override === 'partial' || $sport->advance_required)
+                            <span class="badge bg-primary">
+                                Deposit: {{ $sport->advance_payment_value_override ?? 20 }}{{ ($sport->advance_payment_type_override ?? 'percentage') === 'percentage' ? '%' : ' LKR' }}
+                            </span>
+                        @else
+                            <span class="badge bg-secondary">Full Payment</span>
+                        @endif
                     </div>
                 </div>
                 <div class="card-footer bg-transparent">
@@ -184,17 +224,110 @@
 
                             <div class="col-md-12">
                                 <label for="description" class="form-label fw-semibold">Description</label>
-                                <textarea class="form-control" id="description" wire:model="description" rows="3"
+                                <textarea class="form-control" id="description" wire:model="description" rows="2"
                                     placeholder="Optional"></textarea>
                                 @error('description') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
 
+                            {{-- Payment Policy Customization --}}
                             <div class="col-md-12">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="advance_required"
-                                        wire:model="advance_required">
-                                    <label class="form-check-label fw-semibold" for="advance_required">Advance Payment
-                                        Required</label>
+                                <div class="card border-primary border-opacity-25 bg-light">
+                                    <div class="card-header bg-primary bg-opacity-10 fw-bold small text-primary text-uppercase">
+                                        <i class="fas fa-credit-card me-1"></i> Payment Policy Customization
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Payment Requirement Mode *</label>
+                                                <select class="form-select form-select-sm" wire:model="booking_payment_mode_override">
+                                                    <option value="full">Full Payment Required</option>
+                                                    <option value="partial">Partial / Advance Deposit Required</option>
+                                                    <option value="pay_at_venue">Pay at Venue</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-semibold small">Deposit Type *</label>
+                                                <select class="form-select form-select-sm" wire:model="advance_payment_type_override">
+                                                    <option value="percentage">Percentage (%)</option>
+                                                    <option value="fixed">Fixed Amount (LKR)</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-semibold small">Deposit Value *</label>
+                                                <input type="number" class="form-control form-control-sm" wire:model="advance_payment_value_override" min="0" step="0.01">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Capacity / Pool Hourly Limit Customization --}}
+                            <div class="col-md-12">
+                                <div class="card border-info border-opacity-25 bg-light">
+                                    <div class="card-header bg-info bg-opacity-10 fw-bold small text-info text-uppercase">
+                                        <i class="fas fa-users me-1"></i> Hourly Swimmer / Person Access Limit (Pools & Sports)
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Max Persons / Swimmers Allowed Per Hour *</label>
+                                                <input type="number" class="form-control form-control-sm" wire:model="max_persons_per_hour" min="1" placeholder="e.g. 10">
+                                                <small class="text-muted">Set capacity limit for pool entries and court slots</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Private Booking Options Customization --}}
+                            <div class="col-md-12">
+                                <div class="card border-success border-opacity-25 bg-light">
+                                    <div class="card-header bg-success bg-opacity-10 fw-bold small text-success text-uppercase">
+                                        <i class="fas fa-user-lock me-1"></i> Private Booking & Full Rental Customization
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-12">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="private_booking_enabled_add" wire:model="private_booking_enabled">
+                                                    <label class="form-check-label fw-semibold" for="private_booking_enabled_add">
+                                                        Enable Private Booking Rental
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            @if($private_booking_enabled)
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Private Booking Price (LKR)</label>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">LKR</span>
+                                                    <input type="number" class="form-control" wire:model="private_booking_price" placeholder="e.g. 10000">
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Minimum Duration (Minutes)</label>
+                                                <input type="number" class="form-control form-control-sm" wire:model="private_booking_min_duration_minutes" placeholder="180">
+                                                <small class="text-muted">Default 180 min (3 Hours)</small>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Private Pricing Mode</label>
+                                                <select class="form-select form-select-sm" wire:model="private_booking_pricing_mode">
+                                                    <option value="flat_total">Flat Rate (Fixed Total)</option>
+                                                    <option value="normal_total">Normal Hourly Rate x Multiplier</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Price Multiplier</label>
+                                                <input type="number" class="form-control form-control-sm" wire:model="private_booking_price_multiplier" step="0.1" placeholder="1.5">
+                                            </div>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -212,37 +345,137 @@
 
     <!-- Pricing Rules Modal -->
     @if($showPricingModal)
-    <div class="modal show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-tags me-2"></i>Dynamic Pricing Rules</h5>
-                    <button type="button" class="btn-close" wire:click="closePricingModal"></button>
+    <div class="modal show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5); z-index: 1060;">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-tags me-2"></i>Customize Dynamic Peak Times & Pricing</h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="closePricingModal"></button>
                 </div>
-                <div class="modal-body">
-                    <p class="text-muted small mb-3">Leave blank to use the base price. These override the default price per hour.</p>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">Customize both peak time windows and peak rates. Leave empty to use standard base pricing.</p>
+                    
+                    {{-- Peak Schedule Global Enable Switch --}}
+                    <div class="card border-primary border-opacity-25 bg-primary bg-opacity-10 mb-3 shadow-sm" style="border-radius: 8px;">
+                        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <i class="far fa-calendar-alt text-primary fs-5 me-2"></i>
+                                <div>
+                                    <h6 class="fw-bold text-primary mb-0 small text-uppercase">Enable Per-Day Peak Time Schedule</h6>
+                                    <small class="text-muted" style="font-size: 0.75rem;">Configure custom peak time start & end hours per day</small>
+                                </div>
+                            </div>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" id="peak_schedule_global_toggle"
+                                       wire:model.live="pricingRules.peak_schedule_enabled" style="width: 2.2rem; height: 1.1rem; cursor: pointer;">
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- White Background Per-Day Peak Schedule Table --}}
+                    @if(filter_var(data_get($pricingRules, 'peak_schedule_enabled'), FILTER_VALIDATE_BOOLEAN))
+                    <div class="card border border-secondary border-opacity-25 bg-white mb-4 shadow-sm" style="border-radius: 8px; overflow: hidden;">
+                        <div class="card-header bg-light border-bottom py-2 px-3">
+                            <h6 class="fw-bold mb-0 text-dark text-uppercase small" style="font-size: 0.78rem; letter-spacing: 0.5px;">
+                                <i class="far fa-clock me-1 text-primary"></i> Day-by-Day Peak Time Configuration
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+                                    <thead class="table-light text-uppercase text-muted" style="font-size: 0.72rem;">
+                                        <tr>
+                                            <th class="ps-3 py-2">Day</th>
+                                            <th class="text-center py-2">Peak Enabled</th>
+                                            <th class="py-2">Starts</th>
+                                            <th class="text-center py-2">to</th>
+                                            <th class="pe-3 py-2">Ends</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php
+                                            $weekDaysList = [
+                                                'monday'    => 'Monday',
+                                                'tuesday'   => 'Tuesday',
+                                                'wednesday' => 'Wednesday',
+                                                'thursday'  => 'Thursday',
+                                                'friday'    => 'Friday',
+                                                'saturday'  => 'Saturday',
+                                                'sunday'    => 'Sunday'
+                                            ];
+                                        @endphp
+                                        @foreach($weekDaysList as $dayKey => $dayLabel)
+                                        <tr>
+                                            <td class="ps-3 fw-bold text-dark py-2">{{ $dayLabel }}</td>
+                                            <td class="text-center py-2">
+                                                <input class="form-check-input" type="checkbox" style="width: 1.15rem; height: 1.15rem; cursor: pointer;"
+                                                       wire:model.live="pricingRules.peak_schedule.{{ $dayKey }}.enabled">
+                                            </td>
+                                            <td class="py-2">
+                                                @php $isDayPeak = !empty(data_get($pricingRules, "peak_schedule.{$dayKey}.enabled")); @endphp
+                                                <select class="form-select form-select-sm border-gray-300 shadow-sm"
+                                                        style="max-width: 125px; font-size: 0.82rem;"
+                                                        wire:model="pricingRules.peak_schedule.{{ $dayKey }}.start_time"
+                                                        {{ !$isDayPeak ? 'disabled' : '' }}>
+                                                    @for($h = 5; $h <= 23; $h++)
+                                                        <option value="{{ sprintf('%02d', $h) }}:00">{{ \Carbon\Carbon::parse(sprintf('%02d', $h) . ':00')->format('g:i A') }}</option>
+                                                    @endfor
+                                                </select>
+                                            </td>
+                                            <td class="text-center text-muted small py-2">to</td>
+                                            <td class="pe-3 py-2">
+                                                <select class="form-select form-select-sm border-gray-300 shadow-sm"
+                                                        style="max-width: 125px; font-size: 0.82rem;"
+                                                        wire:model="pricingRules.peak_schedule.{{ $dayKey }}.end_time"
+                                                        {{ !$isDayPeak ? 'disabled' : '' }}>
+                                                    @for($h = 6; $h <= 23; $h++)
+                                                        <option value="{{ sprintf('%02d', $h) }}:00">{{ \Carbon\Carbon::parse(sprintf('%02d', $h) . ':00')->format('g:i A') }}</option>
+                                                    @endfor
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Peak Hour Price (LKR/hr)</label>
-                            <input type="number" class="form-control" wire:model="pricingRules.peak_price" placeholder="e.g. 2500">
-                            <small class="text-muted">Weekdays 6–10AM, 4–9PM</small>
+                            <label class="form-label fw-semibold">Peak Hour Price (LKR/hr)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">LKR</span>
+                                <input type="number" class="form-control" wire:model="pricingRules.peak_price" placeholder="e.g. 3500">
+                            </div>
+                            <small class="text-muted">Applied during Peak Time Window</small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Off-Peak Price (LKR/hr)</label>
-                            <input type="number" class="form-control" wire:model="pricingRules.offpeak_price" placeholder="e.g. 1500">
-                            <small class="text-muted">All other hours</small>
+                            <label class="form-label fw-semibold">Off-Peak Hour Price (LKR/hr)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">LKR</span>
+                                <input type="number" class="form-control" wire:model="pricingRules.offpeak_price" placeholder="e.g. 2000">
+                            </div>
+                            <small class="text-muted">Applied outside Peak Time Window</small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Weekend Price (LKR/hr)</label>
-                            <input type="number" class="form-control" wire:model="pricingRules.weekend_price" placeholder="e.g. 3000">
-                            <small class="text-muted">Saturday & Sunday</small>
+                            <label class="form-label fw-semibold">Weekend Price (LKR/hr)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">LKR</span>
+                                <input type="number" class="form-control" wire:model="pricingRules.weekend_price" placeholder="e.g. 4000">
+                            </div>
+                            <small class="text-muted">Applied on Saturday & Sunday</small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Advance Booking Discount (%)</label>
-                            <input type="number" class="form-control" wire:model="pricingRules.advance_discount" placeholder="e.g. 10" min="0" max="100">
+                            <label class="form-label fw-semibold">Advance Booking Discount (%)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" wire:model="pricingRules.advance_discount" placeholder="e.g. 10" min="0" max="100">
+                                <span class="input-group-text">%</span>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Book X Days in Advance</label>
+                            <label class="form-label fw-semibold">Book X Days in Advance</label>
                             <input type="number" class="form-control" wire:model="pricingRules.advance_days" placeholder="e.g. 3">
                             <small class="text-muted">Discount applies if booked this many days early</small>
                         </div>
@@ -250,7 +483,7 @@
                     @error('pricingRules.peak_price') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                     @error('pricingRules.advance_discount') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-outline-secondary" wire:click="closePricingModal">Cancel</button>
                     <button type="button" class="btn btn-success" wire:click="savePricingRules" wire:loading.attr="disabled">
                         <span wire:loading wire:target="savePricingRules" class="spinner-border spinner-border-sm me-1"></span>
@@ -448,15 +681,109 @@
 
                             <div class="col-md-12">
                                 <label class="form-label fw-semibold">Description</label>
-                                <textarea class="form-control" wire:model="description" rows="3"></textarea>
+                                <textarea class="form-control" wire:model="description" rows="2"></textarea>
                                 @error('description') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
 
+                            {{-- Payment Policy Customization --}}
                             <div class="col-md-12">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="edit_advance_required"
-                                        wire:model="advance_required">
-                                    <label class="form-check-label fw-semibold" for="edit_advance_required">Advance Payment Required</label>
+                                <div class="card border-primary border-opacity-25 bg-light">
+                                    <div class="card-header bg-primary bg-opacity-10 fw-bold small text-primary text-uppercase">
+                                        <i class="fas fa-credit-card me-1"></i> Payment Policy Customization
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Payment Requirement Mode *</label>
+                                                <select class="form-select form-select-sm" wire:model="booking_payment_mode_override">
+                                                    <option value="full">Full Payment Required</option>
+                                                    <option value="partial">Partial / Advance Deposit Required</option>
+                                                    <option value="pay_at_venue">Pay at Venue</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-semibold small">Deposit Type *</label>
+                                                <select class="form-select form-select-sm" wire:model="advance_payment_type_override">
+                                                    <option value="percentage">Percentage (%)</option>
+                                                    <option value="fixed">Fixed Amount (LKR)</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-semibold small">Deposit Value *</label>
+                                                <input type="number" class="form-control form-control-sm" wire:model="advance_payment_value_override" min="0" step="0.01">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Capacity / Pool Hourly Limit Customization --}}
+                            <div class="col-md-12">
+                                <div class="card border-info border-opacity-25 bg-light">
+                                    <div class="card-header bg-info bg-opacity-10 fw-bold small text-info text-uppercase">
+                                        <i class="fas fa-users me-1"></i> Hourly Swimmer / Person Access Limit (Pools & Sports)
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Max Persons / Swimmers Allowed Per Hour *</label>
+                                                <input type="number" class="form-control form-control-sm" wire:model="max_persons_per_hour" min="1" placeholder="e.g. 10">
+                                                <small class="text-muted">Set capacity limit for pool entries and court slots</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Private Booking Options Customization --}}
+                            <div class="col-md-12">
+                                <div class="card border-success border-opacity-25 bg-light">
+                                    <div class="card-header bg-success bg-opacity-10 fw-bold small text-success text-uppercase">
+                                        <i class="fas fa-user-lock me-1"></i> Private Booking & Full Rental Customization
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-12">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="private_booking_enabled_edit" wire:model="private_booking_enabled">
+                                                    <label class="form-check-label fw-semibold" for="private_booking_enabled_edit">
+                                                        Enable Private Booking Rental
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            @if($private_booking_enabled)
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Private Booking Price (LKR)</label>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">LKR</span>
+                                                    <input type="number" class="form-control" wire:model="private_booking_price" placeholder="e.g. 10000">
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Minimum Duration (Minutes)</label>
+                                                <input type="number" class="form-control form-control-sm" wire:model="private_booking_min_duration_minutes" placeholder="180">
+                                                <small class="text-muted">Default 180 min (3 Hours)</small>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Private Pricing Mode</label>
+                                                <select class="form-select form-select-sm" wire:model="private_booking_pricing_mode">
+                                                    <option value="flat_total">Flat Rate (Fixed Total)</option>
+                                                    <option value="normal_total">Normal Hourly Rate x Multiplier</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Price Multiplier</label>
+                                                <input type="number" class="form-control form-control-sm" wire:model="private_booking_price_multiplier" step="0.1" placeholder="1.5">
+                                            </div>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

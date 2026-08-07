@@ -1071,6 +1071,25 @@
                                 </div>
                             </div>
 
+                            @php
+                                $currentGameKey = strtolower($selectedGame ?? '');
+                                $maxCap = $maxCapacityMap[$currentGameKey] ?? 1;
+                            @endphp
+
+                            @if($maxCap > 1 || $currentGameKey === 'pools' || $currentGameKey === 'pool')
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-primary">
+                                    <i class="fas fa-users me-1"></i> Number of Swimmers / Persons <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-primary"><i class="fas fa-user-plus"></i></span>
+                                    <input type="number" class="form-control" wire:model="num_persons" min="1" max="{{ $maxCap }}" placeholder="1">
+                                    <span class="input-group-text bg-light text-muted">Persons (Max: {{ $maxCap }})</span>
+                                </div>
+                                <small class="text-muted">Specify how many persons are included in this booking slot</small>
+                            </div>
+                            @endif
+
                             <div class="mb-3">
                                 <label class="form-label">Player Name <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control @error('playerName') is-invalid @enderror"
@@ -1793,6 +1812,7 @@
                 return [strtolower($sport->name) => $sport->id];
             })->toArray()
         );
+        window.maxCapacityMap = @json($maxCapacityMap ?? []);
 
         // Debug - log what we received
         console.log('=== DATA RECEIVED FROM BACKEND ===');
@@ -2220,6 +2240,69 @@
             });
         }
 
+        window.triggerCancelBookingJS = function(bookingId, playerName) {
+            Swal.fire({
+                title: 'Cancel Booking?',
+                text: `Are you sure you want to cancel booking for ${playerName}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Cancel Booking'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    @this.call('cancelBooking', bookingId);
+                }
+            });
+        };
+
+        window.getCalculatedRemainingSeconds = function(timerId, dateKey, rawTime, totalDurationSecs) {
+            totalDurationSecs = totalDurationSecs || 3600;
+            const savedStart = localStorage.getItem('timer_started_at_' + timerId);
+            if (savedStart) {
+                const elapsed = Math.floor((Date.now() - parseInt(savedStart, 10)) / 1000);
+                return Math.max(0, totalDurationSecs - elapsed);
+            }
+            if (dateKey && rawTime) {
+                const dateParts = dateKey.split('-');
+                const timeParts = rawTime.split(':');
+                if (dateParts.length >= 3 && timeParts.length >= 2) {
+                    const now = new Date();
+                    const yearPart = parseInt(dateParts[0], 10);
+                    const monthPart = parseInt(dateParts[1], 10) - 1;
+                    const dayPart = parseInt(dateParts[2], 10);
+                    const hourPart = parseInt(timeParts[0], 10);
+                    const minPart = parseInt(timeParts[1], 10);
+                    const slotStart = new Date(yearPart, monthPart, dayPart, hourPart, minPart, 0);
+                    const slotEnd = new Date(slotStart.getTime() + totalDurationSecs * 1000);
+
+                    if (now >= slotStart && now < slotEnd) {
+                        return Math.max(0, Math.floor((slotEnd.getTime() - now.getTime()) / 1000));
+                    }
+                }
+            }
+            return totalDurationSecs;
+        };
+
+        window.startTimerDirectJS = function(timerId, bookingId) {
+            if (!localStorage.getItem('timer_started_at_' + timerId)) {
+                localStorage.setItem('timer_started_at_' + timerId, Date.now().toString());
+            }
+            @this.call('startBooking', bookingId).then(() => {
+                if (activeTimers[timerId]) {
+                    activeTimers[timerId].isRunning = true;
+                    activeTimers[timerId].status = 'Playing';
+                }
+                showNotification('▶ Match Started', 'Match timer has been started successfully.');
+                refreshBookingData().then(() => {
+                    updateCalendar();
+                    if (activeTimers[timerId]) {
+                        startTimer(timerId);
+                    }
+                });
+            });
+        };
+
         function openTimerModal(timerId) {
             activeModalTimerId = timerId;
             const timerState = activeTimers[timerId] || {
@@ -2552,6 +2635,132 @@
 
                     // Define sportId here so it's available in both booked and available branches
                     const sportId = gameNameToId[currentGame] || gameNameToId[currentGame.toLowerCase()] || null;
+
+                    const currentGameKey = currentGame.toLowerCase();
+                    const maxCap = (window.maxCapacityMap && window.maxCapacityMap[currentGameKey])
+                        ? window.maxCapacityMap[currentGameKey]
+                        : (currentGameKey === 'pools' || currentGameKey === 'pool' ? 10 : 1);
+
+                    // Multi-person capacity handling for Pool / Capacity sports
+                    if (bookingInfo && maxCap > 1) {
+                        const totPersons = bookingInfo.total_persons || bookingInfo.num_persons || 1;
+                        const bList = bookingInfo.bookings_list || [bookingInfo];
+                        const remainingSeats = maxCap - totPersons;
+
+                        // Register activeTimers for each booking in the capacity list
+                        bList.forEach(b => {
+                            const timerId = `${currentGame}-${dateKey}-${court.replace(/\s/g, '')}-${slot.time24.replace(/:/g, '-')}-${b.id}`;
+                            const isPlayingNow = (b.status === 'Playing') || (activeTimers[timerId] && activeTimers[timerId].isRunning);
+
+                            if (!activeTimers[timerId]) {
+                                activeTimers[timerId] = {
+                                    totalDuration: 3600,
+                                    remaining: 3600,
+                                    intervalId: null,
+                                    isRunning: isPlayingNow,
+                                    player: b.player,
+                                    game: currentGame.charAt(0).toUpperCase() + currentGame.slice(1),
+                                    startTimeDisplay: slot.display,
+                                    popupWindow: null,
+                                    bookingId: b.id,
+                                    court: court,
+                                    date: formatDate(currentDate),
+                                    dateKey: dateKey,
+                                    rawTime: slot.time24,
+                                    status: b.status || 'Confirmed'
+                                };
+                            } else {
+                                if (isPlayingNow) {
+                                    activeTimers[timerId].isRunning = true;
+                                    activeTimers[timerId].status = 'Playing';
+                                }
+                            }
+
+                            // Auto start countdown if status is Playing
+                            if (isPlayingNow && !activeTimers[timerId].intervalId) {
+                                startTimer(timerId);
+                            }
+                        });
+
+                        let customerPillsHtml = '';
+                        bList.forEach(b => {
+                            const timerId = `${currentGame}-${dateKey}-${court.replace(/\s/g, '')}-${slot.time24.replace(/:/g, '-')}-${b.id}`;
+                            const isPlaying = b.status === 'Playing';
+                            const isCancelled = b.status === 'Cancelled';
+                            if (isCancelled) return;
+
+                            const timerStatus = activeTimers[timerId] ? activeTimers[timerId].status : b.status;
+                            const isPlayingNow = isPlaying || timerStatus === 'Playing' || (activeTimers[timerId] && activeTimers[timerId].isRunning);
+                            const currentSecs = activeTimers[timerId] ? activeTimers[timerId].remaining : 3600;
+
+                            customerPillsHtml += `
+                                <div class="d-inline-flex align-items-center bg-white border border-secondary border-opacity-25 rounded px-2 py-1 me-1 mb-1 shadow-sm" style="font-size:0.75rem;">
+                                    <span class="fw-bold text-dark me-1 cursor-pointer" onclick="event.stopPropagation(); openTimerModal('${timerId}')" title="Click to open Timer & Match Status Modal">
+                                        <i class="fas fa-stopwatch ${isPlayingNow ? 'text-primary' : 'text-secondary'} me-1"></i>${b.player} (${b.num_persons}p)
+                                    </span>
+                                    ${!isPlayingNow ? `
+                                    <button type="button" class="btn btn-sm btn-success p-0 ms-1 px-1 me-1 text-white border-0 shadow-sm" style="font-size:0.68rem; line-height:1.2;"
+                                            onclick="event.stopPropagation(); startTimerDirectJS('${timerId}', ${b.id})" title="Start Timer for ${b.player}">
+                                        <i class="fas fa-play" style="font-size:0.62rem;"></i> Start
+                                    </button>` : `
+                                    <span id="${timerId}" class="badge bg-primary text-white font-monospace ms-1 me-1 shadow-sm cursor-pointer" style="font-size:0.72rem; font-weight:700;" onclick="event.stopPropagation(); openTimerModal('${timerId}')" title="Click to open timer modal">
+                                        <i class="fas fa-play me-1"></i>${formatTime(currentSecs)}
+                                    </span>`}
+                                    <button type="button" class="btn btn-sm btn-outline-danger p-0 ms-1 border-0" style="line-height:1; padding:0 3px !important;"
+                                            onclick="event.stopPropagation(); triggerCancelBookingJS(${b.id}, '${b.player}')" title="Cancel ${b.player}'s booking">
+                                        <i class="fas fa-times" style="font-size:0.7rem;"></i>
+                                    </button>
+                                </div>
+                            `;
+                        });
+
+                        if (remainingSeats > 0) {
+                            // Partially Booked Slot
+                            bodyHtml += `
+                            <td>
+                                <div class="time-slot available border border-info bg-info bg-opacity-10 p-2 rounded shadow-sm text-start"
+                                     data-time="${slot.time24.substring(0, 8)}"
+                                     data-display="${slot.display}"
+                                     data-court="${court}">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge bg-info text-dark fw-bold" style="font-size:0.75rem;">${totPersons}/${maxCap} Booked</span>
+                                        <span class="badge bg-success text-white fw-bold" style="font-size:0.75rem;">${remainingSeats} Left</span>
+                                    </div>
+                                    <div class="d-flex flex-wrap align-items-center my-1">
+                                        ${customerPillsHtml}
+                                    </div>
+                                    <div class="d-flex gap-1 mt-1 justify-content-between align-items-center" onclick="event.stopPropagation()">
+                                        <button class="slot-action-btn shadow-sm"
+                                                style="background:#0284c7;color:#fff;border-color:#0369a1;padding:3px 8px;font-size:0.72rem;"
+                                                onclick="openBookingModalJS('${slot.time24.substring(0, 8)}', '${slot.display}', '${court}')">
+                                            <i class="fas fa-plus-circle me-1"></i>Book (${remainingSeats} Left)
+                                        </button>
+                                        ${sportId ? `
+                                        <button class="slot-action-btn" style="background:#0ea5e9;color:#fff;border-color:#0369a1;"
+                                                onclick="openWaitlistModalJS(${sportId}, '${dateKey}', '${slot.time24.substring(0, 8)}', '${court}')">
+                                            <i class="fas fa-list-ul"></i> Wait
+                                        </button>` : ''}
+                                    </div>
+                                </div>
+                            </td>`;
+                            return;
+                        } else {
+                            // Fully Booked Capacity Slot
+                            bodyHtml += `
+                            <td>
+                                <div class="time-slot booked bg-danger bg-opacity-10 border border-danger p-2 rounded shadow-sm text-start">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge bg-danger text-white fw-bold" style="font-size:0.75rem;">FULL (${totPersons}/${maxCap})</span>
+                                        <span class="badge bg-dark text-white" style="font-size:0.7rem;">${bList.length} Booking(s)</span>
+                                    </div>
+                                    <div class="d-flex flex-wrap align-items-center my-1">
+                                        ${customerPillsHtml}
+                                    </div>
+                                </div>
+                            </td>`;
+                            return;
+                        }
+                    }
 
                     if (bookingInfo) {
                         // Calculate rowspan for consecutive active non-cancelled slots belonging to the same player & status
@@ -3044,6 +3253,10 @@
             const timerState = activeTimers[timerIdToControl];
             if (!timerState || timerState.intervalId) return;
 
+            if (!localStorage.getItem('timer_started_at_' + timerIdToControl)) {
+                localStorage.setItem('timer_started_at_' + timerIdToControl, Date.now().toString());
+            }
+
             // Update booking status to Playing in the database
             if (timerState.bookingId && timerState.status !== 'Playing') {
                 @this.call('startBooking', timerState.bookingId).then(success => {
@@ -3059,10 +3272,11 @@
             updateTimerButtons(true, timerIdToControl);
 
             timerState.intervalId = setInterval(() => {
-                if (timerState.remaining > 0) {
-                    timerState.remaining--;
-                    updateTimerDisplay(timerIdToControl);
-                } else {
+                const calcRem = getCalculatedRemainingSeconds(timerIdToControl, timerState.dateKey, timerState.rawTime, timerState.totalDuration);
+                timerState.remaining = calcRem;
+                updateTimerDisplay(timerIdToControl);
+
+                if (calcRem <= 0) {
                     clearInterval(timerState.intervalId);
                     timerState.intervalId = null;
                     timerState.isRunning = false;
