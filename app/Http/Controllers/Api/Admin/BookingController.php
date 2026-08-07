@@ -363,6 +363,7 @@ class BookingController extends Controller
                     'notes'                => $data['notes'] ?? null,
                     'admin_comments'       => 'web_book',
                     'is_challenge_booking' => false,
+                    'is_private'           => false,
                     'permanent_source_id'  => $permanentSourceId,
                     'qr_code'              => 'QR' . strtoupper(substr(md5(uniqid('', true)), 0, 6)),
                 ]);

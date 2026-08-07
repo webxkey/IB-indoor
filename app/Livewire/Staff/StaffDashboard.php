@@ -495,6 +495,7 @@ class StaffDashboard extends Component
             'status' => 'Confirmed',
             'payment_status' => 'Pending',
             'is_challenge_booking' => false,
+            'is_private' => false,
 
             'notes' => $this->bookingFormNotes,
         ]);
