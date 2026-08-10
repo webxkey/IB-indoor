@@ -413,9 +413,7 @@
                             $isFull = ($remainingCapacity <= 0);
                         @endphp
 
-                        @if($isPast && $slotBookings->isEmpty())
-                            @continue
-                        @endif
+
                         <tr>
                             <td class="text-center fw-bold text-muted align-middle" style="font-size: 0.92rem; background: #fafafa;">
                                 {{ $slot['label'] }}
