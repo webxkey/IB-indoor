@@ -87,8 +87,17 @@
                     </div>
 
                     @php
-                        $rules = is_array($sport->pricing_rules) ? $sport->pricing_rules : (json_decode($sport->pricing_rules, true) ?? []);
-                        $charges = is_array($sport->additional_charges) ? $sport->additional_charges : (json_decode($sport->additional_charges, true) ?? []);
+                        $rules = is_array($sport->pricing_rules) ? $sport->pricing_rules : (is_string($sport->pricing_rules) ? (json_decode($sport->pricing_rules, true) ?? []) : []);
+                        $rawCharges = $sport->additional_charges;
+                        if (is_string($rawCharges)) {
+                            $decoded = json_decode($rawCharges, true);
+                            while (is_string($decoded)) {
+                                $decoded = json_decode($decoded, true);
+                            }
+                            $charges = is_array($decoded) ? $decoded : [];
+                        } else {
+                            $charges = is_array($rawCharges) ? $rawCharges : [];
+                        }
                         $maxPersons = $charges['max_persons_per_hour'] ?? null;
                     @endphp
 
@@ -115,9 +124,9 @@
 
                     <div class="mt-2 pt-2 border-top">
                         <small class="text-muted d-block mb-1">Payment Policy:</small>
-                        @if($sport->booking_payment_mode_override === 'pay_at_venue')
+                        @if(in_array($sport->booking_payment_mode_override, ['pay_at_venue', 'no_payment']))
                             <span class="badge bg-warning text-dark">Pay at Venue</span>
-                        @elseif($sport->booking_payment_mode_override === 'partial' || $sport->advance_required)
+                        @elseif(in_array($sport->booking_payment_mode_override, ['partial', 'advance_only', 'advance_or_full']) || $sport->advance_required)
                             <span class="badge bg-primary">
                                 Deposit: {{ $sport->advance_payment_value_override ?? 20 }}{{ ($sport->advance_payment_type_override ?? 'percentage') === 'percentage' ? '%' : ' LKR' }}
                             </span>
@@ -129,13 +138,17 @@
                 <div class="card-footer bg-transparent">
                     <div class="d-flex gap-2 flex-wrap">
                         <button class="btn btn-sm btn-primary flex-fill"
-                            wire:click="editSport({{ $sport->id ?? $sport->id }})" data-bs-toggle="modal"
-                            data-bs-target="#editSportModal">
+                            wire:click="editSport({{ $sport->id }})">
                             <i class="fas fa-edit me-1"></i> Manage
                         </button>
                         <button class="btn btn-sm btn-outline-info" wire:click="openPricingModal({{ $sport->id }})" title="Set Pricing Rules">
                             <i class="fas fa-tags"></i> Pricing
                         </button>
+                        @if(strtolower($sport->name) === 'pools' || strtolower($sport->name) === 'pool')
+                        <button class="btn btn-sm btn-outline-primary" wire:click="openPoolModal({{ $sport->id }})" title="Manage Pool Admission Tickets">
+                            <i class="fas fa-swimming-pool me-1"></i> Tickets
+                        </button>
+                        @endif
                         <button class="btn btn-sm btn-outline-warning" wire:click="openSlotBlockModal({{ $sport->id }})" title="Manage blocked slots">
                             <i class="fas fa-ban"></i> Blocked Slots
                         </button>
@@ -167,8 +180,8 @@
                                     <option value="Cricket">Cricket</option>
                                     <option value="Badminton">Badminton</option>
                                     <option value="Basketball">Basketball</option>
-                                    <option value="Pools">Pools</option>
-                                    <option value="Pooltable">Pool Table</option>
+                                    <option value="Pools">Pools (Swimming Pool)</option>
+                                    <option value="Pooltable">Pool Table (Snooker / Billiards)</option>
                                     <option value="Cricket & Football">Cricket & Football</option>
                                 </select>
                                 @error('game_name') <span class="text-danger small">{{ $message }}</span> @enderror
@@ -319,7 +332,7 @@
                                         <div class="row g-3">
                                             <div class="col-md-12">
                                                 <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="private_booking_enabled_add" wire:model="private_booking_enabled">
+                                                    <input class="form-check-input" type="checkbox" id="private_booking_enabled_add" wire:model.live="private_booking_enabled">
                                                     <label class="form-check-label fw-semibold" for="private_booking_enabled_add">
                                                         Enable Private Booking Rental
                                                     </label>
@@ -558,14 +571,31 @@
                                         </div>
                                         @endif
 
-                                        <div class="col-md-6">
-                                            <label class="form-label fw-semibold small">Minimum Booking Slots (Hours) *</label>
-                                            <div class="input-group input-group-sm">
-                                                <input type="number" class="form-control form-control-sm" wire:model="pricingRules.private_booking_min_slots" min="1" max="24" placeholder="3">
-                                                <span class="input-group-text bg-light text-muted">Slots / Hrs</span>
-                                            </div>
-                                            <small class="text-info"><i class="fas fa-info-circle me-1"></i>Saved as {{ ((int)($pricingRules['private_booking_min_slots'] ?? 3)) * 60 }} min in table (`private_booking_min_duration_minutes`).</small>
-                                        </div>
+                                         <div class="col-md-6">
+                                             <label class="form-label fw-semibold small">Minimum Booking Slots (Hours) *</label>
+                                             <div class="input-group input-group-sm">
+                                                 <input type="number" class="form-control form-control-sm" wire:model="pricingRules.private_booking_min_slots" min="1" max="24" placeholder="3">
+                                                 <span class="input-group-text bg-light text-muted">Slots / Hrs</span>
+                                             </div>
+                                             <small class="text-info"><i class="fas fa-info-circle me-1"></i>Saved as {{ ((int)($pricingRules['private_booking_min_slots'] ?? 3)) * 60 }} min in table (`private_booking_min_duration_minutes`).</small>
+                                         </div>
+
+                                         <div class="col-md-3">
+                                             <label class="form-label fw-semibold small">Request Limit Type *</label>
+                                             <select class="form-select form-select-sm" wire:model="private_request_limit_type">
+                                                 <option value="percentage">Percentage (%)</option>
+                                                 <option value="fixed">Fixed Amount (LKR)</option>
+                                                 <option value="unlimited">Unlimited</option>
+                                             </select>
+                                         </div>
+
+                                         <div class="col-md-3">
+                                             <label class="form-label fw-semibold small">Request Limit Value *</label>
+                                             <div class="input-group input-group-sm">
+                                                 <input type="number" class="form-control form-control-sm" wire:model="private_request_limit_value" min="0" step="0.01" placeholder="50.00">
+                                                 <span class="input-group-text bg-white">{{ $private_request_limit_type === 'percentage' ? '%' : 'LKR' }}</span>
+                                             </div>
+                                         </div>
                                     </div>
                                 </div>
                                 @endif
@@ -867,7 +897,7 @@
                                         <div class="row g-3">
                                             <div class="col-md-12">
                                                 <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="private_booking_enabled_edit" wire:model="private_booking_enabled">
+                                                    <input class="form-check-input" type="checkbox" id="private_booking_enabled_edit" wire:model.live="private_booking_enabled">
                                                     <label class="form-check-label fw-semibold" for="private_booking_enabled_edit">
                                                         Enable Private Booking Rental
                                                     </label>
@@ -924,6 +954,119 @@
             </div>
         </div>
     </div>
+
+    <!-- Pool Admission Tickets Modal -->
+    @if($showPoolModal)
+    <div class="fixed inset-0 z-[1055] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.65); display: flex; align-items: center; justify-content: center; z-index: 1055;">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full my-auto overflow-hidden border border-slate-100 flex flex-col max-h-[88vh]" style="background: white; border-radius: 1.5rem; max-width: 42rem; width: 100%; overflow: hidden;">
+            <div class="bg-primary text-white p-4 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-swimming-pool fa-lg"></i>
+                    <h5 class="m-0 fw-bold">Pool Ticket Tiers & Admission Types</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" wire:click="closePoolModal"></button>
+            </div>
+
+            <div class="p-4 overflow-y-auto" style="max-height: 75vh;">
+                @if(session()->has('pool_modal_message'))
+                    <div class="alert alert-success py-2 small fw-semibold mb-3">
+                        <i class="fas fa-check-circle me-1"></i> {{ session('pool_modal_message') }}
+                    </div>
+                @endif
+
+                <!-- Pool Private Request & Session Settings -->
+                <div class="card border-0 bg-light p-3 rounded-3 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold small text-primary uppercase m-0"><i class="fas fa-sliders-h me-1"></i> Pool Booking Limits & Private Settings</h6>
+                        <button type="button" wire:click="updatePoolSettings" class="btn btn-sm btn-success fw-bold py-1 px-3">
+                            <i class="fas fa-save me-1"></i> Save Settings
+                        </button>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold mb-1">Limit Type *</label>
+                            <select class="form-select form-select-sm" wire:model="private_request_limit_type">
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed Amount (LKR)</option>
+                                <option value="unlimited">Unlimited</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold mb-1">Limit Value *</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" wire:model="private_request_limit_value" class="form-control form-control-sm" min="0" step="0.01" placeholder="50.00">
+                                <span class="input-group-text bg-white">{{ $private_request_limit_type === 'percentage' ? '%' : 'LKR' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 bg-light p-3 rounded-3 mb-4">
+                    <h6 class="fw-bold small text-primary uppercase mb-2"><i class="fas fa-plus-circle me-1"></i> Add New Admission Ticket Tier</h6>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-semibold mb-1">Ticket Name *</label>
+                            <input type="text" wire:model="newAdmissionName" class="form-control form-control-sm" placeholder="e.g. Adult Pass, Child Pass">
+                            @error('newAdmissionName') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold mb-1">Price (LKR) *</label>
+                            <input type="number" wire:model="newAdmissionPrice" class="form-control form-control-sm" placeholder="e.g. 2500" min="0" step="0.01">
+                            @error('newAdmissionPrice') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" wire:click="addPoolAdmissionType" class="btn btn-sm btn-primary w-100 fw-bold">
+                                <i class="fas fa-plus me-1"></i> Add Tier
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold small text-dark mb-2"><i class="fas fa-ticket-alt me-1"></i> Existing Ticket Categories ({{ count($poolAdmissionTypes) }})</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle border mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Category Name</th>
+                                <th>Price (LKR)</th>
+                                <th>Capacity Units</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            @forelse($poolAdmissionTypes as $ticket)
+                                <tr>
+                                    <td class="fw-bold text-dark">{{ $ticket['name'] }}</td>
+                                    <td class="fw-bold text-success">Rs. {{ number_format($ticket['price'], 2) }}</td>
+                                    <td><span class="badge bg-secondary">{{ $ticket['capacity_units'] }} Swimmer(s)</span></td>
+                                    <td>
+                                        <span class="badge {{ $ticket['is_active'] ? 'bg-success' : 'bg-danger' }}">
+                                            {{ $ticket['is_active'] ? 'Active' : 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" wire:click="deletePoolAdmissionType({{ $ticket['id'] }})" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete Tier">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-3">No custom ticket categories added yet.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="p-3 bg-light border-top text-end">
+                <button type="button" wire:click="closePoolModal" class="btn btn-sm btn-secondary fw-bold px-4">Close</button>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 
 @push('scripts')

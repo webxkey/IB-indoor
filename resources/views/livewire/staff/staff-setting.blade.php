@@ -1135,16 +1135,18 @@
                             @if($online_payments_enabled)
                             <div class="card-body bg-light">
                                 <div class="row g-3">
-                                    <div class="col-md-{{ $online_booking_payment_mode === 'partial' ? '6' : '12' }}">
+                                    <div class="col-md-{{ in_array($online_booking_payment_mode, ['advance_only', 'advance_or_full', 'partial']) ? '6' : '12' }}">
                                         <label class="form-label fw-semibold small">Online Payment Requirement *</label>
                                         <select class="form-select" wire:model.live="online_booking_payment_mode">
-                                            <option value="full">Full Payment Required (100% upfront)</option>
-                                            <option value="partial">Partial / Advance Deposit Required</option>
+                                            <option value="full_only">Pay full amount to book (100% upfront)</option>
+                                            <option value="no_payment">No online payment required (Pay at venue)</option>
+                                            <option value="advance_only">Pay advance to book</option>
+                                            <option value="advance_or_full">Allow advance or full payment</option>
                                         </select>
-                                        <small class="text-muted">Specify if customer must pay full amount or advance deposit online</small>
+                                        <small class="text-muted">Specify if customer must pay full amount, advance deposit, or choose online</small>
                                     </div>
 
-                                    @if($online_booking_payment_mode === 'partial')
+                                    @if(in_array($online_booking_payment_mode, ['advance_only', 'advance_or_full', 'partial']))
                                     <div class="col-md-3">
                                         <label class="form-label fw-semibold small">Advance Deposit Type *</label>
                                         <select class="form-select" wire:model="online_advance_payment_type">
@@ -1185,16 +1187,18 @@
                             @if($bank_transfer_payments_enabled)
                             <div class="card-body bg-light">
                                 <div class="row g-3">
-                                    <div class="col-md-{{ $bank_booking_payment_mode === 'partial' ? '6' : '12' }}">
+                                    <div class="col-md-{{ in_array($bank_booking_payment_mode, ['advance_only', 'advance_or_full', 'partial']) ? '6' : '12' }}">
                                         <label class="form-label fw-semibold small">Bank Transfer Requirement *</label>
                                         <select class="form-select" wire:model.live="bank_booking_payment_mode">
-                                            <option value="full">Full Payment Transfer (100% upfront)</option>
-                                            <option value="partial">Partial / Advance Deposit Transfer</option>
+                                            <option value="full_only">Pay full amount to transfer (100% upfront)</option>
+                                            <option value="no_payment">No advance payment required</option>
+                                            <option value="advance_only">Pay advance to book</option>
+                                            <option value="advance_or_full">Allow advance or full payment</option>
                                         </select>
                                         <small class="text-muted">Specify if customer must transfer full amount or advance deposit</small>
                                     </div>
 
-                                    @if($bank_booking_payment_mode === 'partial')
+                                    @if(in_array($bank_booking_payment_mode, ['advance_only', 'advance_or_full', 'partial']))
                                     <div class="col-md-3">
                                         <label class="form-label fw-semibold small">Advance Deposit Type *</label>
                                         <select class="form-select" wire:model="bank_advance_payment_type">

@@ -82,12 +82,12 @@ class StaffSetting extends Component
     public $venue_card_payments_enabled = false;
 
     // Online Payment Policy
-    public $online_booking_payment_mode = 'full'; // 'full' or 'partial'
+    public $online_booking_payment_mode = 'full_only'; // 'full_only', 'no_payment', 'advance_only', 'advance_or_full'
     public $online_advance_payment_type = 'percentage'; // 'percentage' or 'fixed'
     public $online_advance_payment_value = 20;
 
     // Bank Transfer Payment Policy
-    public $bank_booking_payment_mode = 'full'; // 'full' or 'partial'
+    public $bank_booking_payment_mode = 'full_only'; // 'full_only', 'no_payment', 'advance_only', 'advance_or_full'
     public $bank_advance_payment_type = 'percentage'; // 'percentage' or 'fixed'
     public $bank_advance_payment_value = 20;
 
@@ -199,7 +199,19 @@ class StaffSetting extends Component
         $this->cash_payments_enabled = filter_var($this->complexes->cash_payments_enabled ?? true, FILTER_VALIDATE_BOOLEAN);
         $this->venue_card_payments_enabled = filter_var($this->complexes->venue_card_payments_enabled ?? false, FILTER_VALIDATE_BOOLEAN);
 
-        $this->online_booking_payment_mode = $this->complexes->booking_payment_mode ?? ($this->complexes->advance_payment_required ? 'partial' : 'full');
+        $rawVenueMode = $this->complexes->booking_payment_mode ?? ($this->complexes->advance_payment_required ? 'advance_only' : 'full_only');
+        if (in_array($rawVenueMode, ['pay_at_venue', 'no_payment'])) {
+            $this->online_booking_payment_mode = 'no_payment';
+        } elseif (in_array($rawVenueMode, ['partial', 'advance_only'])) {
+            $this->online_booking_payment_mode = 'advance_only';
+        } elseif (in_array($rawVenueMode, ['full', 'full_only'])) {
+            $this->online_booking_payment_mode = 'full_only';
+        } elseif ($rawVenueMode === 'advance_or_full') {
+            $this->online_booking_payment_mode = 'advance_or_full';
+        } else {
+            $this->online_booking_payment_mode = 'full_only';
+        }
+
         $this->online_advance_payment_type = $this->complexes->advance_payment_type ?? 'percentage';
         $this->online_advance_payment_value = $this->complexes->advance_payment_value ?? 20;
 
@@ -212,7 +224,7 @@ class StaffSetting extends Component
     {
         if (!$this->complexes) return;
 
-        $isOnlineAdvance = ($this->online_payments_enabled && $this->online_booking_payment_mode === 'partial');
+        $isOnlineAdvance = ($this->online_payments_enabled && in_array($this->online_booking_payment_mode, ['advance_only', 'advance_or_full', 'partial']));
         $advanceVal = ($isOnlineAdvance && !empty($this->online_advance_payment_value))
             ? (float) $this->online_advance_payment_value
             : null;
@@ -223,7 +235,7 @@ class StaffSetting extends Component
             'cash_payments_enabled'          => (bool) $this->cash_payments_enabled,
             'venue_card_payments_enabled'    => (bool) $this->venue_card_payments_enabled,
 
-            'booking_payment_mode'     => $this->online_booking_payment_mode ?: 'full',
+            'booking_payment_mode'     => $this->online_booking_payment_mode ?: 'full_only',
             'advance_payment_required' => $isOnlineAdvance,
             'advance_payment_type'     => $this->online_advance_payment_type ?: 'percentage',
             'advance_payment_value'    => $advanceVal,
