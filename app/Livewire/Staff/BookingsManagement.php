@@ -1464,7 +1464,7 @@ class BookingsManagement extends Component
             'bookingdetails' => $this->bookingdetails ?? [],
             'complex_id'     => $this->complex_id,
             'opening_hours'  => $this->opening_hours ?? [],
-            'sports'         => $this->sports ?? collect(),
+            'sports'         => $this->sports ?? \App\Models\BookingSport::query()->whereRaw('1=0')->get(),
             'maxCapacityMap' => $maxCapacityMap,
         ]);
     }

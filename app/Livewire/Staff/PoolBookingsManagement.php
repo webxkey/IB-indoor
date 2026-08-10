@@ -138,9 +138,9 @@ class PoolBookingsManagement extends Component
                 ->orderBy('created_at', 'desc')
                 ->get();
         } else {
-            $this->admissionTypes = collect();
-            $this->occurrences = collect();
-            $this->bookings = collect();
+            $this->admissionTypes = PoolsPooladmissiontype::query()->whereRaw('1=0')->get();
+            $this->occurrences = PoolsPoolsessionoccurrence::query()->whereRaw('1=0')->get();
+            $this->bookings = PoolsPoolbooking::query()->whereRaw('1=0')->get();
         }
     }
 
