@@ -23,8 +23,8 @@ use Illuminate\Support\Facades\Storage;
 #[Layout("components.layouts.staff")]
 class BookingsManagement extends Component
 {
-    public $sports;
-    public $bookings;
+    protected $sports;
+    protected $bookings;
     public $complex_id;
     public $games;
     public $bookingdetails = [];

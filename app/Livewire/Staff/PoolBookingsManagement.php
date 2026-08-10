@@ -21,10 +21,12 @@ use Illuminate\Support\Str;
 class PoolBookingsManagement extends Component
 {
     public $selectedDate;
-    public $pool;
-    public $admissionTypes;
-    public $occurrences;
-    public $bookings;
+
+    // Protected properties for Eloquent models / collections (prevents Livewire dehydration exceptions)
+    protected $pool;
+    protected $admissionTypes;
+    protected $occurrences;
+    protected $bookings;
 
     // Booking modal state
     public $showCreateModal = false;
@@ -43,7 +45,7 @@ class PoolBookingsManagement extends Component
 
     // Detail & Timer modal state
     public $showDetailModal = false;
-    public $selectedBooking = null;
+    public $selectedBookingId = null;
 
     // Cancel modal state
     public $showCancelModal = false;
@@ -55,7 +57,6 @@ class PoolBookingsManagement extends Component
     // Payment Collect Modal State
     public $showPaymentCollectModal = false;
     public $paymentCollectBookingId = null;
-    public $paymentCollectBooking = null;
     public $paymentCollectMethod = 'cash';
 
     public function mount()
@@ -204,16 +205,14 @@ class PoolBookingsManagement extends Component
 
     public function openDetailModal($bookingId)
     {
-        $this->selectedBooking = PoolsPoolbooking::with(['items.admissionType', 'pool', 'occurrence'])->find($bookingId);
-        if ($this->selectedBooking) {
-            $this->showDetailModal = true;
-        }
+        $this->selectedBookingId = $bookingId;
+        $this->showDetailModal = true;
     }
 
     public function closeDetailModal()
     {
         $this->showDetailModal = false;
-        $this->selectedBooking = null;
+        $this->selectedBookingId = null;
     }
 
     public function completeBooking($bookingId)
@@ -256,7 +255,6 @@ class PoolBookingsManagement extends Component
         if (!$booking) return;
 
         $this->paymentCollectBookingId = $bookingId;
-        $this->paymentCollectBooking = $booking;
         $this->paymentCollectMethod = 'cash';
         $this->showPaymentCollectModal = true;
     }
@@ -265,7 +263,6 @@ class PoolBookingsManagement extends Component
     {
         $this->showPaymentCollectModal = false;
         $this->paymentCollectBookingId = null;
-        $this->paymentCollectBooking = null;
     }
 
     public function collectBookingPayment()
@@ -412,6 +409,7 @@ class PoolBookingsManagement extends Component
             'userNumber' => 'required|string|max:20',
         ]);
 
+        $this->loadData();
         if (!$this->pool) {
             session()->flash('error', 'No pool configured for this venue.');
             return;
@@ -606,7 +604,7 @@ class PoolBookingsManagement extends Component
             session()->flash('message', "Slot booking for {$booking->user_name} at {$this->cancelSlotStart} cancelled individually.");
         }
 
-        if ($this->selectedBooking && $this->selectedBooking->id == $this->cancelBookingId) {
+        if ($this->selectedBookingId == $this->cancelBookingId) {
             $this->closeDetailModal();
         }
 
@@ -621,6 +619,25 @@ class PoolBookingsManagement extends Component
 
     public function render()
     {
-        return view('livewire.staff.pool-bookings-management');
+        $this->loadData();
+
+        $selectedBooking = null;
+        if ($this->showDetailModal && $this->selectedBookingId) {
+            $selectedBooking = PoolsPoolbooking::with(['items.admissionType', 'pool', 'occurrence'])->find($this->selectedBookingId);
+        }
+
+        $paymentCollectBooking = null;
+        if ($this->showPaymentCollectModal && $this->paymentCollectBookingId) {
+            $paymentCollectBooking = PoolsPoolbooking::with(['items.admissionType', 'pool', 'occurrence'])->find($this->paymentCollectBookingId);
+        }
+
+        return view('livewire.staff.pool-bookings-management', [
+            'pool' => $this->pool,
+            'admissionTypes' => $this->admissionTypes,
+            'occurrences' => $this->occurrences,
+            'bookings' => $this->bookings,
+            'selectedBooking' => $selectedBooking,
+            'paymentCollectBooking' => $paymentCollectBooking,
+        ]);
     }
 }
