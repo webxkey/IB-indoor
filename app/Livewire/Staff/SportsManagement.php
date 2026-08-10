@@ -17,7 +17,7 @@ class SportsManagement extends Component
 {
     // No file uploads for sports images: use default images from public/images/sports_images
 
-    public $sports;
+    protected $sports;
     public $editSportId;
 
     public $complex_id;
@@ -101,7 +101,7 @@ class SportsManagement extends Component
         $this->complex_id = $venueId ?? $freshUser->complex_id;
         
         if ($this->complex_id) {
-            $sportsList = BookingSport::where('venue_id', $this->complex_id)->get();
+            $sportsList = collect(BookingSport::where('venue_id', $this->complex_id)->get()->all());
             
             // Fetch pools from pools_pool table
             $pools = \App\Models\PoolsPool::where('venue_id', $this->complex_id)->get();
@@ -616,7 +616,10 @@ class SportsManagement extends Component
 
     public function render()
     {
-        return view('livewire.staff.sports-management');
+        $this->loadSports();
+        return view('livewire.staff.sports-management', [
+            'sports' => $this->sports ?? collect(),
+        ]);
     }
 
     public function editSport($id)
