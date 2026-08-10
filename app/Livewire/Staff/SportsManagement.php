@@ -101,7 +101,49 @@ class SportsManagement extends Component
         $this->complex_id = $venueId ?? $freshUser->complex_id;
         
         if ($this->complex_id) {
-            $this->sports = BookingSport::where('venue_id', $this->complex_id)->get();
+            $sportsList = BookingSport::where('venue_id', $this->complex_id)->get();
+            
+            // Fetch pools from pools_pool table
+            $pools = \App\Models\PoolsPool::where('venue_id', $this->complex_id)->get();
+            foreach ($pools as $pool) {
+                $alreadyInSports = $sportsList->contains(function ($s) use ($pool) {
+                    return isset($s->name) && $this->isPoolSport($s->name);
+                });
+                
+                if (!$alreadyInSports) {
+                    $firstAdm = $pool->admissionTypes()->first();
+                    $poolPrice = $firstAdm ? $firstAdm->price : 0;
+                    
+                    $poolSportObj = new \stdClass();
+                    $poolSportObj->id = 'pool_' . $pool->id;
+                    $poolSportObj->real_pool_id = $pool->id;
+                    $poolSportObj->is_pool = true;
+                    $poolSportObj->venue_id = $pool->venue_id;
+                    $poolSportObj->name = $pool->name ?: 'Pools';
+                    $poolSportObj->game_type = 'Outdoor';
+                    $poolSportObj->rate_type = 'Per person';
+                    $poolSportObj->price = $poolPrice;
+                    $poolSportObj->maximum_court = $pool->capacity ?: 10;
+                    $poolSportObj->status = ucfirst($pool->status ?: 'Active');
+                    $poolSportObj->image = $pool->image ?: asset('images/sports_images/pools.jpg');
+                    $poolSportObj->description = $pool->description;
+                    $poolSportObj->additional_charges = [
+                        'capacity_limit_enabled' => true,
+                        'max_persons_per_hour' => $pool->capacity ?: 10,
+                    ];
+                    $poolSportObj->pricing_rules = [];
+                    $poolSportObj->advance_required = (bool)$pool->advance_payment_required_override;
+                    $poolSportObj->advance_payment_required_override = (bool)$pool->advance_payment_required_override;
+                    $poolSportObj->booking_payment_mode_override = $pool->booking_payment_mode_override;
+                    $poolSportObj->advance_payment_type_override = $pool->advance_payment_type_override;
+                    $poolSportObj->advance_payment_value_override = $pool->advance_payment_value_override;
+                    $poolSportObj->private_booking_price = $pool->private_booking_price;
+                    
+                    $sportsList->push($poolSportObj);
+                }
+            }
+
+            $this->sports = $sportsList;
             Log::info("Loaded {$this->sports->count()} sports for venue_id {$this->complex_id}");
         } else {
             $this->sports = collect();
@@ -195,7 +237,28 @@ class SportsManagement extends Component
             ? max(60, (int) $this->private_booking_min_duration_minutes) 
             : max(60, ((int) ($this->private_booking_min_slots ?: 3)) * 60);
 
-        $createdSport = BookingSport::create([
+        // If creating a Swimming Pool, save in pools_pool ONLY (not in booking_sport)
+        if ($this->isPoolSport($validated['game_name'])) {
+            $this->syncPoolsTable(
+                $venueId,
+                $validated['game_name'],
+                $validated['description'] ?? null,
+                $imagePath,
+                $validated['status'],
+                $isAdvanceMode,
+                $advanceValue,
+                (float) $validated['price'],
+                true // Force insert new entry into pools_pool table
+            );
+
+            session()->flash('message', 'Pool added successfully!');
+            $this->loadSports($venueId);
+            $this->dispatch('hideModal');
+            $this->resetForm();
+            return;
+        }
+
+        $sport = BookingSport::create([
             'venue_id' => $venueId,
             'name' => $validated['game_name'],
             'game_type' => $validated['game_type'],
@@ -231,7 +294,8 @@ class SportsManagement extends Component
             $validated['status'],
             $isAdvanceMode,
             $advanceValue,
-            (float) $validated['price']
+            (float) $validated['price'],
+            true // Force insert new entry into pools_pool table
         );
 
         session()->flash('message', 'Sport added successfully!');
@@ -320,7 +384,7 @@ class SportsManagement extends Component
         $minDurationMinutes = (int) ($sport->private_booking_min_duration_minutes ?: 180);
         $minSlots = max(1, (int) round($minDurationMinutes / 60));
 
-        if (strtolower($sport->name) === 'pools' || strtolower($sport->name) === 'pool') {
+        if ($this->isPoolSport($sport->name)) {
             $pool = \DB::table('pools_pool')->where('venue_id', $sport->venue_id)->first();
             if ($pool) {
                 $this->private_request_limit_type = $pool->private_request_limit_type ?? 'percentage';
@@ -428,7 +492,7 @@ class SportsManagement extends Component
             ]);
 
             // Sync with pools_pool if this sport is Pools
-            if (strtolower($sport->name) === 'pools' || strtolower($sport->name) === 'pool') {
+            if ($this->isPoolSport($sport->name)) {
                 $pool = \DB::table('pools_pool')->where('venue_id', $sport->venue_id)->first();
                 if ($pool) {
                     \DB::table('pools_pool')->where('id', $pool->id)->update([
@@ -557,6 +621,39 @@ class SportsManagement extends Component
 
     public function editSport($id)
     {
+        if (is_string($id) && str_starts_with($id, 'pool_')) {
+            $poolId = (int) str_replace('pool_', '', $id);
+            $pool = \App\Models\PoolsPool::findOrFail($poolId);
+            $firstAdm = $pool->admissionTypes()->first();
+
+            $this->editSportId = 'pool_' . $pool->id;
+            $this->complex_id = $pool->venue_id;
+            $this->game_name = $pool->name ?: 'Pools';
+            $this->game_type = 'Outdoor';
+            $this->rate_type = 'Per person';
+            $this->price = $firstAdm ? $firstAdm->price : 0;
+            $this->maximum_court = $pool->capacity ?: 10;
+            $this->status = ucfirst($pool->status ?: 'Active');
+            $this->description = $pool->description;
+            $this->advance_required = (bool) $pool->advance_payment_required_override;
+            $this->additional_charges = [
+                'capacity_limit_enabled' => true,
+                'max_persons_per_hour' => $pool->capacity ?: 10,
+            ];
+            $this->existingImage = $pool->image ?: asset('images/sports_images/pools.jpg');
+            $this->advance_payment_required_override = (bool) $pool->advance_payment_required_override;
+            $this->booking_payment_mode_override = $pool->booking_payment_mode_override ?: '';
+            $this->advance_payment_type_override = $pool->advance_payment_type_override ?: 'percentage';
+            $this->advance_payment_value_override = $pool->advance_payment_value_override ?: 20;
+            $this->max_persons_per_hour = $pool->capacity ?: 10;
+            $this->capacity_limit_enabled = true;
+            $this->private_booking_price = $pool->private_booking_price;
+            $this->private_booking_enabled = (bool) $pool->private_request_enabled;
+
+            $this->dispatch('showEditSportModal');
+            return;
+        }
+
         $sport = BookingSport::findOrFail($id);
 
         $this->editSportId = $sport->id;
@@ -601,7 +698,7 @@ class SportsManagement extends Component
         $this->max_persons_per_hour = $this->additional_charges['max_persons_per_hour'] ?? 10;
         $this->capacity_limit_enabled = isset($this->additional_charges['capacity_limit_enabled']) 
             ? (bool) $this->additional_charges['capacity_limit_enabled'] 
-            : ($this->max_persons_per_hour > 1 || strtolower($sport->name) === 'pools' || strtolower($sport->name) === 'pool');
+            : ($this->max_persons_per_hour > 1 || $this->isPoolSport($sport->name));
 
         $this->private_booking_price = $sport->private_booking_price;
         $this->private_booking_min_duration_minutes = $sport->private_booking_min_duration_minutes ?? 180;
@@ -624,6 +721,57 @@ class SportsManagement extends Component
             'description' => 'nullable|string',
             'advance_required' => 'boolean'
         ]);
+
+        if (is_string($this->editSportId) && str_starts_with($this->editSportId, 'pool_')) {
+            $poolId = (int) str_replace('pool_', '', $this->editSportId);
+            $venueId = $this->complex_id ?: auth()->user()->complex_id;
+
+            $mode = $this->booking_payment_mode_override;
+            $isAdvanceMode = in_array($mode, ['advance_only', 'advance_or_full', 'partial']);
+            $advanceValue = ($isAdvanceMode && !empty($this->advance_payment_value_override))
+                ? (float) $this->advance_payment_value_override
+                : null;
+
+            \DB::table('pools_pool')->where('id', $poolId)->update([
+                'name' => $this->game_name ?: 'Pools',
+                'description' => $validated['description'] ?? null,
+                'status' => strtolower($validated['status']),
+                'capacity' => (int) $validated['maximum_court'],
+                'booking_payment_mode_override' => !empty($this->booking_payment_mode_override) ? $this->booking_payment_mode_override : null,
+                'advance_payment_required_override' => $isAdvanceMode,
+                'advance_payment_type_override' => $this->advance_payment_type_override ?: 'percentage',
+                'advance_payment_value_override' => $advanceValue,
+                'private_booking_price' => (!empty($this->private_booking_price) && $this->private_booking_enabled) ? (float) $this->private_booking_price : null,
+                'private_request_enabled' => (bool) $this->private_booking_enabled,
+                'updated_at' => now(),
+            ]);
+
+            $adm = \DB::table('pools_pooladmissiontype')->where('pool_id', $poolId)->first();
+            if ($adm) {
+                \DB::table('pools_pooladmissiontype')->where('id', $adm->id)->update([
+                    'price' => (float) $validated['price'],
+                    'updated_at' => now(),
+                ]);
+            } else if ((float)$validated['price'] > 0) {
+                \DB::table('pools_pooladmissiontype')->insert([
+                    'pool_id' => $poolId,
+                    'name' => 'General Swim Entry',
+                    'price' => (float) $validated['price'],
+                    'capacity_units' => 1,
+                    'requires_guest_name' => false,
+                    'is_active' => true,
+                    'sort_order' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            session()->flash('message', 'Swimming Pool updated successfully.');
+            $this->loadSports($venueId);
+            $this->dispatch('hideEditSportModal');
+            $this->resetForm();
+            return;
+        }
 
         $sport = BookingSport::findOrFail($this->editSportId);
 
@@ -715,14 +863,43 @@ class SportsManagement extends Component
     public function deleteConfirmed($id)
     {
         try {
+            if (is_string($id) && str_starts_with($id, 'pool_')) {
+                $poolId = (int) str_replace('pool_', '', $id);
+                $hasBookings = \DB::table('pools_poolbooking')->where('pool_id', $poolId)->exists();
+
+                if ($hasBookings) {
+                    \DB::table('pools_pool')->where('id', $poolId)->update(['status' => 'inactive', 'updated_at' => now()]);
+                    session()->flash('message', 'Pool marked as Inactive to preserve existing pool booking records.');
+                } else {
+                    \DB::table('pools_pooladmissiontype')->where('pool_id', $poolId)->delete();
+                    \DB::table('pools_pool')->where('id', $poolId)->delete();
+                    session()->flash('message', 'Pool deleted successfully.');
+                }
+
+                $this->dispatch('sportDeleted');
+                $this->loadSports();
+                return;
+            }
+
             $sport = BookingSport::findOrFail($id);
             $venueId = $sport->venue_id;
 
             // Check if there are associated bookings referencing this sport
             $hasBookings = \DB::table('booking_booking')->where('game_id_id', $id)->exists();
 
-            if (strtolower($sport->name) === 'pools' || strtolower($sport->name) === 'pool') {
+            if ($this->isPoolSport($sport->name)) {
+                // First update pools_pool status to inactive
                 \DB::table('pools_pool')->where('venue_id', $venueId)->update(['status' => 'inactive', 'updated_at' => now()]);
+
+                if (!$hasBookings) {
+                    try {
+                        $poolIds = \DB::table('pools_pool')->where('venue_id', $venueId)->pluck('id');
+                        \DB::table('pools_pooladmissiontype')->whereIn('pool_id', $poolIds)->delete();
+                        \DB::table('pools_pool')->where('venue_id', $venueId)->delete();
+                    } catch (\Exception $e) {
+                        \DB::table('pools_pool')->where('venue_id', $venueId)->update(['status' => 'inactive', 'updated_at' => now()]);
+                    }
+                }
             }
 
             if ($hasBookings) {
@@ -748,9 +925,26 @@ class SportsManagement extends Component
         $this->confirmDelete($id);
     }
 
-    private function syncPoolsTable($venueId, $name, $description, $imagePath, $status, $isAdvanceMode, $advanceValue, $price = 0)
+    public function isPoolSport($name)
     {
-        if (strtolower($name) !== 'pools' && strtolower($name) !== 'pool') {
+        $n = strtolower(trim((string) $name));
+        if (str_contains($n, 'pooltable') || str_contains($n, 'pool table') || str_contains($n, 'snooker') || str_contains($n, 'billiards')) {
+            return false;
+        }
+        return ($n === 'pools' || $n === 'pool' || str_contains($n, 'pool') || str_contains($n, 'swim'));
+    }
+
+    public function updatedGameName($value)
+    {
+        if ($this->isPoolSport($value)) {
+            $this->rate_type = 'Per person';
+            $this->capacity_limit_enabled = true;
+        }
+    }
+
+    private function syncPoolsTable($venueId, $name, $description, $imagePath, $status, $isAdvanceMode, $advanceValue, $price = 0, $isNew = false)
+    {
+        if (!$this->isPoolSport($name)) {
             return;
         }
 
@@ -760,6 +954,7 @@ class SportsManagement extends Component
         $poolStatus = (strtolower($status) === 'active') ? 'active' : 'inactive';
 
         $data = [
+            'venue_id' => $venueId,
             'name' => $name,
             'description' => $description,
             'image' => $imagePath,
@@ -777,18 +972,18 @@ class SportsManagement extends Component
             'updated_at' => now(),
         ];
 
-        $pool = \DB::table('pools_pool')->where('venue_id', $venueId)->first();
-        if ($pool) {
+        $pool = null;
+        if (!$isNew) {
+            $pool = \DB::table('pools_pool')->where('venue_id', $venueId)->first();
+        }
+
+        if ($pool && !$isNew) {
             \DB::table('pools_pool')->where('id', $pool->id)->update($data);
             $poolId = $pool->id;
         } else {
-            $data['venue_id'] = $venueId;
             $data['guest_names_required'] = false;
             $data['max_admissions_per_booking'] = 10;
             $data['cancellation_cutoff_hours'] = 24;
-            $data['private_request_limit_type'] = 'percentage';
-            $data['private_request_limit_value'] = 50.00;
-            $data['max_sessions_per_booking'] = 12;
             $data['created_at'] = now();
             $poolId = \DB::table('pools_pool')->insertGetId($data);
         }
@@ -864,7 +1059,7 @@ class SportsManagement extends Component
         $pool = \App\Models\PoolsPool::where('venue_id', $sport->venue_id)->first();
         if (!$pool) {
             $isAdvanceMode = in_array($this->booking_payment_mode_override, ['advance_only', 'advance_or_full', 'partial']);
-            $this->syncPoolsTable($sport->venue_id, $sport->name, $sport->description, $sport->image, $sport->status, $isAdvanceMode, $this->advance_payment_value_override, $sport->price);
+            $this->syncPoolsTable($sport->venue_id, $sport->name, $sport->description, $sport->image, $sport->status, $isAdvanceMode, $this->advance_payment_value_override, $sport->price, true);
             $pool = \App\Models\PoolsPool::where('venue_id', $sport->venue_id)->first();
         }
 

@@ -11,23 +11,27 @@ class PoolsPoolbookingitem extends Model
 
     protected $table = 'pools_poolbookingitem';
 
+    public $timestamps = false; // Schema shows only created_at column
+
     protected $fillable = [
-        'booking_id',
+        'pool_booking_id',
         'admission_type_id',
         'quantity',
         'unit_price',
-        'total_price',
+        'line_total',
+        'guest_name',
+        'created_at',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
-        'total_price' => 'decimal:2',
+        'line_total' => 'decimal:2',
     ];
 
     public function booking()
     {
-        return $this->belongsTo(PoolsPoolbooking::class, 'booking_id');
+        return $this->belongsTo(PoolsPoolbooking::class, 'pool_booking_id');
     }
 
     public function admissionType()

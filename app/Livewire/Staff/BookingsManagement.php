@@ -29,6 +29,7 @@ class BookingsManagement extends Component
     public $games;
     public $bookingdetails = [];
     public $opening_hours = [];
+    public $hasPool = false;
 
     public $selectedGame = '';
     public $selectedDate = '';
@@ -174,6 +175,8 @@ class BookingsManagement extends Component
             $this->sports = BookingSport::where('venue_id', $this->complex_id)
                 ->where('status', 'Active')
                 ->get();
+
+            $this->hasPool = \App\Models\PoolsPool::where('venue_id', $this->complex_id)->exists();
 
             // Load and normalize opening hours from venue
             $venue = \App\Models\BookingVenue::find($this->complex_id);

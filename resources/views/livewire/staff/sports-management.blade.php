@@ -138,13 +138,13 @@
                 <div class="card-footer bg-transparent">
                     <div class="d-flex gap-2 flex-wrap">
                         <button class="btn btn-sm btn-primary flex-fill"
-                            wire:click="editSport({{ $sport->id }})">
+                            wire:click="editSport('{{ $sport->id }}')">
                             <i class="fas fa-edit me-1"></i> Manage
                         </button>
                         <button class="btn btn-sm btn-outline-info" wire:click="openPricingModal({{ $sport->id }})" title="Set Pricing Rules">
                             <i class="fas fa-tags"></i> Pricing
                         </button>
-                        @if(strtolower($sport->name) === 'pools' || strtolower($sport->name) === 'pool')
+                        @if($this->isPoolSport($sport->name))
                         <button class="btn btn-sm btn-outline-primary" wire:click="openPoolModal({{ $sport->id }})" title="Manage Pool Admission Tickets">
                             <i class="fas fa-swimming-pool me-1"></i> Tickets
                         </button>
@@ -174,7 +174,7 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="game_name" class="form-label fw-semibold">Game Name*</label>
-                                <select class="form-select" id="game_name" wire:model="game_name" required>
+                                <select class="form-select" id="game_name" wire:model.live="game_name" required>
                                     <option value="">Select Sport</option>
                                     <option value="Football">Football</option>
                                     <option value="Cricket">Cricket</option>
@@ -202,6 +202,7 @@
                                 <select class="form-select" id="rate_type" wire:model="rate_type" required>
                                     <option value="" disabled>Select rate type</option>
                                     <option value="Per hour">Per hour</option>
+                                    <option value="Per person">Per person</option>
                                     <option value="Per session">Per session</option>
                                     <option value="Per day">Per day</option>
                                 </select>
@@ -770,6 +771,7 @@
                                 <select class="form-select" wire:model="rate_type" required>
                                     <option value="" disabled>Select rate type</option>
                                     <option value="Per hour">Per hour</option>
+                                    <option value="Per person">Per person</option>
                                     <option value="Per session">Per session</option>
                                     <option value="Per day">Per day</option>
                                 </select>

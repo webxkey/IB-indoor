@@ -135,6 +135,18 @@ class DjangoWebhookController extends Controller
         }
 
         $booking = BookingBooking::find($bookingId);
+        $venueId = null;
+
+        if ($booking) {
+            $venueId = $booking->complex_id_id;
+        } else {
+            $poolBooking = \App\Models\PoolsPoolbooking::with('pool')->find($bookingId);
+            if ($poolBooking) {
+                $booking = $poolBooking;
+                $venueId = $poolBooking->pool ? $poolBooking->pool->venue_id : null;
+            }
+        }
+
         if (!$booking) {
             return response()->json(['error' => 'Booking not found'], 404);
         }
@@ -156,7 +168,7 @@ class DjangoWebhookController extends Controller
         return response()->json([
             'status'     => $broadcastStatus,
             'booking_id' => $booking->id,
-            'venue_id'   => $booking->complex_id_id,
+            'venue_id'   => $venueId,
         ]);
     }
 }

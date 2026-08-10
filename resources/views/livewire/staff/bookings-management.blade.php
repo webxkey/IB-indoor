@@ -939,6 +939,11 @@
         @endif
 
         <div class="d-flex justify-content-end align-items-center mb-3 gap-2">
+            @if($hasPool ?? false)
+            <a href="{{ route('staff.pool-bookings') }}" class="btn btn-info text-white d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-3 fw-bold me-2">
+                <i class="fas fa-swimming-pool"></i> Pool Booking
+            </a>
+            @endif
             <a href="{{ route('staff.custom-booking') }}" class="btn btn-primary d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-3 fw-bold me-2">
                 <i class="fas fa-plus-circle"></i> Custom Booking
             </a>
