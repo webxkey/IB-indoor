@@ -413,7 +413,7 @@
                             $isFull = ($remainingCapacity <= 0);
                         @endphp
 
-
+                        @if(!($selectedDate === $todayStr && $isPast))
                         <tr>
                             <td class="text-center fw-bold text-muted align-middle" style="font-size: 0.92rem; background: #fafafa;">
                                 {{ $slot['label'] }}
@@ -452,6 +452,7 @@
                                 @endif
                             </td>
                         </tr>
+                        @endif
                         @endforeach
                     </tbody>
                 </table>

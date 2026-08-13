@@ -138,6 +138,32 @@ class PoolBookingsManagement extends Component
                 ->with(['items.admissionType', 'user', 'occurrence'])
                 ->orderBy('created_at', 'desc')
                 ->get();
+
+            $todayStr = Carbon::today()->format('Y-m-d');
+            $currentTimeStr = Carbon::now()->format('H:i:s');
+
+            foreach ($this->bookings as $booking) {
+                if (strtolower($booking->status) === 'confirmed') {
+                    $slotEnd = null;
+                    $bookingDateStr = null;
+                    
+                    if ($booking->occurrence) {
+                        $slotEnd = Carbon::parse($booking->occurrence->end_time)->format('H:i:s');
+                        $bookingDateStr = Carbon::parse($booking->occurrence->session_date)->format('Y-m-d');
+                    } else {
+                        $createdTime = Carbon::parse($booking->created_at);
+                        $slotEnd = $createdTime->copy()->addHour()->format('H:i:s');
+                        $bookingDateStr = $createdTime->format('Y-m-d');
+                    }
+                    
+                    $isPast = ($bookingDateStr < $todayStr) || ($bookingDateStr === $todayStr && $slotEnd <= $currentTimeStr);
+                    
+                    if ($isPast) {
+                        $booking->update(['status' => 'No-Show']);
+                        $booking->status = 'No-Show';
+                    }
+                }
+            }
         } else {
             $this->admissionTypes = PoolsPooladmissiontype::query()->whereRaw('1=0')->get();
             $this->occurrences = PoolsPoolsessionoccurrence::query()->whereRaw('1=0')->get();

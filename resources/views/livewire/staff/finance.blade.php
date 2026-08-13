@@ -251,6 +251,13 @@
         </div>
     </div>
 
+    @if(session()->has('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <!-- Summary Cards -->
     <div class="row g-4 mb-4">
         <div class="col-md-4">
@@ -343,6 +350,7 @@
                         <th class="text-end">Total Price</th>
                         <th class="text-end">Advance</th>
                         <th class="text-end">Balance</th>
+                        <th class="text-center">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -363,11 +371,23 @@
                                 </div>
                             </td>
                             <td>
-                                <div><strong>{{ $booking->sport->name ?? $booking->game_name ?? 'N/A' }}</strong></div>
-                                <div class="booking-meta">
-                                    {{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}<br>
-                                    {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
-                                </div>
+                                @if(isset($booking->item_type) && $booking->item_type === 'pool')
+                                    <div><strong>{{ $booking->pool->name ?? 'Pool' }}</strong></div>
+                                    <div class="booking-meta">
+                                        @if($booking->occurrence)
+                                            {{ \Carbon\Carbon::parse($booking->occurrence->date)->format('M d, Y') }}<br>
+                                            {{ \Carbon\Carbon::parse($booking->occurrence->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($booking->occurrence->end_time)->format('h:i A') }}
+                                        @else
+                                            {{ $booking->created_at->format('M d, Y h:i A') }}
+                                        @endif
+                                    </div>
+                                @else
+                                    <div><strong>{{ $booking->sport->name ?? $booking->game_name ?? 'N/A' }}</strong></div>
+                                    <div class="booking-meta">
+                                        {{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}<br>
+                                        {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
+                                    </div>
+                                @endif
                             </td>
                             <td>
                                 @php
@@ -394,20 +414,38 @@
                                 </span>
                             </td>
                             <td>
-                                @if($booking->payment_method)
-                                    <span class="text-capitalize"><i class="fas fa-{{ strtolower($booking->payment_method) == 'cash' ? 'money-bill' : 'credit-card' }} text-muted me-1"></i> {{ $booking->payment_method }}</span>
+                                @if(isset($booking->item_type) && $booking->item_type === 'pool')
+                                    <span class="text-capitalize"><i class="fas fa-money-bill text-muted me-1"></i> {{ $booking->payment_method ?? 'Online' }}</span>
                                 @else
-                                    <span class="text-muted">-</span>
+                                    @if($booking->payment_method)
+                                        @php
+                                            $displayMethod = strtolower($booking->payment_method) == 'genie' ? 'Online' : $booking->payment_method;
+                                        @endphp
+                                        <span class="text-capitalize"><i class="fas fa-{{ strtolower($booking->payment_method) == 'cash' ? 'money-bill' : 'credit-card' }} text-muted me-1"></i> {{ $displayMethod }}</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="text-end currency text-success">
-                                Rs.{{ number_format($booking->price, 2) }}
+                                Rs.{{ number_format($booking->price ?? $booking->booking_total, 2) }}
                             </td>
                             <td class="text-end currency text-info">
                                 Rs.{{ number_format($booking->advance_amount, 2) }}
                             </td>
                             <td class="text-end currency {{ $booking->balance_due > 0 ? 'text-warning' : 'text-muted' }}">
                                 Rs.{{ number_format($booking->balance_due, 2) }}
+                            </td>
+                            <td class="text-center">
+                                @if($booking->balance_due > 0 || in_array(strtolower($booking->payment_status ?? $booking->financial_status), ['pending', 'partially_paid', 'unpaid']))
+                                    <button class="btn btn-sm btn-outline-success fw-bold rounded-pill" wire:click="openPaymentModal({{ $booking->id }}, '{{ $booking->item_type ?? 'sport' }}')">
+                                        <i class="fas fa-money-bill-wave"></i> Payment
+                                    </button>
+                                @else
+                                    <button class="btn btn-sm btn-outline-info fw-bold rounded-pill" wire:click="openDetailsModal({{ $booking->id }}, '{{ $booking->item_type ?? 'sport' }}')">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @empty
@@ -431,4 +469,121 @@
         </div>
         @endif
     </div>
+
+    <!-- Collect Payment Modal -->
+    @if($showPaymentModal && $paymentBooking)
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+            <div class="modal-dialog modal-dialog-centered max-w-sm">
+                <div class="modal-content shadow-lg border-0 rounded-4">
+                    <div class="modal-header bg-light border-bottom-0">
+                        <h5 class="modal-title font-weight-bold flex items-center gap-2">
+                            <i class="fas fa-money-bill-wave text-success me-2"></i> Collect Payment
+                        </h5>
+                        <button type="button" class="btn-close" wire:click="closePaymentModal()"></button>
+                    </div>
+                    
+                    <div class="modal-body p-4">
+                        <div class="bg-light p-3 rounded mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Booking ID:</span>
+                                <span class="fw-bold">#{{ $paymentBooking->id }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Customer:</span>
+                                <span class="fw-bold">{{ $paymentBooking->user_name }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Amount Due:</span>
+                                <span class="fw-bold text-success fs-5">LKR {{ number_format($paymentBooking->balance_due > 0 ? $paymentBooking->balance_due : max(0, $paymentBooking->price - $paymentBooking->advance_amount), 2) }}</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label text-muted small text-uppercase fw-bold mb-2">Select Payment Method</label>
+                            <div class="d-flex gap-2">
+                                <div class="flex-fill border rounded p-2 text-center {{ $collectPaymentMethod === 'cash' ? 'border-success bg-success bg-opacity-10 text-success fw-bold' : 'bg-white text-secondary' }}"
+                                     style="cursor:pointer;" wire:click="$set('collectPaymentMethod', 'cash')">
+                                    <i class="fas fa-money-bill d-block mb-1 fs-5"></i>
+                                    <small>Cash</small>
+                                </div>
+                                <div class="flex-fill border rounded p-2 text-center {{ $collectPaymentMethod === 'card' ? 'border-success bg-success bg-opacity-10 text-success fw-bold' : 'bg-white text-secondary' }}"
+                                     style="cursor:pointer;" wire:click="$set('collectPaymentMethod', 'card')">
+                                    <i class="fas fa-credit-card d-block mb-1 fs-5"></i>
+                                    <small>Card</small>
+                                </div>
+                                <div class="flex-fill border rounded p-2 text-center {{ $collectPaymentMethod === 'transfer' ? 'border-success bg-success bg-opacity-10 text-success fw-bold' : 'bg-white text-secondary' }}"
+                                     style="cursor:pointer;" wire:click="$set('collectPaymentMethod', 'transfer')">
+                                    <i class="fas fa-exchange-alt d-block mb-1 fs-5"></i>
+                                    <small>Transfer</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-top-0 bg-light rounded-bottom-4">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" wire:click="closePaymentModal()">Cancel</button>
+                        <button type="button" class="btn btn-success rounded-pill px-4" wire:click="collectPayment()">Confirm Payment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- View Payment Details Modal -->
+    @if($showDetailsModal && $detailsBooking)
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+            <div class="modal-dialog modal-dialog-centered max-w-sm">
+                <div class="modal-content shadow-lg border-0 rounded-4">
+                    <div class="modal-header bg-light border-bottom-0">
+                        <h5 class="modal-title font-weight-bold flex items-center gap-2">
+                            <i class="fas fa-receipt text-info me-2"></i> Payment Details
+                        </h5>
+                        <button type="button" class="btn-close" wire:click="closeDetailsModal()"></button>
+                    </div>
+                    
+                    <div class="modal-body p-4">
+                        <div class="bg-light p-3 rounded mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Booking ID:</span>
+                                <span class="fw-bold">#{{ $detailsBooking->id }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Customer:</span>
+                                <span class="fw-bold">{{ $detailsBooking->user_name }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Total Price:</span>
+                                <span class="fw-bold">Rs.{{ number_format($detailsBooking->price, 2) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Final Status:</span>
+                                <span class="badge bg-success">{{ preg_replace('/(?<!^)([A-Z])/', ' $1', ucfirst($detailsBooking->financial_status)) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="border rounded p-3 bg-white">
+                            <h6 class="fw-bold mb-3 text-uppercase small text-muted">Payment Breakdown</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary"><i class="fas fa-globe me-2"></i>Online Paid</span>
+                                <span class="fw-bold text-dark">Rs.{{ number_format($detailsBooking->online_paid_amount ?: 0, 2) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span class="text-secondary"><i class="fas fa-money-bill-wave me-2"></i>Offline Paid</span>
+                                <span class="fw-bold text-dark">Rs.{{ number_format($detailsBooking->offline_paid_amount ?: 0, 2) }}</span>
+                            </div>
+                            <hr class="my-2 text-muted opacity-25">
+                            <div class="d-flex justify-content-between mt-3">
+                                <span class="fw-bold">Total Paid</span>
+                                <span class="fw-bold text-success fs-5">Rs.{{ number_format($detailsBooking->amount_paid ?: 0, 2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-top-0 bg-light rounded-bottom-4">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4 w-100" wire:click="closeDetailsModal()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

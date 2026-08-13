@@ -141,15 +141,15 @@
                             wire:click="editSport('{{ $sport->id }}')">
                             <i class="fas fa-edit me-1"></i> Manage
                         </button>
-                        <button class="btn btn-sm btn-outline-info" wire:click="openPricingModal({{ $sport->id }})" title="Set Pricing Rules">
+                        <button class="btn btn-sm btn-outline-info" wire:click="openPricingModal('{{ $sport->id }}')" title="Set Pricing Rules">
                             <i class="fas fa-tags"></i> Pricing
                         </button>
                         @if($this->isPoolSport($sport->name))
-                        <button class="btn btn-sm btn-outline-primary" wire:click="openPoolModal({{ $sport->id }})" title="Manage Pool Admission Tickets">
+                        <button class="btn btn-sm btn-outline-primary" wire:click="openPoolModal('{{ $sport->id }}')" title="Manage Pool Admission Tickets">
                             <i class="fas fa-swimming-pool me-1"></i> Tickets
                         </button>
                         @endif
-                        <button class="btn btn-sm btn-outline-warning" wire:click="openSlotBlockModal({{ $sport->id }})" title="Manage blocked slots">
+                        <button class="btn btn-sm btn-outline-warning" wire:click="openSlotBlockModal('{{ $sport->id }}')" title="Manage blocked slots">
                             <i class="fas fa-ban"></i> Blocked Slots
                         </button>
                     </div>

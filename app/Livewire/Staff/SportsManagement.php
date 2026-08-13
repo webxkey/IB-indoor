@@ -352,11 +352,6 @@ class SportsManagement extends Component
 
     public function openPricingModal($sportId)
     {
-        $sport = BookingSport::find($sportId);
-        if (!$sport) return;
-        $this->pricingEditSportId = $sportId;
-        $rules = is_array($sport->pricing_rules) ? $sport->pricing_rules : (json_decode($sport->pricing_rules, true) ?? []);
-
         $defaultSchedule = [
             'monday'    => ['enabled' => true,  'start_time' => '17:00', 'end_time' => '22:00'],
             'tuesday'   => ['enabled' => false, 'start_time' => '17:00', 'end_time' => '22:00'],
@@ -366,6 +361,41 @@ class SportsManagement extends Component
             'saturday'  => ['enabled' => false, 'start_time' => '17:00', 'end_time' => '22:00'],
             'sunday'    => ['enabled' => false, 'start_time' => '17:00', 'end_time' => '22:00'],
         ];
+
+        if (is_string($sportId) && str_starts_with($sportId, 'pool_')) {
+            $poolId = (int) str_replace('pool_', '', $sportId);
+            $pool = \App\Models\PoolsPool::findOrFail($poolId);
+            
+            $this->pricingEditSportId = $sportId;
+            
+            $this->private_request_limit_type = $pool->private_request_limit_type ?? 'percentage';
+            $this->private_request_limit_value = $pool->private_request_limit_value ?? 50.00;
+            $this->max_sessions_per_booking = $pool->max_sessions_per_booking ?? 12;
+
+            $this->pricingRules = [
+                'mode'                                 => 'override',
+                'peak_price'                           => '',
+                'offpeak_price'                        => '',
+                'weekend_price'                        => '',
+                'advance_discount'                     => '',
+                'advance_days'                         => '',
+                'peak_schedule_enabled'                => false,
+                'peak_schedule'                        => $defaultSchedule,
+                'private_booking_enabled'              => (bool) $pool->private_request_enabled,
+                'private_booking_price'                => $pool->private_booking_price ?? '',
+                'private_booking_min_slots'            => 3,
+                'private_booking_pricing_mode'        => 'flat_total',
+                'private_booking_price_multiplier'     => 1.00,
+            ];
+
+            $this->showPricingModal = true;
+            return;
+        }
+
+        $sport = BookingSport::find($sportId);
+        if (!$sport) return;
+        $this->pricingEditSportId = $sportId;
+        $rules = is_array($sport->pricing_rules) ? $sport->pricing_rules : (json_decode($sport->pricing_rules, true) ?? []);
 
         $savedSchedule = $rules['peak_hours'] ?? $rules['peak_schedule'] ?? [];
         $normalizedSaved = [];
@@ -444,6 +474,30 @@ class SportsManagement extends Component
             'pricingRules.private_booking_price' => 'nullable|numeric|min:0',
             'pricingRules.private_booking_min_slots' => 'nullable|integer|min:1',
         ]);
+
+        if (is_string($this->pricingEditSportId) && str_starts_with($this->pricingEditSportId, 'pool_')) {
+            $poolId = (int) str_replace('pool_', '', $this->pricingEditSportId);
+            $pool = \App\Models\PoolsPool::find($poolId);
+            if ($pool) {
+                $privateEnabled = filter_var($this->pricingRules['private_booking_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $privatePrice = ($privateEnabled && !empty($this->pricingRules['private_booking_price']))
+                    ? (float) $this->pricingRules['private_booking_price']
+                    : null;
+                
+                $pool->update([
+                    'private_booking_price'   => $privatePrice,
+                    'private_request_enabled' => $privateEnabled,
+                    'private_request_limit_type' => $this->private_request_limit_type ?: 'percentage',
+                    'private_request_limit_value' => !empty($this->private_request_limit_value) ? (float) $this->private_request_limit_value : 50.00,
+                    'max_sessions_per_booking' => !empty($this->max_sessions_per_booking) ? (int) $this->max_sessions_per_booking : 12,
+                    'updated_at' => now(),
+                ]);
+                session()->flash('message', 'Pool pricing rules saved successfully!');
+            }
+            $this->closePricingModal();
+            $this->loadSports();
+            return;
+        }
 
         $sport = BookingSport::find($this->pricingEditSportId);
         if ($sport) {
@@ -528,6 +582,21 @@ class SportsManagement extends Component
 
     public function openSlotBlockModal($sportId)
     {
+        if (is_string($sportId) && str_starts_with($sportId, 'pool_')) {
+            $poolId = (int) str_replace('pool_', '', $sportId);
+            $pool = \App\Models\PoolsPool::findOrFail($poolId);
+            $this->slotBlockSportId = $sportId;
+            $this->slotBlockSportName = $pool->name ?: 'Pools';
+            $this->slotBlockDate = now()->format('Y-m-d');
+            $this->slotBlockTime = '09:00:00';
+            $this->slotBlockEndTime = '10:00:00';
+            $this->slotBlockCourt = '1';
+            $this->slotBlockReason = 'Maintenance';
+            $this->loadExistingBlocks($pool);
+            $this->showSlotBlockModal = true;
+            return;
+        }
+
         $sport = BookingSport::find($sportId);
         if (!$sport) return;
         $this->slotBlockSportId = $sportId;
@@ -541,9 +610,9 @@ class SportsManagement extends Component
         $this->showSlotBlockModal = true;
     }
 
-    private function loadExistingBlocks(BookingSport $sport): void
+    private function loadExistingBlocks($sportOrPool): void
     {
-        $raw = is_array($sport->blocked_slots) ? $sport->blocked_slots : [];
+        $raw = is_array($sportOrPool->blocked_slots) ? $sportOrPool->blocked_slots : [];
         $list = [];
         foreach ($raw as $date => $times) {
             foreach ($times as $time => $courts) {
@@ -582,6 +651,26 @@ class SportsManagement extends Component
             'slotBlockReason'  => 'required|string',
         ]);
 
+        if (is_string($this->slotBlockSportId) && str_starts_with($this->slotBlockSportId, 'pool_')) {
+            $poolId = (int) str_replace('pool_', '', $this->slotBlockSportId);
+            $pool = \App\Models\PoolsPool::find($poolId);
+            if (!$pool) return;
+
+            $slots    = is_array($pool->blocked_slots) ? $pool->blocked_slots : [];
+            $time     = strlen($this->slotBlockTime) === 5 ? $this->slotBlockTime . ':00' : $this->slotBlockTime;
+            $endTime  = strlen($this->slotBlockEndTime) === 5 ? $this->slotBlockEndTime . ':00' : $this->slotBlockEndTime;
+
+            $slots[$this->slotBlockDate][$time][$this->slotBlockCourt] = [
+                'reason'   => $this->slotBlockReason,
+                'end_time' => $endTime,
+            ];
+            $pool->update(['blocked_slots' => $slots]);
+
+            $this->loadExistingBlocks($pool->fresh());
+            session()->flash('message', 'Slot blocked successfully.');
+            return;
+        }
+
         $sport = BookingSport::find($this->slotBlockSportId);
         if (!$sport) return;
 
@@ -601,6 +690,22 @@ class SportsManagement extends Component
 
     public function removeSlotBlock($date, $time, $court)
     {
+        if (is_string($this->slotBlockSportId) && str_starts_with($this->slotBlockSportId, 'pool_')) {
+            $poolId = (int) str_replace('pool_', '', $this->slotBlockSportId);
+            $pool = \App\Models\PoolsPool::find($poolId);
+            if (!$pool) return;
+
+            $slots = is_array($pool->blocked_slots) ? $pool->blocked_slots : [];
+            unset($slots[$date][$time][$court]);
+            if (empty($slots[$date][$time])) unset($slots[$date][$time]);
+            if (empty($slots[$date]))        unset($slots[$date]);
+            $pool->update(['blocked_slots' => $slots]);
+
+            $this->loadExistingBlocks($pool->fresh());
+            session()->flash('message', 'Block removed.');
+            return;
+        }
+
         $sport = BookingSport::find($this->slotBlockSportId);
         if (!$sport) return;
 
@@ -1056,6 +1161,23 @@ class SportsManagement extends Component
 
     public function openPoolModal($sportId)
     {
+        if (is_string($sportId) && str_starts_with($sportId, 'pool_')) {
+            $poolId = (int) str_replace('pool_', '', $sportId);
+            $pool = \App\Models\PoolsPool::findOrFail($poolId);
+            $this->poolModalSportId = $sportId;
+            $this->poolModalPoolId = $pool->id;
+
+            $this->private_request_limit_type = $pool->private_request_limit_type ?? 'percentage';
+            $this->private_request_limit_value = $pool->private_request_limit_value ?? 50.00;
+            $this->max_sessions_per_booking = $pool->max_sessions_per_booking ?? 12;
+            $this->private_booking_price = $pool->private_booking_price;
+            $this->private_booking_enabled = (bool) $pool->private_request_enabled;
+
+            $this->loadPoolAdmissionTypes();
+            $this->showPoolModal = true;
+            return;
+        }
+
         $sport = BookingSport::findOrFail($sportId);
         $this->poolModalSportId = $sport->id;
 
@@ -1099,7 +1221,7 @@ class SportsManagement extends Component
                 'updated_at' => now(),
             ]);
 
-            if ($this->poolModalSportId) {
+            if ($this->poolModalSportId && is_numeric($this->poolModalSportId)) {
                 BookingSport::where('id', $this->poolModalSportId)->update([
                     'private_booking_price' => $privatePrice,
                 ]);
