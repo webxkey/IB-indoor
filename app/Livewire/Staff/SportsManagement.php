@@ -68,7 +68,67 @@ class SportsManagement extends Component
     public function getIsOnlinePaymentEnabledProperty()
     {
         $venue = $this->venue;
-        return $venue ? filter_var($venue->online_payments_enabled ?? true, FILTER_VALIDATE_BOOLEAN) : true;
+        if (!$venue) {
+            return true;
+        }
+        $online = filter_var($venue->online_payments_enabled ?? false, FILTER_VALIDATE_BOOLEAN);
+        $bank = filter_var($venue->bank_transfer_payments_enabled ?? false, FILTER_VALIDATE_BOOLEAN);
+        return $online || $bank;
+    }
+
+    public function getPaymentPolicyBadge($sport)
+    {
+        if (!$this->isOnlinePaymentEnabled) {
+            return [
+                'label' => 'Pay at Venue',
+                'class' => 'bg-warning text-dark',
+            ];
+        }
+
+        $override = is_object($sport) ? ($sport->booking_payment_mode_override ?? null) : ($sport['booking_payment_mode_override'] ?? null);
+
+        if (in_array($override, ['pay_at_venue', 'no_payment'])) {
+            return [
+                'label' => 'Pay at Venue',
+                'class' => 'bg-warning text-dark',
+            ];
+        }
+
+        $advanceReq = is_object($sport) ? ($sport->advance_required ?? false) : ($sport['advance_required'] ?? false);
+        $advanceVal = is_object($sport) ? ($sport->advance_payment_value_override ?? 20) : ($sport['advance_payment_value_override'] ?? 20);
+        $advanceType = is_object($sport) ? ($sport->advance_payment_type_override ?? 'percentage') : ($sport['advance_payment_type_override'] ?? 'percentage');
+
+        if (in_array($override, ['partial', 'advance_only', 'advance_or_full']) || $advanceReq) {
+            $typeSymbol = ($advanceType === 'percentage') ? '%' : ' LKR';
+            return [
+                'label' => "Deposit: {$advanceVal}{$typeSymbol}",
+                'class' => 'bg-primary',
+            ];
+        }
+
+        $venueMode = $this->venue ? ($this->venue->booking_payment_mode ?? 'full_only') : 'full_only';
+
+        if (empty($override) || $override === 'venue_default') {
+            if (in_array($venueMode, ['pay_at_venue', 'no_payment'])) {
+                return [
+                    'label' => 'Pay at Venue',
+                    'class' => 'bg-warning text-dark',
+                ];
+            }
+            if (in_array($venueMode, ['partial', 'advance_only', 'advance_or_full']) || ($this->venue && $this->venue->advance_payment_required)) {
+                $val = $this->venue->advance_payment_value ?? 20;
+                $typeSymbol = ($this->venue->advance_payment_type ?? 'percentage') === 'percentage' ? '%' : ' LKR';
+                return [
+                    'label' => "Deposit: {$val}{$typeSymbol}",
+                    'class' => 'bg-primary',
+                ];
+            }
+        }
+
+        return [
+            'label' => 'Full Payment',
+            'class' => 'bg-secondary',
+        ];
     }
 
     // Capacity / Limited Persons Allowed Limit Per Hour (Pool & Sports)
@@ -221,17 +281,31 @@ class SportsManagement extends Component
         $charges['capacity_limit_enabled'] = (bool) $this->capacity_limit_enabled;
         $charges['max_persons_per_hour'] = $this->capacity_limit_enabled ? (int) $this->max_persons_per_hour : 1;
 
-        $mode = $this->booking_payment_mode_override;
-        $isAdvanceMode = in_array($mode, ['advance_only', 'advance_or_full', 'partial']);
-        if (empty($mode) || $mode === 'venue_default') {
-            $venue = $this->venue;
-            if ($venue && (in_array($venue->booking_payment_mode, ['partial', 'advance_only', 'advance_or_full']) || $venue->advance_payment_required)) {
-                $isAdvanceMode = true;
+        $isOnlinePayment = $this->isOnlinePaymentEnabled;
+        if (!$isOnlinePayment) {
+            $isAdvanceMode = false;
+            $advanceOverride = false;
+            $advanceValue = null;
+            $modeOverride = null;
+            $advanceTypeOverride = null;
+        } else {
+            $mode = $this->booking_payment_mode_override;
+            $modeOverride = (!empty($mode) && $mode !== 'venue_default') ? $mode : null;
+            if (empty($mode) || $mode === 'venue_default') {
+                $venue = $this->venue;
+                $isAdvanceMode = $venue && (in_array($venue->booking_payment_mode, ['partial', 'advance_only', 'advance_or_full']) || $venue->advance_payment_required);
+                $advanceOverride = false;
+                $advanceValue = null;
+                $advanceTypeOverride = null;
+            } else {
+                $isAdvanceMode = in_array($mode, ['advance_only', 'advance_or_full', 'partial']);
+                $advanceOverride = $isAdvanceMode;
+                $advanceValue = ($isAdvanceMode && !empty($this->advance_payment_value_override))
+                    ? (float) $this->advance_payment_value_override
+                    : null;
+                $advanceTypeOverride = $this->advance_payment_type_override ?: 'percentage';
             }
         }
-        $advanceValue = ($isAdvanceMode && !empty($this->advance_payment_value_override))
-            ? (float) $this->advance_payment_value_override
-            : null;
 
         $minMinutes = !empty($this->private_booking_min_duration_minutes) 
             ? max(60, (int) $this->private_booking_min_duration_minutes) 
@@ -248,7 +322,10 @@ class SportsManagement extends Component
                 $isAdvanceMode,
                 $advanceValue,
                 (float) $validated['price'],
-                true // Force insert new entry into pools_pool table
+                true, // Force insert new entry into pools_pool table
+                $modeOverride,
+                $advanceTypeOverride,
+                $advanceOverride
             );
 
             session()->flash('message', 'Pool added successfully!');
@@ -273,12 +350,13 @@ class SportsManagement extends Component
             'average_rating' => 0.0,
 
             // Payment policy customization
-            'advance_payment_required_override' => $isAdvanceMode,
-            'booking_payment_mode_override' => !empty($this->booking_payment_mode_override) ? $this->booking_payment_mode_override : null,
-            'advance_payment_type_override' => $this->advance_payment_type_override ?: 'percentage',
+            'advance_payment_required_override' => $advanceOverride,
+            'booking_payment_mode_override' => $modeOverride,
+            'advance_payment_type_override' => $advanceTypeOverride,
             'advance_payment_value_override' => $advanceValue,
 
             // Private booking customization
+            'private_booking_enabled' => (bool) $this->private_booking_enabled,
             'private_booking_price' => (!empty($this->private_booking_price) && $this->private_booking_enabled) ? (float) $this->private_booking_price : null,
             'private_booking_min_duration_minutes' => $minMinutes,
             'private_booking_price_multiplier' => (float) ($this->private_booking_price_multiplier ?: 1.00),
@@ -503,30 +581,52 @@ class SportsManagement extends Component
         if ($sport) {
             $overridePeakHours = filter_var($this->pricingRules['peak_schedule_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-            $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-            $peakHoursFormatted = [];
+            $peakPrice = trim((string) ($this->pricingRules['peak_price'] ?? ''));
+            $offpeakPrice = trim((string) ($this->pricingRules['offpeak_price'] ?? ''));
+            $weekendPrice = trim((string) ($this->pricingRules['weekend_price'] ?? ''));
+            $advanceDiscount = trim((string) ($this->pricingRules['advance_discount'] ?? ''));
+            $advanceDays = trim((string) ($this->pricingRules['advance_days'] ?? ''));
 
-            foreach ($days as $day) {
-                $dayData = $this->pricingRules['peak_schedule'][$day] ?? [];
-                $peakHoursFormatted[$day] = [
-                    'enabled' => filter_var($dayData['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'start'   => $dayData['start_time'] ?? $dayData['start'] ?? '17:00',
-                    'end'     => $dayData['end_time'] ?? $dayData['end'] ?? '22:00',
-                ];
+            $hasPeakHoursConfigured = false;
+            if ($overridePeakHours && !empty($this->pricingRules['peak_schedule']) && is_array($this->pricingRules['peak_schedule'])) {
+                foreach ($this->pricingRules['peak_schedule'] as $dayData) {
+                    if (!empty($dayData['enabled'])) {
+                        $hasPeakHoursConfigured = true;
+                        break;
+                    }
+                }
             }
 
-            $payload = [
-                'mode'                  => 'override',
-                'override_peak_hours'   => $overridePeakHours,
-                'peak_price'            => (string) ($this->pricingRules['peak_price'] ?? ''),
-                'offpeak_price'         => (string) ($this->pricingRules['offpeak_price'] ?? ''),
-                'weekend_price'         => (string) ($this->pricingRules['weekend_price'] ?? ''),
-                'advance_discount'      => (string) ($this->pricingRules['advance_discount'] ?? ''),
-                'advance_days'          => (string) ($this->pricingRules['advance_days'] ?? ''),
-                'peak_hours'            => $peakHoursFormatted,
-                'peak_schedule_enabled' => $overridePeakHours,
-                'peak_schedule'         => $this->pricingRules['peak_schedule'] ?? [],
-            ];
+            $hasPricingRulesEnabled = $overridePeakHours || $hasPeakHoursConfigured || !empty($peakPrice) || !empty($offpeakPrice) || !empty($weekendPrice) || !empty($advanceDiscount);
+
+            if (!$hasPricingRulesEnabled) {
+                $payload = null;
+            } else {
+                $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                $peakHoursFormatted = [];
+
+                foreach ($days as $day) {
+                    $dayData = $this->pricingRules['peak_schedule'][$day] ?? [];
+                    $peakHoursFormatted[$day] = [
+                        'enabled' => filter_var($dayData['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                        'start'   => $dayData['start_time'] ?? $dayData['start'] ?? '17:00',
+                        'end'     => $dayData['end_time'] ?? $dayData['end'] ?? '22:00',
+                    ];
+                }
+
+                $payload = [
+                    'mode'                  => 'override',
+                    'override_peak_hours'   => $overridePeakHours,
+                    'peak_price'            => $peakPrice,
+                    'offpeak_price'         => $offpeakPrice,
+                    'weekend_price'         => $weekendPrice,
+                    'advance_discount'      => $advanceDiscount,
+                    'advance_days'          => $advanceDays,
+                    'peak_hours'            => $peakHoursFormatted,
+                    'peak_schedule_enabled' => $overridePeakHours,
+                    'peak_schedule'         => $this->pricingRules['peak_schedule'] ?? [],
+                ];
+            }
 
             $privateEnabled = filter_var($this->pricingRules['private_booking_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
             $privatePrice = ($privateEnabled && !empty($this->pricingRules['private_booking_price']))
@@ -787,9 +887,11 @@ class SportsManagement extends Component
         $this->existingImage = $sport->image;
 
         // Customization fields
-        $this->advance_payment_required_override = (bool) $sport->advance_payment_required_override;
+        $this->advance_payment_required_override = $this->isOnlinePaymentEnabled ? (bool) $sport->advance_payment_required_override : false;
         $rawMode = $sport->booking_payment_mode_override;
-        if (in_array($rawMode, ['pay_at_venue', 'no_payment'])) {
+        if (!$this->isOnlinePaymentEnabled) {
+            $this->booking_payment_mode_override = '';
+        } elseif (in_array($rawMode, ['pay_at_venue', 'no_payment'])) {
             $this->booking_payment_mode_override = 'no_payment';
         } elseif (in_array($rawMode, ['partial', 'advance_only'])) {
             $this->booking_payment_mode_override = 'advance_only';
@@ -813,7 +915,9 @@ class SportsManagement extends Component
         $this->private_booking_min_slots = max(1, (int) round(($this->private_booking_min_duration_minutes) / 60));
         $this->private_booking_price_multiplier = $sport->private_booking_price_multiplier ?? 1.00;
         $this->private_booking_pricing_mode = $sport->private_booking_pricing_mode ?? 'flat_total';
-        $this->private_booking_enabled = !empty($sport->private_booking_price) || ($sport->private_booking_pricing_mode === 'normal_total' && $sport->private_booking_price_multiplier > 1);
+        $this->private_booking_enabled = isset($sport->private_booking_enabled)
+            ? (bool) $sport->private_booking_enabled
+            : (!empty($sport->private_booking_price) || ($sport->private_booking_pricing_mode === 'normal_total' && $sport->private_booking_price_multiplier > 1));
 
         $this->dispatch('showEditSportModal');
     }
@@ -843,12 +947,13 @@ class SportsManagement extends Component
             \DB::table('pools_pool')->where('id', $poolId)->update([
                 'name' => $this->game_name ?: 'Pools',
                 'description' => $validated['description'] ?? null,
-                'status' => strtolower($validated['status']),
+                'status' => ucfirst(strtolower($validated['status'])),
                 'capacity' => (int) $validated['maximum_court'],
                 'booking_payment_mode_override' => !empty($this->booking_payment_mode_override) ? $this->booking_payment_mode_override : null,
                 'advance_payment_required_override' => $isAdvanceMode,
                 'advance_payment_type_override' => $this->advance_payment_type_override ?: 'percentage',
                 'advance_payment_value_override' => $advanceValue,
+                'private_booking_enabled' => (bool) $this->private_booking_enabled,
                 'private_booking_price' => (!empty($this->private_booking_price) && $this->private_booking_enabled) ? (float) $this->private_booking_price : null,
                 'private_request_enabled' => (bool) $this->private_booking_enabled,
                 'updated_at' => now(),
@@ -900,17 +1005,31 @@ class SportsManagement extends Component
         $charges['capacity_limit_enabled'] = (bool) $this->capacity_limit_enabled;
         $charges['max_persons_per_hour'] = $this->capacity_limit_enabled ? (int) $this->max_persons_per_hour : 1;
 
-        $mode = $this->booking_payment_mode_override;
-        $isAdvanceMode = in_array($mode, ['advance_only', 'advance_or_full', 'partial']);
-        if (empty($mode) || $mode === 'venue_default') {
-            $venue = $this->venue;
-            if ($venue && (in_array($venue->booking_payment_mode, ['partial', 'advance_only', 'advance_or_full']) || $venue->advance_payment_required)) {
-                $isAdvanceMode = true;
+        $isOnlinePayment = $this->isOnlinePaymentEnabled;
+        if (!$isOnlinePayment) {
+            $isAdvanceMode = false;
+            $advanceOverride = false;
+            $advanceValue = null;
+            $modeOverride = null;
+            $advanceTypeOverride = null;
+        } else {
+            $mode = $this->booking_payment_mode_override;
+            $modeOverride = (!empty($mode) && $mode !== 'venue_default') ? $mode : null;
+            if (empty($mode) || $mode === 'venue_default') {
+                $venue = $this->venue;
+                $isAdvanceMode = $venue && (in_array($venue->booking_payment_mode, ['partial', 'advance_only', 'advance_or_full']) || $venue->advance_payment_required);
+                $advanceOverride = false;
+                $advanceValue = null;
+                $advanceTypeOverride = null;
+            } else {
+                $isAdvanceMode = in_array($mode, ['advance_only', 'advance_or_full', 'partial']);
+                $advanceOverride = $isAdvanceMode;
+                $advanceValue = ($isAdvanceMode && !empty($this->advance_payment_value_override))
+                    ? (float) $this->advance_payment_value_override
+                    : null;
+                $advanceTypeOverride = $this->advance_payment_type_override ?: 'percentage';
             }
         }
-        $advanceValue = ($isAdvanceMode && !empty($this->advance_payment_value_override))
-            ? (float) $this->advance_payment_value_override
-            : null;
 
         $minMinutes = !empty($this->private_booking_min_duration_minutes) 
             ? max(60, (int) $this->private_booking_min_duration_minutes) 
@@ -930,12 +1049,13 @@ class SportsManagement extends Component
             'advance_required' => $isAdvanceMode,
 
             // Payment policy customization
-            'advance_payment_required_override' => $isAdvanceMode,
-            'booking_payment_mode_override' => !empty($this->booking_payment_mode_override) ? $this->booking_payment_mode_override : null,
-            'advance_payment_type_override' => $this->advance_payment_type_override ?: 'percentage',
+            'advance_payment_required_override' => $advanceOverride,
+            'booking_payment_mode_override' => $modeOverride,
+            'advance_payment_type_override' => $advanceTypeOverride,
             'advance_payment_value_override' => $advanceValue,
 
             // Private booking customization
+            'private_booking_enabled' => (bool) $this->private_booking_enabled,
             'private_booking_price' => (!empty($this->private_booking_price) && $this->private_booking_enabled) ? (float) $this->private_booking_price : null,
             'private_booking_min_duration_minutes' => $minMinutes,
             'private_booking_price_multiplier' => (float) ($this->private_booking_price_multiplier ?: 1.00),
@@ -951,7 +1071,11 @@ class SportsManagement extends Component
             $validated['status'],
             $isAdvanceMode,
             $advanceValue,
-            (float) $validated['price']
+            (float) $validated['price'],
+            false,
+            $modeOverride,
+            $advanceTypeOverride,
+            $advanceOverride
         );
 
         session()->flash('message', 'Sport updated successfully.');
@@ -976,7 +1100,7 @@ class SportsManagement extends Component
                 $hasBookings = \DB::table('pools_poolbooking')->where('pool_id', $poolId)->exists();
 
                 if ($hasBookings) {
-                    \DB::table('pools_pool')->where('id', $poolId)->update(['status' => 'inactive', 'updated_at' => now()]);
+                    \DB::table('pools_pool')->where('id', $poolId)->update(['status' => 'Inactive', 'updated_at' => now()]);
                     session()->flash('message', 'Pool marked as Inactive to preserve existing pool booking records.');
                 } else {
                     \DB::table('pools_pooladmissiontype')->where('pool_id', $poolId)->delete();
@@ -996,8 +1120,8 @@ class SportsManagement extends Component
             $hasBookings = \DB::table('booking_booking')->where('game_id_id', $id)->exists();
 
             if ($this->isPoolSport($sport->name)) {
-                // First update pools_pool status to inactive
-                \DB::table('pools_pool')->where('venue_id', $venueId)->update(['status' => 'inactive', 'updated_at' => now()]);
+                // First update pools_pool status to Inactive
+                \DB::table('pools_pool')->where('venue_id', $venueId)->update(['status' => 'Inactive', 'updated_at' => now()]);
 
                 if (!$hasBookings) {
                     try {
@@ -1005,7 +1129,7 @@ class SportsManagement extends Component
                         \DB::table('pools_pooladmissiontype')->whereIn('pool_id', $poolIds)->delete();
                         \DB::table('pools_pool')->where('venue_id', $venueId)->delete();
                     } catch (\Exception $e) {
-                        \DB::table('pools_pool')->where('venue_id', $venueId)->update(['status' => 'inactive', 'updated_at' => now()]);
+                        \DB::table('pools_pool')->where('venue_id', $venueId)->update(['status' => 'Inactive', 'updated_at' => now()]);
                     }
                 }
             }
@@ -1050,7 +1174,7 @@ class SportsManagement extends Component
         }
     }
 
-    private function syncPoolsTable($venueId, $name, $description, $imagePath, $status, $isAdvanceMode, $advanceValue, $price = 0, $isNew = false)
+    private function syncPoolsTable($venueId, $name, $description, $imagePath, $status, $isAdvanceMode, $advanceValue, $price = 0, $isNew = false, $modeOverride = null, $advanceTypeOverride = null, $advanceOverride = false)
     {
         if (!$this->isPoolSport($name)) {
             return;
@@ -1059,7 +1183,7 @@ class SportsManagement extends Component
         $capacity = $this->capacity_limit_enabled ? (int) $this->max_persons_per_hour : 10;
         $privatePrice = (!empty($this->private_booking_price) && $this->private_booking_enabled) ? (float) $this->private_booking_price : null;
         $privateEnabled = (bool) $this->private_booking_enabled;
-        $poolStatus = (strtolower($status) === 'Active') ? 'Active' : 'Inactive';
+        $poolStatus = ucfirst(strtolower($status ?: 'Active'));
 
         $data = [
             'venue_id' => $venueId,
@@ -1068,10 +1192,11 @@ class SportsManagement extends Component
             'image' => $imagePath,
             'status' => $poolStatus,
             'capacity' => $capacity,
-            'booking_payment_mode_override' => !empty($this->booking_payment_mode_override) ? $this->booking_payment_mode_override : null,
-            'advance_payment_required_override' => (bool) $isAdvanceMode,
-            'advance_payment_type_override' => $this->advance_payment_type_override ?: 'percentage',
+            'booking_payment_mode_override' => $modeOverride,
+            'advance_payment_required_override' => (bool) $advanceOverride,
+            'advance_payment_type_override' => $advanceTypeOverride,
             'advance_payment_value_override' => $advanceValue,
+            'private_booking_enabled' => $privateEnabled,
             'private_booking_price' => $privatePrice,
             'private_request_enabled' => $privateEnabled,
             'private_request_limit_type' => $this->private_request_limit_type ?: 'percentage',

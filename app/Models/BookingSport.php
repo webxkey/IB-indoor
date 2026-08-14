@@ -14,7 +14,7 @@ class BookingSport extends Model
         'advance_required','venue_id','average_rating','pricing_rules','blocked_slots','opening_hours',
         'advance_payment_required_override','booking_payment_mode_override',
         'advance_payment_type_override','advance_payment_value_override',
-        'private_booking_price','private_booking_min_duration_minutes',
+        'private_booking_enabled','private_booking_price','private_booking_min_duration_minutes',
         'private_booking_price_multiplier','private_booking_pricing_mode'
     ];
    protected $attributes = [
@@ -23,10 +23,12 @@ class BookingSport extends Model
         'status' => 'active',
         'average_rating' => 0,
         'advance_required' => false,
+        'private_booking_enabled' => true,
     ];
     protected $casts = [
         'available' => 'boolean',
         'advance_required' => 'boolean',
+        'private_booking_enabled' => 'boolean',
         'additional_charges' => 'array',
         'pricing_rules' => 'array',
         'blocked_slots' => 'array',

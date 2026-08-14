@@ -124,15 +124,10 @@
 
                     <div class="mt-2 pt-2 border-top">
                         <small class="text-muted d-block mb-1">Payment Policy:</small>
-                        @if(in_array($sport->booking_payment_mode_override, ['pay_at_venue', 'no_payment']))
-                            <span class="badge bg-warning text-dark">Pay at Venue</span>
-                        @elseif(in_array($sport->booking_payment_mode_override, ['partial', 'advance_only', 'advance_or_full']) || $sport->advance_required)
-                            <span class="badge bg-primary">
-                                Deposit: {{ $sport->advance_payment_value_override ?? 20 }}{{ ($sport->advance_payment_type_override ?? 'percentage') === 'percentage' ? '%' : ' LKR' }}
-                            </span>
-                        @else
-                            <span class="badge bg-secondary">Full Payment</span>
-                        @endif
+                        @php
+                            $policyBadge = $this->getPaymentPolicyBadge($sport);
+                        @endphp
+                        <span class="badge {{ $policyBadge['class'] }}">{{ $policyBadge['label'] }}</span>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent">
@@ -342,30 +337,40 @@
 
                                             @if($private_booking_enabled)
                                             <div class="col-md-6">
-                                                <label class="form-label fw-semibold small">Private Booking Price (LKR)</label>
+                                                <label class="form-label fw-semibold small">Private Pricing Mode</label>
+                                                <select class="form-select form-select-sm" wire:model.live="private_booking_pricing_mode">
+                                                    <option value="flat_total">Fixed private total for the whole selected range</option>
+                                                    <option value="per_hour">Private hourly rate multiplied by selected duration</option>
+                                                    <option value="normal_total">Use normal calculated slot total</option>
+                                                    <option value="normal_multiplier">Normal calculated slot total multiplied by private multiplier</option>
+                                                </select>
+                                            </div>
+
+                                            @if(in_array($private_booking_pricing_mode, ['flat_total', 'per_hour', 'hourly_flat']))
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">
+                                                    {{ in_array($private_booking_pricing_mode, ['per_hour', 'hourly_flat']) ? 'Private Hourly Rate (LKR/hr)' : 'Private Booking Price (LKR)' }}
+                                                </label>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">LKR</span>
-                                                    <input type="number" class="form-control" wire:model="private_booking_price" placeholder="e.g. 10000">
+                                                    <input type="number" class="form-control" wire:model="private_booking_price" min="0" step="0.01" placeholder="{{ in_array($private_booking_pricing_mode, ['per_hour', 'hourly_flat']) ? 'e.g. 5000' : 'e.g. 10000' }}">
                                                 </div>
+                                                <small class="text-muted">{{ in_array($private_booking_pricing_mode, ['per_hour', 'hourly_flat']) ? 'Private rate charged per hour' : 'Total flat rate for entire private rental' }}</small>
                                             </div>
+                                            @endif
+
+                                            @if($private_booking_pricing_mode === 'normal_multiplier')
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Price Multiplier</label>
+                                                <input type="number" class="form-control form-control-sm" wire:model="private_booking_price_multiplier" step="0.1" min="1.0" placeholder="1.5">
+                                                <small class="text-muted">Multiplied against normal calculated slot total (e.g. 1.5x)</small>
+                                            </div>
+                                            @endif
 
                                             <div class="col-md-6">
                                                 <label class="form-label fw-semibold small">Minimum Duration (Minutes)</label>
                                                 <input type="number" class="form-control form-control-sm" wire:model="private_booking_min_duration_minutes" placeholder="180">
                                                 <small class="text-muted">Default 180 min (3 Hours)</small>
-                                            </div>
-
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-semibold small">Private Pricing Mode</label>
-                                                <select class="form-select form-select-sm" wire:model="private_booking_pricing_mode">
-                                                    <option value="flat_total">Flat Rate (Fixed Total)</option>
-                                                    <option value="normal_total">Normal Hourly Rate x Multiplier</option>
-                                                </select>
-                                            </div>
-
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-semibold small">Price Multiplier</label>
-                                                <input type="number" class="form-control form-control-sm" wire:model="private_booking_price_multiplier" step="0.1" placeholder="1.5">
                                             </div>
                                             @endif
                                         </div>
@@ -543,7 +548,7 @@
                                             <label class="form-label fw-semibold small">Private Pricing Type *</label>
                                             <select class="form-select form-select-sm" wire:model.live="pricingRules.private_booking_pricing_mode">
                                                 <option value="flat_total">Fixed private total for the whole selected range</option>
-                                                <option value="hourly_flat">Private hourly rate multiplied by selected duration</option>
+                                                                                                <option value="per_hour">Private hourly rate multiplied by selected duration</option>
                                                 <option value="normal_total">Use normal calculated slot total</option>
                                                 <option value="normal_multiplier">Normal calculated slot total multiplied by private multiplier</option>
                                             </select>
@@ -551,16 +556,16 @@
 
                                         @php $pMode = $pricingRules['private_booking_pricing_mode'] ?? 'flat_total'; @endphp
 
-                                        @if(in_array($pMode, ['flat_total', 'hourly_flat']))
+                                        @if(in_array($pMode, ['flat_total', 'per_hour', 'hourly_flat']))
                                         <div class="col-md-6">
                                             <label class="form-label fw-semibold small">
-                                                {{ $pMode === 'hourly_flat' ? 'Private Hourly Rate (LKR/hr) *' : 'Private Flat Rate Price (LKR) *' }}
+                                                {{ in_array($pMode, ['per_hour', 'hourly_flat']) ? 'Private Hourly Rate (LKR/hr) *' : 'Private Flat Rate Price (LKR) *' }}
                                             </label>
                                             <div class="input-group input-group-sm">
                                                 <span class="input-group-text bg-white">LKR</span>
-                                                <input type="number" class="form-control form-control-sm" wire:model="pricingRules.private_booking_price" min="0" step="0.01" placeholder="{{ $pMode === 'hourly_flat' ? 'e.g. 5000' : 'e.g. 15000' }}">
+                                                <input type="number" class="form-control form-control-sm" wire:model="pricingRules.private_booking_price" min="0" step="0.01" placeholder="{{ in_array($pMode, ['per_hour', 'hourly_flat']) ? 'e.g. 5000' : 'e.g. 15000' }}">
                                             </div>
-                                            <small class="text-muted">{{ $pMode === 'hourly_flat' ? 'Private rate charged per hour' : 'Total flat rate for entire private rental' }}</small>
+                                            <small class="text-muted">{{ in_array($pMode, ['per_hour', 'hourly_flat']) ? 'Private rate charged per hour' : 'Total flat rate for entire private rental' }}</small>
                                         </div>
                                         @endif
 
@@ -908,30 +913,40 @@
 
                                             @if($private_booking_enabled)
                                             <div class="col-md-6">
-                                                <label class="form-label fw-semibold small">Private Booking Price (LKR)</label>
+                                                <label class="form-label fw-semibold small">Private Pricing Mode</label>
+                                                <select class="form-select form-select-sm" wire:model.live="private_booking_pricing_mode">
+                                                    <option value="flat_total">Fixed private total for the whole selected range</option>
+                                                    <option value="per_hour">Private hourly rate multiplied by selected duration</option>
+                                                    <option value="normal_total">Use normal calculated slot total</option>
+                                                    <option value="normal_multiplier">Normal calculated slot total multiplied by private multiplier</option>
+                                                </select>
+                                            </div>
+
+                                            @if(in_array($private_booking_pricing_mode, ['flat_total', 'per_hour', 'hourly_flat']))
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">
+                                                    {{ in_array($private_booking_pricing_mode, ['per_hour', 'hourly_flat']) ? 'Private Hourly Rate (LKR/hr)' : 'Private Booking Price (LKR)' }}
+                                                </label>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">LKR</span>
-                                                    <input type="number" class="form-control" wire:model="private_booking_price" placeholder="e.g. 10000">
+                                                    <input type="number" class="form-control" wire:model="private_booking_price" min="0" step="0.01" placeholder="{{ in_array($private_booking_pricing_mode, ['per_hour', 'hourly_flat']) ? 'e.g. 5000' : 'e.g. 10000' }}">
                                                 </div>
+                                                <small class="text-muted">{{ in_array($private_booking_pricing_mode, ['per_hour', 'hourly_flat']) ? 'Private rate charged per hour' : 'Total flat rate for entire private rental' }}</small>
                                             </div>
+                                            @endif
+
+                                            @if($private_booking_pricing_mode === 'normal_multiplier')
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold small">Price Multiplier</label>
+                                                <input type="number" class="form-control form-control-sm" wire:model="private_booking_price_multiplier" step="0.1" min="1.0" placeholder="1.5">
+                                                <small class="text-muted">Multiplied against normal calculated slot total (e.g. 1.5x)</small>
+                                            </div>
+                                            @endif
 
                                             <div class="col-md-6">
                                                 <label class="form-label fw-semibold small">Minimum Duration (Minutes)</label>
                                                 <input type="number" class="form-control form-control-sm" wire:model="private_booking_min_duration_minutes" placeholder="180">
                                                 <small class="text-muted">Default 180 min (3 Hours)</small>
-                                            </div>
-
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-semibold small">Private Pricing Mode</label>
-                                                <select class="form-select form-select-sm" wire:model="private_booking_pricing_mode">
-                                                    <option value="flat_total">Flat Rate (Fixed Total)</option>
-                                                    <option value="normal_total">Normal Hourly Rate x Multiplier</option>
-                                                </select>
-                                            </div>
-
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-semibold small">Price Multiplier</label>
-                                                <input type="number" class="form-control form-control-sm" wire:model="private_booking_price_multiplier" step="0.1" placeholder="1.5">
                                             </div>
                                             @endif
                                         </div>

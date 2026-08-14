@@ -224,10 +224,15 @@ class StaffSetting extends Component
     {
         if (!$this->complexes) return;
 
-        $isOnlineAdvance = ($this->online_payments_enabled && in_array($this->online_booking_payment_mode, ['advance_only', 'advance_or_full', 'partial']));
+        $hasOnlineOrBank = $this->online_payments_enabled || $this->bank_transfer_payments_enabled;
+        $isOnlineAdvance = ($hasOnlineOrBank && in_array($this->online_booking_payment_mode, ['advance_only', 'advance_or_full', 'partial']));
         $advanceVal = ($isOnlineAdvance && !empty($this->online_advance_payment_value))
             ? (float) $this->online_advance_payment_value
             : null;
+
+        $paymentMode = $hasOnlineOrBank
+            ? ($this->online_booking_payment_mode ?: 'full_only')
+            : 'pay_at_venue';
 
         $this->complexes->update([
             'online_payments_enabled'        => (bool) $this->online_payments_enabled,
@@ -235,7 +240,7 @@ class StaffSetting extends Component
             'cash_payments_enabled'          => (bool) $this->cash_payments_enabled,
             'venue_card_payments_enabled'    => (bool) $this->venue_card_payments_enabled,
 
-            'booking_payment_mode'     => $this->online_booking_payment_mode ?: 'full_only',
+            'booking_payment_mode'     => $paymentMode,
             'advance_payment_required' => $isOnlineAdvance,
             'advance_payment_type'     => $this->online_advance_payment_type ?: 'percentage',
             'advance_payment_value'    => $advanceVal,

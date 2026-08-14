@@ -576,7 +576,9 @@
                                 </div>
                                 <div class="flex-grow-1">
                                     <h6 class="mb-0 fw-semibold">{{ $sportData['name'] }}</h6>
-                                    @if($sportData['maxCourts'] > 1)
+                                    @if(isset($sportData['is_pool']) && $sportData['is_pool'])
+                                        <small class="text-muted">{{ $sportData['maxCourts'] }} Max Swimmers/Hr</small>
+                                    @elseif($sportData['maxCourts'] > 1)
                                         <small class="text-muted">{{ $sportData['maxCourts'] }} Courts</small>
                                     @endif
                                 </div>
@@ -602,7 +604,7 @@
                                     @foreach($sportData['slots'] as $slot)
                                         <div class="time-slot {{ $slot['status'] }}" 
                                              @if($slot['status'] === 'available')
-                                                wire:click="openAddBookingModal({{ $sportData['id'] }}, '{{ $sportData['name'] }}', {{ $slot['hour'] }})"
+                                                wire:click="openAddBookingModal('{{ $sportData['id'] }}', '{{ $sportData['name'] }}', {{ $slot['hour'] }})"
                                                 style="cursor: pointer;"
                                              @endif
                                              title="{{ ucfirst($slot['status']) }}">
@@ -775,7 +777,11 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">
-                                <i class="fas fa-hashtag me-1 text-muted"></i>Court Number <span class="text-danger">*</span>
+                                @if(isset($bookingFormSportId) && str_starts_with((string)$bookingFormSportId, 'pool_'))
+                                    <i class="fas fa-users me-1 text-muted"></i>Number of Swimmers / Admissions <span class="text-danger">*</span>
+                                @else
+                                    <i class="fas fa-hashtag me-1 text-muted"></i>Court Number <span class="text-danger">*</span>
+                                @endif
                             </label>
                             <input type="number" class="form-control @error('bookingFormCourtNumber') is-invalid @enderror" 
                                    wire:model="bookingFormCourtNumber" 
