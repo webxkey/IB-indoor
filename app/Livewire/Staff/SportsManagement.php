@@ -1059,7 +1059,7 @@ class SportsManagement extends Component
         $capacity = $this->capacity_limit_enabled ? (int) $this->max_persons_per_hour : 10;
         $privatePrice = (!empty($this->private_booking_price) && $this->private_booking_enabled) ? (float) $this->private_booking_price : null;
         $privateEnabled = (bool) $this->private_booking_enabled;
-        $poolStatus = (strtolower($status) === 'active') ? 'active' : 'inactive';
+        $poolStatus = (strtolower($status) === 'Active') ? 'Active' : 'Inactive';
 
         $data = [
             'venue_id' => $venueId,
