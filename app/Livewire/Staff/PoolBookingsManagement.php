@@ -102,6 +102,21 @@ class PoolBookingsManagement extends Component
         return $slots;
     }
 
+    public function getIsPrivateBookingEnabledProperty()
+    {
+        $venueId = Auth::user()?->complex_id;
+        $pool = $venueId ? PoolsPool::where('venue_id', $venueId)->first() : null;
+        if (!$pool) {
+            return false;
+        }
+
+        if (!is_null($pool->private_booking_enabled)) {
+            return (bool) $pool->private_booking_enabled;
+        }
+
+        return (bool) $pool->private_request_enabled || !empty($pool->private_booking_price);
+    }
+
     public function loadData()
     {
         $venueId = Auth::user()->complex_id;

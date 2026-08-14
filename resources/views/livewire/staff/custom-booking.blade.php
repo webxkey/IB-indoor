@@ -313,6 +313,7 @@
                                 </div>
 
                                 <!-- Private Booking Checkbox -->
+                                @if($this->isPrivateBookingEnabled)
                                 <div class="sm:col-span-1 pb-1">
                                     <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
                                         <input type="checkbox" wire:model.live="is_private" class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500">
@@ -321,6 +322,7 @@
                                         </span>
                                     </label>
                                 </div>
+                                @endif
                             </div>
 
                             <!-- Full Day Timeline & Availability Grid for Selected Date -->

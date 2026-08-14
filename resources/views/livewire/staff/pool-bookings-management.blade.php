@@ -750,12 +750,14 @@
                                 <input class="form-check-input" type="checkbox" id="permanentCheck" wire:model="permanent">
                                 <label class="form-check-label fw-bold text-dark" for="permanentCheck">Permanent Booking</label>
                             </div>
+                            @if($this->isPrivateBookingEnabled)
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" id="isPrivateCheck" wire:model="isPrivate">
                                 <label class="form-check-label fw-bold text-dark" for="isPrivateCheck">
                                     <i class="fas fa-lock text-warning me-1"></i> Private Booking
                                 </label>
                             </div>
+                            @endif
                         </div>
 
                         <!-- Ticket Tiers Counter -->

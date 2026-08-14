@@ -200,6 +200,27 @@ class CustomBooking extends Component
         $this->updatedSelectedTime($timeVal);
     }
 
+    public function getIsPrivateBookingEnabledProperty()
+    {
+        if (empty($this->selectedGame)) {
+            return false;
+        }
+
+        $sport = BookingSport::where('venue_id', $this->complex_id)
+            ->whereRaw('LOWER(name) = ?', [strtolower($this->selectedGame)])
+            ->first();
+
+        if (!$sport) {
+            return false;
+        }
+
+        if (!is_null($sport->private_booking_enabled)) {
+            return (bool) $sport->private_booking_enabled;
+        }
+
+        return !empty($sport->private_booking_price) || ($sport->private_booking_pricing_mode === 'normal_total' && $sport->private_booking_price_multiplier > 1);
+    }
+
     public function getDaySlotsTimeline()
     {
         if (empty($this->selectedGame) || empty($this->selectedCourt) || empty($this->selectedDate)) {

@@ -409,6 +409,27 @@ class BookingsManagement extends Component
         }
     }
 
+    public function getIsPrivateBookingEnabledProperty()
+    {
+        if (!$this->selectedGame) {
+            return false;
+        }
+        $complexId = $this->complex_id ?: (auth()->user() ? auth()->user()->complex_id : null);
+        $sport = BookingSport::whereRaw('LOWER(name) = ?', [strtolower($this->selectedGame)])
+            ->where('venue_id', $complexId)
+            ->first();
+
+        if (!$sport) {
+            return false;
+        }
+
+        if (!is_null($sport->private_booking_enabled)) {
+            return (bool) $sport->private_booking_enabled;
+        }
+
+        return !empty($sport->private_booking_price) || ($sport->private_booking_pricing_mode === 'normal_total' && $sport->private_booking_price_multiplier > 1);
+    }
+
     public function addBooking()
     {
         $this->validate();
