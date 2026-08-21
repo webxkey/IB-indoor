@@ -15,6 +15,7 @@ use App\Models\BookingVenue;
 use App\Models\BookingSport;
 use App\Models\BookingGalleryImage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use App\Models\UserUser;
 
 
@@ -122,11 +123,8 @@ class Register extends Component
         'football',
         'basketball',
         'badminton',
-        'tennis',
-        'volleyball',
-        'swimming',
-        'gym',
-        'other'
+        'cricket',
+        'cricket & football'
     ];
 
     public $availableStatuses = ['Active', 'Inactive', 'Maintenance', 'New'];
@@ -142,7 +140,15 @@ class Register extends Component
                 Rule::unique('users', 'email'),
                 Rule::unique('users_user', 'email'),
             ],
-            'password' => 'required|min:6|confirmed',
+            'password' => [
+                'required',
+                'string',
+                Password::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+                'confirmed',
+            ],
             'contact' => 'required|string|max:20',
         ];
     }
@@ -254,7 +260,11 @@ class Register extends Component
     public function updated($propertyName)
     {
         if ($this->currentStep === 1) {
-            $this->validateOnly($propertyName, $this->step1Rules());
+            if ($propertyName === 'password_confirmation' || $propertyName === 'password') {
+                $this->validateOnly('password', $this->step1Rules());
+            } else {
+                $this->validateOnly($propertyName, $this->step1Rules());
+            }
         } elseif ($this->currentStep === 2) {
             $this->validateOnly($propertyName, $this->step2Rules());
         } elseif ($this->currentStep === 3) {
@@ -389,11 +399,21 @@ class Register extends Component
                     'analytics_enabled' => true,
                     'venue_category' => strtolower($this->complex_type),
                     'is_featured' => false,
+                    'advance_payment_required' => false,
+                    'advance_payment_type' => 'percentage',
+                    'advance_payment_value' => 20.00,
+                    'bank_transfer_payments_enabled' => false,
+                    'cash_payments_enabled' => true,
+                    'online_payments_enabled' => true,
+                    'points_redemption_enabled' => false,
+                    'venue_card_payments_enabled' => false,
+                    'booking_payment_mode' => 'full_only',
                 ]);
 
                 // Create sports (one per selected type)
                 $sportsToCreate = !empty($this->sport_types) ? $this->sport_types : [$this->sport_type ?? 'Football'];
                 foreach ($sportsToCreate as $sportName) {
+                    $sportImage = BookingSport::getDefaultImageForName($sportName);
                     BookingSport::create([
                         'name' => ucfirst($sportName),
                         'price' => $this->hourly_rate,
@@ -402,9 +422,15 @@ class Register extends Component
                         'rate_type' => 'Per hour',
                         'venue_id' => $venue->id,
                         'description' => $this->description,
-                        'image' => $base_image_url,
+                        'image' => $sportImage,
                         'maximum_court' => 1,
                         'status' => 'Inactive', // Default to Inactive until approved
+                        'advance_required' => false,
+                        'average_rating' => 0,
+                        'private_booking_enabled' => true,
+                        'private_booking_min_duration_minutes' => 180,
+                        'private_booking_price_multiplier' => 1.00,
+                        'private_booking_pricing_mode' => 'flat_total',
                     ]);
                 }
 
@@ -438,6 +464,8 @@ class Register extends Component
                     'is_staff' => false,
                     'is_superuser' => false,
                     'points' => 0,
+                    'point_penalty_debt' => 0,
+                    'reserved_points' => 0,
                     'referral_code' => $this->rondomReferralCode(),
                     'is_public_profile' => true,
                     'is_show_contact' => true,

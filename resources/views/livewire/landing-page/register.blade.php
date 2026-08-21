@@ -53,7 +53,8 @@
         }
 
         .header-icon {
-            background: var(--primary-gradient);
+            background: white;
+            border: 3px solid var(--primary);
             color: white;
             width: 90px;
             height: 90px;
@@ -62,8 +63,15 @@
             align-items: center;
             justify-content: center;
             margin: 0 auto 1.5rem;
-            font-size: 2.2rem;
-            box-shadow: 0 10px 20px rgba(25, 107, 84, 0.3);
+            box-shadow: 0 10px 20px rgba(25, 107, 84, 0.2);
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .header-icon img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
 
         .header-content h1 {
@@ -776,7 +784,9 @@
     <div class="fullscreen-container">
         <div class="registration-card">
             <div class="form-header">
-                <div class="header-icon"><i class="fas fa-building"></i></div>
+                <div class="header-icon">
+                    <img src="{{ asset('images/logo.png') }}" alt="Sportynix Hub Logo">
+                </div>
                 <div class="header-content">
                     <h1>Register Your Sports Complex</h1>
                     <p>Join our platform to manage your sports facility with ease</p>
@@ -833,18 +843,18 @@
                                 <h4>Personal Details</h4>
                             </div>
                             <div class="partition-form-group">
-                                <label for="name" class="form-label"><i class="fas fa-user me-2"></i>Full Name </label>
-                                <input type="text" class="form-input @error('name') is-invalid @enderror" id="name" wire:model.lazy="name" required placeholder="Enter your full name">
+                                <label for="name" class="form-label"><i class="fas fa-user me-2"></i>Full Name <span style="color: #dc3545;" class="ms-1">*</span></label>
+                                <input type="text" class="form-input @error('name') is-invalid @enderror" id="name" wire:model.live.debounce.300ms="name" required placeholder="Enter your full name">
                                 @error('name') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="partition-form-group">
-                                <label for="email" class="form-label"><i class="fas fa-envelope me-2"></i>Email Address </label>
-                                <input type="email" class="form-input @error('email') is-invalid @enderror" id="email" wire:model.lazy="email" required placeholder="Enter your email">
+                                <label for="email" class="form-label"><i class="fas fa-envelope me-2"></i>Email Address <span style="color: #dc3545;" class="ms-1">*</span></label>
+                                <input type="email" class="form-input @error('email') is-invalid @enderror" id="email" wire:model.live.debounce.300ms="email" required placeholder="Enter your email">
                                 @error('email') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="partition-form-group">
-                                <label for="contact" class="form-label"><i class="fas fa-phone me-2"></i>Contact Number </label>
-                                <input type="tel" class="form-input @error('contact') is-invalid @enderror" id="contact" wire:model.lazy="contact" required placeholder="076 1265 772">
+                                <label for="contact" class="form-label"><i class="fas fa-phone me-2"></i>Contact Number <span style="color: #dc3545;" class="ms-1">*</span></label>
+                                <input type="tel" class="form-input @error('contact') is-invalid @enderror" id="contact" wire:model.live.debounce.300ms="contact" required placeholder="076 1265 772">
                                 @error('contact') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                         </div>
@@ -854,19 +864,22 @@
                                 <h4>Account Security</h4>
                             </div>
                             <div class="partition-form-group">
-                                <label for="password" class="form-label"><i class="fas fa-lock me-2"></i>Password </label>
+                                <label for="password" class="form-label"><i class="fas fa-lock me-2"></i>Password <span style="color: #dc3545;" class="ms-1">*</span></label>
                                 <div class="password-wrapper">
-                                    <input type="password" class="form-input password-input @error('password') is-invalid @enderror" id="password" wire:model="password" required placeholder="Create a password">
+                                    <input type="password" class="form-input password-input @error('password') is-invalid @enderror" id="password" wire:model.live.debounce.300ms="password" required placeholder="Create a password">
                                     <div class="password-toggle" onclick="togglePasswordVisibility('password', this)">
                                         <i class="fas fa-eye"></i> <span>SHOW</span>
                                     </div>
                                 </div>
+                                <small class="form-text text-muted d-block mt-1" style="font-size: 0.78rem; color: #6c757d;">
+                                    Must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.
+                                </small>
                                 @error('password') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="partition-form-group">
-                                <label for="password_confirmation" class="form-label"><i class="fas fa-lock me-2"></i>Confirm Password </label>
+                                <label for="password_confirmation" class="form-label"><i class="fas fa-lock me-2"></i>Confirm Password <span style="color: #dc3545;" class="ms-1">*</span></label>
                                 <div class="password-wrapper">
-                                    <input type="password" class="form-input password-input" id="password_confirmation" wire:model="password_confirmation" required placeholder="Confirm your password">
+                                    <input type="password" class="form-input password-input" id="password_confirmation" wire:model.live.debounce.300ms="password_confirmation" required placeholder="Confirm your password">
                                     <div class="password-toggle" onclick="togglePasswordVisibility('password_confirmation', this)">
                                         <i class="fas fa-eye"></i> <span>SHOW</span>
                                     </div>
@@ -880,13 +893,13 @@
                 <div class="form-step @if($currentStep == 2) active @endif">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="complex_name" class="form-label"><i class="fas fa-building me-2"></i>Complex Name </label>
-                            <input type="text" class="form-input @error('complex_name') is-invalid @enderror" id="complex_name" wire:model="complex_name" required placeholder="Enter your complex name">
+                            <label for="complex_name" class="form-label"><i class="fas fa-building me-2"></i>Complex Name <span style="color: #dc3545;" class="ms-1">*</span></label>
+                            <input type="text" class="form-input @error('complex_name') is-invalid @enderror" id="complex_name" wire:model.live.debounce.300ms="complex_name" required placeholder="Enter your complex name">
                             @error('complex_name') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
-                            <label for="complex_type" class="form-label"><i class="fas fa-warehouse me-2"></i>Complex Type </label>
-                            <select class="form-input @error('complex_type') is-invalid @enderror" id="complex_type" wire:model="complex_type" required>
+                            <label for="complex_type" class="form-label"><i class="fas fa-warehouse me-2"></i>Complex Type <span style="color: #dc3545;" class="ms-1">*</span></label>
+                            <select class="form-input @error('complex_type') is-invalid @enderror" id="complex_type" wire:model.live="complex_type" required>
                                 <option value="Indoor">Indoor</option>
                                 <option value="Outdoor">Outdoor</option>
                                 <option value="Both">Both</option>
@@ -894,11 +907,11 @@
                             @error('complex_type') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
-                            <label for="country" class="form-label"><i class="fas fa-globe me-2"></i>Country </label>
+                            <label for="country" class="form-label"><i class="fas fa-globe me-2"></i>Country</label>
                             <input type="text" class="form-input" id="country" wire:model="country" readonly disabled>
                         </div>
                         <div class="form-group">
-                            <label for="district" class="form-label"><i class="fas fa-map me-2"></i>District </label>
+                            <label for="district" class="form-label"><i class="fas fa-map me-2"></i>District <span style="color: #dc3545;" class="ms-1">*</span></label>
                             <select class="form-input @error('district') is-invalid @enderror" id="district" wire:model.live="district" required>
                                 <option value="">Select District</option>
                                 @foreach($availableDistricts as $d)<option value="{{ $d }}">{{ $d }}</option>@endforeach
@@ -906,8 +919,8 @@
                             @error('district') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
-                            <label for="city" class="form-label"><i class="fas fa-city me-2"></i>City </label>
-                            <select class="form-input @error('city') is-invalid @enderror" id="city" wire:model="city" required @if(empty($availableCities)) disabled @endif>
+                            <label for="city" class="form-label"><i class="fas fa-city me-2"></i>City <span style="color: #dc3545;" class="ms-1">*</span></label>
+                            <select class="form-input @error('city') is-invalid @enderror" id="city" wire:model.live="city" required @if(empty($availableCities)) disabled @endif>
                                 <option value="">Select City</option>
                                 @foreach($availableCities as $c)<option value="{{ $c }}">{{ $c }}</option>@endforeach
                             </select>
@@ -915,43 +928,43 @@
                         </div>
                         <div class="form-group">
                             <label for="location" class="form-label" style="justify-content: space-between;">
-                                <span><i class="fas fa-map-marker-alt me-2"></i>Map Coordinates</span>
+                                <span><i class="fas fa-map-marker-alt me-2"></i>Map Coordinates <span style="color: #dc3545;" class="ms-1">*</span></span>
                                 <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick="getCurrentLocation(this)" style="font-size: 0.8rem; height: auto;">
                                     <i class="fas fa-crosshairs me-1"></i>Get Current Location
                                 </button>
                             </label>
-                            <input type="text" class="form-input @error('location') is-invalid @enderror" id="location" wire:model="location" required placeholder="e.g. 7.123126, 80.072028">
+                            <input type="text" class="form-input @error('location') is-invalid @enderror" id="location" wire:model.live.debounce.300ms="location" required placeholder="e.g. 7.123126, 80.072028">
                             <small class="text-muted mt-1" style="font-size: 0.8rem;">Enter Latitude, Longitude or click the button to auto-fill.</small>
                             @error('location') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
-                            <label for="postal_code" class="form-label"><i class="fas fa-mail-bulk me-2"></i>Postal Code </label>
-                                <input type="text" class="form-input @error('postal_code') is-invalid @enderror" id="postal_code" wire:model="postal_code" placeholder="Postal code">
+                            <label for="postal_code" class="form-label"><i class="fas fa-mail-bulk me-2"></i>Postal Code</label>
+                                <input type="text" class="form-input @error('postal_code') is-invalid @enderror" id="postal_code" wire:model.live.debounce.300ms="postal_code" placeholder="Postal code">
                             @error('postal_code') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group full-width">
-                            <label for="address" class="form-label"><i class="fas fa-home me-2"></i>Full Address </label>
-                            <textarea class="form-input @error('address') is-invalid @enderror" id="address" wire:model="address" rows="3" required placeholder="Enter complete facility address"></textarea>
+                            <label for="address" class="form-label"><i class="fas fa-home me-2"></i>Full Address <span style="color: #dc3545;" class="ms-1">*</span></label>
+                            <textarea class="form-input @error('address') is-invalid @enderror" id="address" wire:model.live.debounce.300ms="address" rows="3" required placeholder="Enter complete facility address"></textarea>
                             @error('address') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
-                            <label for="contact_number" class="form-label"><i class="fas fa-phone me-2"></i>Complex Contact </label>
-                            <input type="tel" class="form-input @error('contact_number') is-invalid @enderror" id="contact_number" wire:model="contact_number" required placeholder="Complex contact number">
+                            <label for="contact_number" class="form-label"><i class="fas fa-phone me-2"></i>Complex Contact <span style="color: #dc3545;" class="ms-1">*</span></label>
+                            <input type="tel" class="form-input @error('contact_number') is-invalid @enderror" id="contact_number" wire:model.live.debounce.300ms="contact_number" required placeholder="Complex contact number">
                             @error('contact_number') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
-                            <label for="email_address" class="form-label"><i class="fas fa-envelope me-2"></i>Complex Email </label>
-                                <input type="email" class="form-input @error('email_address') is-invalid @enderror" id="email_address" wire:model="email_address" placeholder="Complex email address">
+                            <label for="email_address" class="form-label"><i class="fas fa-envelope me-2"></i>Complex Email</label>
+                                <input type="email" class="form-input @error('email_address') is-invalid @enderror" id="email_address" wire:model.live.debounce.300ms="email_address" placeholder="Complex email address">
                             @error('email_address') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group">
                             <label for="website" class="form-label"><i class="fas fa-globe me-2"></i>Website</label>
-                            <input type="text" class="form-input @error('website') is-invalid @enderror" id="website" wire:model="website" placeholder="https://example.com">
+                            <input type="text" class="form-input @error('website') is-invalid @enderror" id="website" wire:model.live.debounce.300ms="website" placeholder="https://example.com">
                             @error('website') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                         <div class="form-group full-width">
-                            <label for="description" class="form-label"><i class="fas fa-file-alt me-2"></i>Description </label>
-                            <textarea class="form-input @error('description') is-invalid @enderror" id="description" wire:model="description" rows="4" required placeholder="Describe your sports complex facilities and services"></textarea>
+                            <label for="description" class="form-label"><i class="fas fa-file-alt me-2"></i>Description <span style="color: #dc3545;" class="ms-1">*</span></label>
+                            <textarea class="form-input @error('description') is-invalid @enderror" id="description" wire:model.live.debounce.300ms="description" rows="4" required placeholder="Describe your sports complex facilities and services"></textarea>
                             @error('description') <div class="error-message">{{ $message }}</div> @enderror
                         </div>
                     </div>
@@ -966,7 +979,7 @@
                         </div>
                         <div class="form-grid">
                             <div class="form-group full-width">
-                                <label class="form-label">Sport Types <span style="color:#dc3545">*</span> <small style="color:var(--gray)">(select all that apply)</small></label>
+                                <label class="form-label">Sport Types <span style="color:#dc3545" class="ms-1">*</span> <small style="color:var(--gray)">(select all that apply)</small></label>
                                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.75rem;margin-top:0.5rem;">
                                     @foreach($availableSportTypes as $sport)
                                     <label class="amenity-checkbox">
@@ -979,23 +992,23 @@
                                 @error('sport_types') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="form-group">
-                                <label for="capacity" class="form-label">Capacity </label>
-                                <input type="number" class="form-input @error('capacity') is-invalid @enderror" id="capacity" wire:model="capacity" min="1" required placeholder="Enter capacity">
+                                <label for="capacity" class="form-label">Capacity <span style="color: #dc3545;" class="ms-1">*</span></label>
+                                <input type="number" class="form-input @error('capacity') is-invalid @enderror" id="capacity" wire:model.live.debounce.300ms="capacity" min="1" required placeholder="Enter capacity">
                                 @error('capacity') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="form-group">
-                                <label for="hourly_rate" class="form-label">Hourly Rate ($) </label>
-                                <input type="number" step="0.01" class="form-input @error('hourly_rate') is-invalid @enderror" id="hourly_rate" wire:model="hourly_rate" min="0" required placeholder="0.00">
+                                <label for="hourly_rate" class="form-label">Hourly Rate ($) <span style="color: #dc3545;" class="ms-1">*</span></label>
+                                <input type="number" step="0.01" class="form-input @error('hourly_rate') is-invalid @enderror" id="hourly_rate" wire:model.live.debounce.300ms="hourly_rate" min="0" required placeholder="0.00">
                                 @error('hourly_rate') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="form-group">
-                                <label for="length" class="form-label">Length (meters) </label>
-                                <input type="number" class="form-input @error('length') is-invalid @enderror" id="length" wire:model="length" placeholder="Length" step="0.01" required>
+                                <label for="length" class="form-label">Length (meters) <span style="color: #dc3545;" class="ms-1">*</span></label>
+                                <input type="number" class="form-input @error('length') is-invalid @enderror" id="length" wire:model.live.debounce.300ms="length" placeholder="Length" step="0.01" required>
                                 @error('length') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="form-group">
-                                <label for="width" class="form-label">Width (meters) </label>
-                                <input type="number" class="form-input @error('width') is-invalid @enderror" id="width" wire:model="width" placeholder="Width" step="0.01" required>
+                                <label for="width" class="form-label">Width (meters) <span style="color: #dc3545;" class="ms-1">*</span></label>
+                                <input type="number" class="form-input @error('width') is-invalid @enderror" id="width" wire:model.live.debounce.300ms="width" placeholder="Width" step="0.01" required>
                                 @error('width') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                         </div>
@@ -1099,22 +1112,22 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label for="video_tour_url" class="form-label">Video Tour URL</label>
-                                <input type="url" class="form-input @error('video_tour_url') is-invalid @enderror" id="video_tour_url" wire:model="video_tour_url" placeholder="https://youtube.com/...">
+                                <input type="url" class="form-input @error('video_tour_url') is-invalid @enderror" id="video_tour_url" wire:model.live.debounce.300ms="video_tour_url" placeholder="https://youtube.com/...">
                                 @error('video_tour_url') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="form-group">
                                 <label for="facebook_url" class="form-label">Facebook URL</label>
-                                <input type="url" class="form-input @error('facebook_url') is-invalid @enderror" id="facebook_url" wire:model="facebook_url" placeholder="https://facebook.com/...">
+                                <input type="url" class="form-input @error('facebook_url') is-invalid @enderror" id="facebook_url" wire:model.live.debounce.300ms="facebook_url" placeholder="https://facebook.com/...">
                                 @error('facebook_url') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="form-group">
                                 <label for="twitter_url" class="form-label">Twitter URL</label>
-                                <input type="url" class="form-input @error('twitter_url') is-invalid @enderror" id="twitter_url" wire:model="twitter_url" placeholder="https://twitter.com/...">
+                                <input type="url" class="form-input @error('twitter_url') is-invalid @enderror" id="twitter_url" wire:model.live.debounce.300ms="twitter_url" placeholder="https://twitter.com/...">
                                 @error('twitter_url') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                             <div class="form-group">
                                 <label for="instagram_url" class="form-label">Instagram URL</label>
-                                <input type="url" class="form-input @error('instagram_url') is-invalid @enderror" id="instagram_url" wire:model="instagram_url" placeholder="https://instagram.com/...">
+                                <input type="url" class="form-input @error('instagram_url') is-invalid @enderror" id="instagram_url" wire:model.live.debounce.300ms="instagram_url" placeholder="https://instagram.com/...">
                                 @error('instagram_url') <div class="error-message">{{ $message }}</div> @enderror
                             </div>
                         </div>
@@ -1201,4 +1214,17 @@
             text.innerText = 'SHOW';
         }
     }
+
+    document.addEventListener('input', function (e) {
+        if (e.target && e.target.classList.contains('is-invalid')) {
+            e.target.classList.remove('is-invalid');
+            const parentGroup = e.target.closest('.partition-form-group') || e.target.closest('.form-group');
+            if (parentGroup) {
+                const errDiv = parentGroup.querySelector('.error-message');
+                if (errDiv) {
+                    errDiv.style.display = 'none';
+                }
+            }
+        }
+    });
 </script>

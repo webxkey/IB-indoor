@@ -54,7 +54,7 @@ class SportsManagement extends Component
     public $pricingEditSportId = null;
 
     // Payment Policy Customization Fields
-    public $advance_payment_required_override = false;
+    public $advance_payment_required_override = null;
     public $booking_payment_mode_override = ''; // '' (null), 'no_payment', 'advance_only', 'full_only', 'advance_or_full'
     public $advance_payment_type_override = 'percentage'; // 'percentage', 'fixed'
     public $advance_payment_value_override = 20;
@@ -193,7 +193,7 @@ class SportsManagement extends Component
                     ];
                     $poolSportObj->pricing_rules = [];
                     $poolSportObj->advance_required = (bool)$pool->advance_payment_required_override;
-                    $poolSportObj->advance_payment_required_override = (bool)$pool->advance_payment_required_override;
+                    $poolSportObj->advance_payment_required_override = $pool->advance_payment_required_override ? true : null;
                     $poolSportObj->booking_payment_mode_override = $pool->booking_payment_mode_override;
                     $poolSportObj->advance_payment_type_override = $pool->advance_payment_type_override;
                     $poolSportObj->advance_payment_value_override = $pool->advance_payment_value_override;
@@ -284,7 +284,7 @@ class SportsManagement extends Component
         $isOnlinePayment = $this->isOnlinePaymentEnabled;
         if (!$isOnlinePayment) {
             $isAdvanceMode = false;
-            $advanceOverride = false;
+            $advanceOverride = null;
             $advanceValue = null;
             $modeOverride = null;
             $advanceTypeOverride = null;
@@ -299,7 +299,7 @@ class SportsManagement extends Component
                 $advanceTypeOverride = null;
             } else {
                 $isAdvanceMode = in_array($mode, ['advance_only', 'advance_or_full', 'partial']);
-                $advanceOverride = $isAdvanceMode;
+                $advanceOverride = $isAdvanceMode ? true : null;
                 $advanceValue = ($isAdvanceMode && !empty($this->advance_payment_value_override))
                     ? (float) $this->advance_payment_value_override
                     : null;
@@ -851,7 +851,7 @@ class SportsManagement extends Component
                 'max_persons_per_hour' => $pool->capacity ?: 10,
             ];
             $this->existingImage = $pool->image ?: asset('images/sports_images/pools.jpg');
-            $this->advance_payment_required_override = (bool) $pool->advance_payment_required_override;
+            $this->advance_payment_required_override = $pool->advance_payment_required_override ? true : null;
             $this->booking_payment_mode_override = $pool->booking_payment_mode_override ?: '';
             $this->advance_payment_type_override = $pool->advance_payment_type_override ?: 'percentage';
             $this->advance_payment_value_override = $pool->advance_payment_value_override ?: 20;
@@ -889,7 +889,7 @@ class SportsManagement extends Component
         $this->existingImage = $sport->image;
 
         // Customization fields
-        $this->advance_payment_required_override = $this->isOnlinePaymentEnabled ? (bool) $sport->advance_payment_required_override : false;
+        $this->advance_payment_required_override = $this->isOnlinePaymentEnabled ? ($sport->advance_payment_required_override ? true : null) : null;
         $rawMode = $sport->booking_payment_mode_override;
         if (!$this->isOnlinePaymentEnabled) {
             $this->booking_payment_mode_override = '';
@@ -951,7 +951,7 @@ class SportsManagement extends Component
                 $isAdvanceMode = false;
             } else {
                 $isAdvanceMode = in_array($modeOverride, ['advance_only', 'advance_or_full', 'partial']);
-                $advanceOverride = $isAdvanceMode;
+                $advanceOverride = $isAdvanceMode ? true : null;
                 $advanceValue = ($isAdvanceMode && !empty($this->advance_payment_value_override))
                     ? (float) $this->advance_payment_value_override
                     : null;
@@ -1037,7 +1037,7 @@ class SportsManagement extends Component
                 $advanceTypeOverride = null;
             } else {
                 $isAdvanceMode = in_array($mode, ['advance_only', 'advance_or_full', 'partial']);
-                $advanceOverride = $isAdvanceMode;
+                $advanceOverride = $isAdvanceMode ? true : null;
                 $advanceValue = ($isAdvanceMode && !empty($this->advance_payment_value_override))
                     ? (float) $this->advance_payment_value_override
                     : null;
@@ -1111,19 +1111,44 @@ class SportsManagement extends Component
         try {
             if (is_string($id) && str_starts_with($id, 'pool_')) {
                 $poolId = (int) str_replace('pool_', '', $id);
+                $poolRecord = \DB::table('pools_pool')->where('id', $poolId)->first();
+                $venueId = $poolRecord ? $poolRecord->venue_id : $this->complex_id;
                 $hasBookings = \DB::table('pools_poolbooking')->where('pool_id', $poolId)->exists();
 
                 if ($hasBookings) {
                     \DB::table('pools_pool')->where('id', $poolId)->update(['status' => 'Inactive', 'updated_at' => now()]);
                     session()->flash('message', 'Pool marked as Inactive to preserve existing pool booking records.');
                 } else {
-                    \DB::table('pools_pooladmissiontype')->where('pool_id', $poolId)->delete();
-                    \DB::table('pools_pool')->where('id', $poolId)->delete();
-                    session()->flash('message', 'Pool deleted successfully.');
+                    try {
+                        \DB::table('pools_poolsessionoccurrence')->where('pool_id', $poolId)->delete();
+                        \DB::table('pools_poolsessiontemplate')->where('pool_id', $poolId)->delete();
+                        \DB::table('pools_pooladmissiontype')->where('pool_id', $poolId)->delete();
+                        \DB::table('pools_pool')->where('id', $poolId)->delete();
+
+                        if ($venueId) {
+                            $sports = BookingSport::where('venue_id', $venueId)->get();
+                            foreach ($sports as $s) {
+                                if ($this->isPoolSport($s->name)) {
+                                    $hasSportBookings = \DB::table('booking_booking')->where('game_id_id', $s->id)->exists();
+                                    if ($hasSportBookings) {
+                                        $s->update(['status' => 'Inactive']);
+                                    } else {
+                                        $s->delete();
+                                    }
+                                }
+                            }
+                        }
+                        session()->flash('message', 'Pool deleted successfully.');
+                    } catch (\Exception $e) {
+                        \DB::table('pools_pool')->where('id', $poolId)->update(['status' => 'Inactive', 'updated_at' => now()]);
+                        session()->flash('message', 'Pool marked as Inactive to preserve existing records.');
+                    }
                 }
 
                 $this->dispatch('sportDeleted');
-                $this->loadSports();
+                $this->loadSports($venueId);
+                $this->dispatch('hideEditSportModal');
+                $this->resetForm();
                 return;
             }
 
@@ -1140,6 +1165,8 @@ class SportsManagement extends Component
                 if (!$hasBookings) {
                     try {
                         $poolIds = \DB::table('pools_pool')->where('venue_id', $venueId)->pluck('id');
+                        \DB::table('pools_poolsessionoccurrence')->whereIn('pool_id', $poolIds)->delete();
+                        \DB::table('pools_poolsessiontemplate')->whereIn('pool_id', $poolIds)->delete();
                         \DB::table('pools_pooladmissiontype')->whereIn('pool_id', $poolIds)->delete();
                         \DB::table('pools_pool')->where('venue_id', $venueId)->delete();
                     } catch (\Exception $e) {
@@ -1161,6 +1188,7 @@ class SportsManagement extends Component
             // Reload sports for the same venue
             $this->loadSports($venueId);
             $this->dispatch('hideEditSportModal');
+            $this->resetForm();
         } catch (\Exception $e) {
             $this->dispatch('deleteError', message: 'Error deleting sport: ' . $e->getMessage());
         }
@@ -1188,7 +1216,7 @@ class SportsManagement extends Component
         }
     }
 
-    private function syncPoolsTable($venueId, $name, $description, $imagePath, $status, $isAdvanceMode, $advanceValue, $price = 0, $isNew = false, $modeOverride = null, $advanceTypeOverride = null, $advanceOverride = false)
+    private function syncPoolsTable($venueId, $name, $description, $imagePath, $status, $isAdvanceMode, $advanceValue, $price = 0, $isNew = false, $modeOverride = null, $advanceTypeOverride = null, $advanceOverride = null)
     {
         if (!$this->isPoolSport($name)) {
             return;
@@ -1199,6 +1227,11 @@ class SportsManagement extends Component
         $privateEnabled = (bool) $this->private_booking_enabled;
         $poolStatus = ucfirst(strtolower($status ?: 'Active'));
 
+        $finalAdvanceOverride = null;
+        if ($advanceOverride === true || ($advanceOverride === null && $isAdvanceMode)) {
+            $finalAdvanceOverride = true;
+        }
+
         $data = [
             'venue_id' => $venueId,
             'name' => $name,
@@ -1207,7 +1240,7 @@ class SportsManagement extends Component
             'status' => $poolStatus,
             'capacity' => $capacity,
             'booking_payment_mode_override' => $modeOverride,
-            'advance_payment_required_override' => (bool) $advanceOverride,
+            'advance_payment_required_override' => $finalAdvanceOverride,
             'advance_payment_type_override' => $advanceTypeOverride,
             'advance_payment_value_override' => $advanceValue,
             'private_booking_enabled' => $privateEnabled,
@@ -1260,31 +1293,7 @@ class SportsManagement extends Component
     // Determine a default image URL for a given sport/game name. Falls back to default.jpg.
     protected function getDefaultImageForName($name)
     {
-        $n = strtolower((string) $name);
-
-        if (str_contains($n, 'cricket') && str_contains($n, 'football')) {
-            return asset('images/sports_images/cricket&football.jpg');
-        }
-        if (str_contains($n, 'football')) {
-            return asset('images/sports_images/football.jpg');
-        }
-        if (str_contains($n, 'cricket')) {
-            return asset('images/sports_images/cricket.jpg');
-        }
-        if (str_contains($n, 'badminton')) {
-            return asset('images/sports_images/badminton.jpg');
-        }
-        if (str_contains($n, 'basketball')) {
-            return asset('images/sports_images/basketball.jpeg');
-        }
-        if (str_contains($n, 'pooltable') || str_contains($n, 'pool table')) {
-            return asset('images/sports_images/pooltable.jpg');
-        }
-        if (str_contains($n, 'pool') || str_contains($n, 'swim')) {
-            return asset('images/sports_images/pools.jpg');
-        }
-
-        return asset('images/sports_images/default.jpg');
+        return BookingSport::getDefaultImageForName($name);
     }
 
     // ==========================================

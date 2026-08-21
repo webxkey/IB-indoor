@@ -958,7 +958,7 @@
 
                     <div class="modal-footer border-0 pt-0">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-danger" id="deleteSportBtn" wire:click="confirmDelete({{ $editSportId }})">
+                        <button type="button" class="btn btn-danger" id="deleteSportBtn" wire:click="confirmDelete('{{ $editSportId }}')">
                             Delete
                         </button>
                         <button type="submit" class="btn btn-primary">

@@ -17,18 +17,39 @@ class BookingVenue extends Model
         'city', 'district', 'geohash', 'lat', 'lng',
         'advance_payment_required', 'advance_payment_type', 'advance_payment_value',
         'bank_transfer_payments_enabled', 'cash_payments_enabled', 'online_payments_enabled',
-        'venue_card_payments_enabled', 'booking_payment_mode'
+        'points_redemption_enabled', 'venue_card_payments_enabled', 'booking_payment_mode'
     ];
-   protected $attributes = [
+
+    protected $attributes = [
         'image_url' => 'https://p.imgci.com/db/PICTURES/CMS/242000/242055.jpg',
         'is_featured' => false,
+        'rating' => 0,
+        'reviews' => 0,
+        'analytics_enabled' => true,
+        'advance_payment_required' => false,
+        'advance_payment_type' => 'percentage',
+        'advance_payment_value' => 20.00,
+        'bank_transfer_payments_enabled' => false,
+        'cash_payments_enabled' => true,
+        'online_payments_enabled' => true,
+        'points_redemption_enabled' => false,
+        'venue_card_payments_enabled' => false,
+        'booking_payment_mode' => 'full_only',
     ];
+
     protected $casts = [
         'opening_hours' => 'array',
         'amenities' => 'array',
         'gallery_images_json' => 'array',
         'social_links' => 'array',
         'is_featured' => 'boolean',
+        'analytics_enabled' => 'boolean',
+        'advance_payment_required' => 'boolean',
+        'bank_transfer_payments_enabled' => 'boolean',
+        'cash_payments_enabled' => 'boolean',
+        'online_payments_enabled' => 'boolean',
+        'points_redemption_enabled' => 'boolean',
+        'venue_card_payments_enabled' => 'boolean',
     ];
 
     protected $appends = ['cover_image_url', 'gallery_images_urls'];
