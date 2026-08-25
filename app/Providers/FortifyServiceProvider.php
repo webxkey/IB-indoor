@@ -33,6 +33,19 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = \App\Models\User::where('email', $request->email)->first();
+
+            if ($user && \Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+                if ($user->is_active === false) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        Fortify::username() => __('Your account is inactive. Please contact WebXkey to activate your account.'),
+                    ]);
+                }
+                return $user;
+            }
+        });
         
         // Completely disable Fortify's login view and redirect to our custom route
         Fortify::loginView(function () {

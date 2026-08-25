@@ -506,21 +506,89 @@
         margin-bottom: 20px;
     }
 
-    .modal-body-content .row>div>div {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 12px;
-        font-size: 0.9rem;
-        height: 100%;
-        display: flex;
-        align-items: center;
-    }
-
     .modal-body-content strong {
         color: var(--primary-color);
         font-weight: 600;
         margin-right: 8px;
+    }
+
+    .booking-info-pill {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.88rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .booking-info-pill .info-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .booking-info-pill .info-val {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+
+    .end-time-selection-box {
+        background: white;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 12px 14px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    }
+
+    .end-time-selection-box .end-time-label {
+        font-weight: 700;
+        color: #0f172a;
+        font-size: 0.88rem;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+    }
+
+    .end-time-selection-box .duration-select {
+        border: 2px solid #16a34a !important;
+        font-weight: 600;
+        color: #15803d;
+        background-color: #f0fdf4;
+        margin-bottom: 6px;
+        padding: 8px 12px !important;
+        font-size: 0.9rem !important;
+        cursor: pointer;
+    }
+
+    .end-time-selection-box .duration-select:focus {
+        box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+    }
+
+    .end-time-selection-box .end-time-help {
+        font-size: 0.76rem;
+        line-height: 1.35;
+        color: #64748b;
+    }
+
+    /* Spanned Continuous Booking Cell Styling */
+    td[rowspan] {
+        height: 1px !important;
+        vertical-align: top !important;
+        padding: 2px !important;
+    }
+
+    td[rowspan] > .time-slot.booked {
+        height: calc(100% - 4px) !important;
+        max-height: calc(100% - 4px) !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        margin: 2px 0 !important;
     }
 
     .form-control,
@@ -870,7 +938,15 @@
         </div>
         @endif
 
-        <div class="d-flex justify-content-end align-items-center mb-3">
+        <div class="d-flex justify-content-end align-items-center mb-3 gap-2">
+            @if($hasPool ?? false)
+            <a href="{{ route('staff.pool-bookings') }}" class="btn btn-info text-white d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-3 fw-bold me-2">
+                <i class="fas fa-swimming-pool"></i> Pool Booking
+            </a>
+            @endif
+            <a href="{{ route('staff.custom-booking') }}" class="btn btn-primary d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-3 fw-bold me-2">
+                <i class="fas fa-plus-circle"></i> Custom Booking
+            </a>
             <a href="{{ route('staff.completed-bookings') }}" class="btn btn-success d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-3 fw-bold">
                 <i class="fas fa-check-double"></i> Completed Bookings
             </a>
@@ -947,87 +1023,119 @@
                     </div>
                     <form wire:submit.prevent="addBooking">
                         <div class="modal-body">
-                            <div class="modal-body-content">
-                                <div class="row g-3 p-3">
+                            <div class="modal-body-content p-3 mb-3">
+                                <div class="row g-2 mb-3">
                                     <div class="col-6">
-                                        <div>
-                                            <strong>Game:</strong> <span id="modalGame">{{ $selectedGame }}</span>
+                                        <div class="booking-info-pill">
+                                            <span class="info-label">Game</span>
+                                            <span class="info-val text-truncate" id="modalGame">{{ $selectedGame }}</span>
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <div>
-                                            <strong>Court:</strong> <span id="modalCourt">{{ $selectedCourt }}</span>
+                                        <div class="booking-info-pill">
+                                            <span class="info-label">Court</span>
+                                            <span class="info-val" id="modalCourt">{{ $selectedCourt }}</span>
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <div>
-                                            <strong>Date:</strong> <span id="modalDate">{{ $selectedDate }}</span>
+                                        <div class="booking-info-pill">
+                                            <span class="info-label">Date</span>
+                                            <span class="info-val" id="modalDate">{{ $selectedDate }}</span>
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <div>
-                                            <strong>Time:</strong> <span id="modalTime">{{ $selectedTime }}</span>
+                                        <div class="booking-info-pill">
+                                            <span class="info-label">Start Time</span>
+                                            <span class="info-val text-success" id="modalTime">{{ $selectedTime }}</span>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div class="end-time-selection-box">
+                                    <label for="endTimeSelect" class="end-time-label">
+                                        <i class="far fa-clock text-success me-1"></i> End Time (Select Duration)
+                                    </label>
+                                    <select id="endTimeSelect" class="form-select duration-select" wire:model="selectedEndTime">
+                                        @if(empty($endTimeOptions))
+                                            @php
+                                                try {
+                                                    $defaultEnd = \Carbon\Carbon::parse($selectedTime)->addHour();
+                                                } catch (\Throwable $e) {
+                                                    $defaultEnd = \Carbon\Carbon::now()->addHour();
+                                                }
+                                            @endphp
+                                            <option value="{{ $defaultEnd->format('H:i:s') }}">
+                                                {{ $defaultEnd->format('g:i A') }} (1 hr)
+                                            </option>
+                                        @else
+                                            @foreach($endTimeOptions as $opt)
+                                                <option value="{{ $opt['value'] }}">{{ $opt['label'] }}</option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                    <div class="end-time-help">
+                                        Select end time to book multiple consecutive slots at once. Already booked or blocked slots in between will be skipped automatically.
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Player Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control @error('playerName') is-invalid @enderror"
-                                    wire:model.debounce.500ms="playerName" placeholder="Enter player name">
-                                @error('playerName')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
+                            @php
+                                $currentGameKey = strtolower($selectedGame ?? '');
+                                $maxCap = $maxCapacityMap[$currentGameKey] ?? 1;
+                            @endphp
 
+                            @if($maxCap > 1 || $currentGameKey === 'pools' || $currentGameKey === 'pool')
                             <div class="mb-3">
-                                <label class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control @error('phoneNumber') is-invalid @enderror"
-                                    wire:model.debounce.500ms="phoneNumber" 
-                                    placeholder="Enter phone number"
-                                    oninput="this.value = this.value.replace(/[^0-9]/g, '');">
-                                @error('phoneNumber')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <label class="form-label fw-semibold text-primary">
+                                    <i class="fas fa-users me-1"></i> Number of Swimmers / Persons <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-primary"><i class="fas fa-user-plus"></i></span>
+                                    <input type="number" class="form-control" wire:model="num_persons" min="1" max="{{ $maxCap }}" placeholder="1">
+                                    <span class="input-group-text bg-light text-muted">Persons (Max: {{ $maxCap }})</span>
+                                </div>
+                                <small class="text-muted">Specify how many persons are included in this booking slot</small>
                             </div>
+                            @endif
 
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Status</label>
-                                        <select class="form-select @error('status') is-invalid @enderror"
-                                            wire:model="status">
-                                            <option value="Confirmed">Confirmed</option>
-                                            <option value="Pending">Pending</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                            <option value="No-Show">No-Show</option>
-                                            <option value="Playing">Playing</option>
-                                        </select>
-                                        @error('status')
+                                        <label class="form-label">Player Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control @error('playerName') is-invalid @enderror"
+                                            wire:model.debounce.500ms="playerName" placeholder="Enter player name">
+                                        @error('playerName')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <div class="form-check form-switch mt-4">
-                                            <input class="form-check-input" type="checkbox" wire:model="permanent">
-                                            <label class="form-check-label">Permanent Booking</label>
-                                        </div>
+                                        <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                                        <input type="tel" class="form-control @error('phoneNumber') is-invalid @enderror"
+                                            wire:model.debounce.500ms="phoneNumber" 
+                                            placeholder="Enter phone number"
+                                            oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                                        @error('phoneNumber')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Notes</label>
-                                <textarea class="form-control @error('notes') is-invalid @enderror"
-                                    wire:model.debounce.500ms="notes" rows="3"
-                                    placeholder="Additional notes..."></textarea>
-                                @error('notes')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                            <div class="d-flex align-items-center gap-4 mb-3 p-3 bg-light rounded border">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="permanentCheck" wire:model="permanent">
+                                    <label class="form-check-label fw-semibold" for="permanentCheck">Permanent Booking</label>
+                                </div>
+                                @if($this->isPrivateBookingEnabled)
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="isPrivateCheck" wire:model.live="is_private">
+                                    <label class="form-check-label fw-bold text-dark" for="isPrivateCheck">
+                                        <i class="fas fa-lock text-warning me-1"></i> Private Booking
+                                    </label>
+                                </div>
+                                @endif
                             </div>
 
                             @error('general')
@@ -1240,6 +1348,128 @@
                             <i class="fas fa-plus me-1"></i>Add to Waitlist
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- Multi-Slot / Continuous Booking Cancel Choice Modal (Pic 2) --}}
+        @if($showCancelModal)
+        <div class="modal fade show d-block" id="cancelBookingChoiceModal" tabindex="-1" style="background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 1085;">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="border-radius: 20px;">
+                    <!-- Modal Header -->
+                    <div class="modal-header border-bottom-0 pb-0 pt-4 px-4 align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-3 bg-rose-50 text-rose-600 rounded-3 d-flex align-items-center justify-content-center" style="background: #ffe4e6; color: #e11d48; width: 52px; height: 52px; border-radius: 14px;">
+                                <i class="far fa-calendar-times fs-3"></i>
+                            </div>
+                            <div class="text-start">
+                                <h5 class="modal-title fw-bold text-dark mb-0 fs-4">Cancel Booking #{{ $cancelBookingId }}</h5>
+                                <small class="text-muted" style="font-size: 0.88rem;">Choose fully booking cancel or selection to slot cancel</small>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" wire:click="closeCancelModal"></button>
+                    </div>
+
+                    <!-- Modal Body -->
+                    <div class="modal-body p-4">
+                        @if($cancelType === 'choose')
+                            <p class="text-secondary fw-semibold mb-4 text-start" style="font-size: 0.95rem;">Select how you would like to handle this booking cancellation:</p>
+
+                            <div class="row g-4">
+                                <!-- Option 1: Fully Booking Cancel -->
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-2 rounded-4 p-4 shadow-sm text-start" style="border: 2px solid #ef4444 !important; border-radius: 16px; background: #ffffff;">
+                                        <div class="mb-3">
+                                            <div class="d-inline-flex p-3 rounded-3" style="background: #ffe4e6; color: #e11d48; border-radius: 12px;">
+                                                <i class="far fa-trash-alt fs-4"></i>
+                                            </div>
+                                        </div>
+                                        <h6 class="fw-bold text-danger mb-2" style="font-size: 1.05rem;">Fully Booking Cancel</h6>
+                                        <p class="text-muted small mb-4" style="line-height: 1.45; font-size: 0.86rem;">
+                                            Cancel the entire continuous booking series and deactivate all remaining slot occurrences.
+                                        </p>
+                                        <div class="mt-auto pt-3 border-top border-danger border-opacity-10">
+                                            <button type="button" class="btn btn-link text-danger text-decoration-none fw-bold p-0 d-flex align-items-center gap-2" wire:click="cancelFullSeries">
+                                                <span>Cancel Entire Series</span>
+                                                <i class="fas fa-arrow-right ms-1"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Option 2: Selection to Slot Cancel -->
+                                <div class="col-md-6">
+                                    <div class="card h-100 border rounded-4 p-4 shadow-sm text-start" style="border: 1px solid #cbd5e1 !important; border-radius: 16px; background: #ffffff;">
+                                        <div class="mb-3">
+                                            <div class="d-inline-flex p-3 rounded-3" style="background: #fef3c7; color: #d97706; border-radius: 12px;">
+                                                <i class="fas fa-tasks fs-4"></i>
+                                            </div>
+                                        </div>
+                                        <h6 class="fw-bold text-dark mb-2" style="font-size: 1.05rem;">Selection to Slot Cancel</h6>
+                                        <p class="text-muted small mb-4" style="line-height: 1.45; font-size: 0.86rem;">
+                                            Select specific slot occurrences/dates to cancel while keeping other scheduled slots active.
+                                        </p>
+                                        <div class="mt-auto pt-3 border-top border-secondary border-opacity-10">
+                                            <button type="button" class="btn btn-link text-decoration-none fw-bold p-0 d-flex align-items-center gap-2" style="color: #d97706 !important;" wire:click="setCancelType('specific')">
+                                                <span>Select Specific Slots</span>
+                                                <i class="fas fa-arrow-right ms-1"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <!-- Specific Slots Selection View -->
+                            <div class="d-flex align-items-center justify-content-between mb-3 text-start">
+                                <h6 class="fw-bold text-dark mb-0">Select specific slots to cancel:</h6>
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-3" wire:click="setCancelType('choose')">
+                                    <i class="fas fa-arrow-left me-1"></i> Back to options
+                                </button>
+                            </div>
+
+                            <div class="form-check mb-3 p-3 bg-light rounded-3 border text-start">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="selectAllCancelSlots" wire:model.live="selectAllCancelSlots">
+                                <label class="form-check-label fw-bold text-dark cursor-pointer" for="selectAllCancelSlots">
+                                    Select All Continuous Slots ({{ count($cancelContinuousSlots) }})
+                                </label>
+                            </div>
+
+                            <div class="list-group mb-4 text-start" style="max-height: 260px; overflow-y: auto;">
+                                @foreach($cancelContinuousSlots as $slotRecord)
+                                    @php
+                                        $sStart = \Carbon\Carbon::parse($slotRecord['start_time'])->format('g:i A');
+                                        $sEnd = \Carbon\Carbon::parse($slotRecord['end_time'])->format('g:i A');
+                                    @endphp
+                                    <label class="list-group-item d-flex align-items-center justify-content-between p-3 cursor-pointer">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <input class="form-check-input me-2" type="checkbox" value="{{ $slotRecord['id'] }}" wire:model.live="selectedCancelSlotIds">
+                                            <div>
+                                                <strong class="d-block text-dark"><i class="far fa-clock text-primary me-1"></i>{{ $sStart }} – {{ $sEnd }}</strong>
+                                                <small class="text-muted">Court {{ $slotRecord['court_number'] }} · {{ $slotRecord['game_name'] }}</small>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-secondary">Booking #{{ $slotRecord['id'] }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary rounded-3" wire:click="setCancelType('choose')">Cancel</button>
+                                <button type="button" class="btn btn-danger px-4 rounded-3" wire:click="cancelSelectedSpecificSlots">
+                                    <i class="fas fa-trash-alt me-2"></i>Cancel Selected Slots
+                                </button>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Modal Footer (Shown in Choice View) -->
+                    @if($cancelType === 'choose')
+                        <div class="modal-footer border-top-0 pt-0 pb-4 px-4 justify-content-start">
+                            <button type="button" class="btn btn-light border px-4 rounded-3" wire:click="closeCancelModal">Close</button>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1499,7 +1729,6 @@
 
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     function printPaymentReceipt() {
         var receiptEl = document.getElementById('printable-payment-receipt');
@@ -1572,6 +1801,7 @@
                 return [strtolower($sport->name) => $sport->id];
             })->toArray()
         );
+        window.maxCapacityMap = @json($maxCapacityMap ?? []);
 
         // Debug - log what we received
         console.log('=== DATA RECEIVED FROM BACKEND ===');
@@ -1611,7 +1841,7 @@
             }
 
             // If all today's slots have passed, auto-advance to tomorrow
-            const todaySlots = generateTimeSlots();
+            const todaySlots = generateTimeSlots(true);
             if (todaySlots.length > 0) {
                 const now = new Date();
                 // Advance after the last slot ENDS (last slot start + 1 hour)
@@ -1863,6 +2093,9 @@
                             } else {
                                 Swal.fire('Popup Blocked', 'Please allow popups for this site to use the timer window.', 'warning');
                             }
+
+                            // Automatically close the Booking Details modal
+                            closeModal('timerModal');
                         }
                     }
                 });
@@ -1996,6 +2229,69 @@
             });
         }
 
+        window.triggerCancelBookingJS = function(bookingId, playerName) {
+            Swal.fire({
+                title: 'Cancel Booking?',
+                text: `Are you sure you want to cancel booking for ${playerName}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Cancel Booking'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    @this.call('cancelBooking', bookingId);
+                }
+            });
+        };
+
+        window.getCalculatedRemainingSeconds = function(timerId, dateKey, rawTime, totalDurationSecs) {
+            totalDurationSecs = totalDurationSecs || 3600;
+            const savedStart = localStorage.getItem('timer_started_at_' + timerId);
+            if (savedStart) {
+                const elapsed = Math.floor((Date.now() - parseInt(savedStart, 10)) / 1000);
+                return Math.max(0, totalDurationSecs - elapsed);
+            }
+            if (dateKey && rawTime) {
+                const dateParts = dateKey.split('-');
+                const timeParts = rawTime.split(':');
+                if (dateParts.length >= 3 && timeParts.length >= 2) {
+                    const now = new Date();
+                    const yearPart = parseInt(dateParts[0], 10);
+                    const monthPart = parseInt(dateParts[1], 10) - 1;
+                    const dayPart = parseInt(dateParts[2], 10);
+                    const hourPart = parseInt(timeParts[0], 10);
+                    const minPart = parseInt(timeParts[1], 10);
+                    const slotStart = new Date(yearPart, monthPart, dayPart, hourPart, minPart, 0);
+                    const slotEnd = new Date(slotStart.getTime() + totalDurationSecs * 1000);
+
+                    if (now >= slotStart && now < slotEnd) {
+                        return Math.max(0, Math.floor((slotEnd.getTime() - now.getTime()) / 1000));
+                    }
+                }
+            }
+            return totalDurationSecs;
+        };
+
+        window.startTimerDirectJS = function(timerId, bookingId) {
+            if (!localStorage.getItem('timer_started_at_' + timerId)) {
+                localStorage.setItem('timer_started_at_' + timerId, Date.now().toString());
+            }
+            @this.call('startBooking', bookingId).then(() => {
+                if (activeTimers[timerId]) {
+                    activeTimers[timerId].isRunning = true;
+                    activeTimers[timerId].status = 'Playing';
+                }
+                showNotification('▶ Match Started', 'Match timer has been started successfully.');
+                refreshBookingData().then(() => {
+                    updateCalendar();
+                    if (activeTimers[timerId]) {
+                        startTimer(timerId);
+                    }
+                });
+            });
+        };
+
         function openTimerModal(timerId) {
             activeModalTimerId = timerId;
             const timerState = activeTimers[timerId] || {
@@ -2029,27 +2325,21 @@
 
             // Calculate real remaining time from wall clock
             const now = new Date();
-            const parts = timerId.split('-');
-            // timerId format: gameName-YYYY-MM-DD-courtNum-HH-MM-SS-000000
-            const dateStr = parts[1]; // YYYY-MM-DD as single part from formatDateKey
-            // Actually timerId = `${currentGame}-${dateKey}-${court}-${slot.time24.replace(/:/g, '-')}`
-            // dateKey = YYYY-MM-DD, court = number, time24 = HH:MM:SS.000000 => HH-MM-SS.000000
-            // So parts: [game, YYYY-MM-DD, court, HH-MM-SS.000000] 
-            // But dateKey itself has dashes: YYYY-MM-DD => split('-') gives [game, YYYY, MM, DD, court, HH, MM, SS.000000]
-            const gameNamePart = parts[0];
-            const yearPart = parts[1];
-            const monthPart = parts[2];
-            const dayPart = parts[3];
-            const courtPart = parts[4];
-            const hourPart = parseInt(parts[5], 10);
-            const minPart = parseInt(parts[6], 10);
-            
-            // Build start and end date objects for this slot
-            const slotStart = new Date(parseInt(yearPart), parseInt(monthPart) - 1, parseInt(dayPart), hourPart, minPart, 0);
-            const slotEnd = new Date(slotStart.getTime() + timerState.totalDuration * 1000);
-            
-            // Calculate actual remaining seconds from now
-            const realRemaining = Math.max(0, Math.floor((slotEnd.getTime() - now.getTime()) / 1000));
+            let realRemaining = timerState.remaining;
+            if (timerState.dateKey && timerState.rawTime) {
+                const dateParts = timerState.dateKey.split('-');
+                const timeParts = timerState.rawTime.split(':');
+                if (dateParts.length >= 3 && timeParts.length >= 2) {
+                    const yearPart = parseInt(dateParts[0], 10);
+                    const monthPart = parseInt(dateParts[1], 10) - 1;
+                    const dayPart = parseInt(dateParts[2], 10);
+                    const hourPart = parseInt(timeParts[0], 10);
+                    const minPart = parseInt(timeParts[1], 10);
+                    const slotStart = new Date(yearPart, monthPart, dayPart, hourPart, minPart, 0);
+                    const slotEnd = new Date(slotStart.getTime() + timerState.totalDuration * 1000);
+                    realRemaining = Math.max(0, Math.floor((slotEnd.getTime() - now.getTime()) / 1000));
+                }
+            }
             
             // Only update remaining if the timer is Playing and we have a valid calculation
             if (timerState.isRunning || timerState.status === 'Playing') {
@@ -2113,57 +2403,19 @@
                 }
 
                 newCancelBtn.addEventListener('click', function() {
-                    Swal.fire({
-                        title: 'Are you sure?',
-                        text: "Do you really want to cancel this booking?",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#dc3545',
-                        cancelButtonColor: '#6c757d',
-                        confirmButtonText: 'Yes, cancel it!',
-                        cancelButtonText: 'No, keep it'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            // Extract booking details from timerId
-                            const parts = timerId.split('-');
-                            const game = parts[0];
-                            const dateKey = parts[1];
-                            const court = parts[2];
-                            const time = parts.slice(3).join(':').replace(/-/g, ':');
+                    @this.set('selectedGame', timerState.game || '');
+                    @this.set('selectedDate', timerState.dateKey || '');
+                    @this.set('selectedCourt', timerState.court || '');
+                    @this.set('selectedTime', timerState.rawTime || '');
 
-                            console.log('Cancelling booking:', {
-                                game,
-                                dateKey,
-                                court,
-                                time
-                            });
-
-                            // Set selected booking data for cancellation
-                            @this.set('selectedGame', game);
-                            @this.set('selectedDate', dateKey);
-                            @this.set('selectedCourt', court);
-                            @this.set('selectedTime', time);
-
-                            // Call cancel booking
-                            @this.call('cancelBooking', timerState.bookingId).then(() => {
-                                modal.hide();
-                                Swal.fire(
-                                    'Cancelled!',
-                                    'The booking has been successfully cancelled.',
-                                    'success'
-                                );
-                                refreshBookingData().then(() => {
-                                    updateCalendar();
-                                });
-                            }).catch(error => {
-                                console.error('Error cancelling booking:', error);
-                                Swal.fire(
-                                    'Error!',
-                                    'Error cancelling booking. Please try again.',
-                                    'error'
-                                );
-                            });
+                    @this.call('initiateCancelBooking', timerState.bookingId).then((res) => {
+                        modal.hide();
+                        if (res === true) {
+                            showNotification('Cancelled', 'Booking cancelled successfully.');
+                            refreshBookingData().then(() => updateCalendar());
                         }
+                    }).catch(error => {
+                        console.error('Error initiating cancel booking:', error);
                     });
                 });
             }
@@ -2332,6 +2584,7 @@
 
             let bodyHtml = '';
             const timeSlots = generateTimeSlots();
+            const skipMap = {};
 
             console.log('DEBUG - timeSlots generated:', timeSlots.length);
 
@@ -2349,22 +2602,185 @@
                 return;
             }
 
-            timeSlots.forEach(slot => {
+            timeSlots.forEach((slot, slotIndex) => {
                 // Use compact time on mobile (e.g. "9AM" instead of "9:00 AM - 10:00 AM")
                 const isMobile = window.innerWidth <= 768;
                 const displayTime = isMobile ? slot.compact : slot.display;
                 bodyHtml += `<tr><td class="time-column">${displayTime}</td>`;
 
                 courts.forEach(court => {
+                    if (skipMap[court] > 0) {
+                        skipMap[court]--;
+                        return; // Skip rendering <td> for this court as it is spanned by a previous row's rowspan
+                    }
+
                     const bookings = gameData[court] || {};
-                    const bookingInfo = bookings[slot.time24.substring(0, 5) + ':00'];
+                    let bookingInfo = bookings[slot.time24.substring(0, 5) + ':00'];
+
+                    // Ignore cancelled bookings so they render as Available slots
+                    if (bookingInfo && bookingInfo.status && bookingInfo.status.toLowerCase() === 'cancelled') {
+                        bookingInfo = null;
+                    }
 
                     // Define sportId here so it's available in both booked and available branches
                     const sportId = gameNameToId[currentGame] || gameNameToId[currentGame.toLowerCase()] || null;
 
+                    const currentGameKey = currentGame.toLowerCase();
+                    const maxCap = (window.maxCapacityMap && window.maxCapacityMap[currentGameKey])
+                        ? window.maxCapacityMap[currentGameKey]
+                        : (currentGameKey === 'pools' || currentGameKey === 'pool' ? 10 : 1);
+
+                    // Multi-person capacity handling for Pool / Capacity sports
+                    if (bookingInfo && maxCap > 1) {
+                        const totPersons = bookingInfo.total_persons || bookingInfo.num_persons || 1;
+                        const bList = bookingInfo.bookings_list || [bookingInfo];
+                        const remainingSeats = maxCap - totPersons;
+
+                        // Register activeTimers for each booking in the capacity list
+                        bList.forEach(b => {
+                            const timerId = `${currentGame}-${dateKey}-${court.replace(/\s/g, '')}-${slot.time24.replace(/:/g, '-')}-${b.id}`;
+                            const isPlayingNow = (b.status === 'Playing') || (activeTimers[timerId] && activeTimers[timerId].isRunning);
+
+                            if (!activeTimers[timerId]) {
+                                activeTimers[timerId] = {
+                                    totalDuration: 3600,
+                                    remaining: 3600,
+                                    intervalId: null,
+                                    isRunning: isPlayingNow,
+                                    player: b.player,
+                                    game: currentGame.charAt(0).toUpperCase() + currentGame.slice(1),
+                                    startTimeDisplay: slot.display,
+                                    popupWindow: null,
+                                    bookingId: b.id,
+                                    court: court,
+                                    date: formatDate(currentDate),
+                                    dateKey: dateKey,
+                                    rawTime: slot.time24,
+                                    status: b.status || 'Confirmed'
+                                };
+                            } else {
+                                if (isPlayingNow) {
+                                    activeTimers[timerId].isRunning = true;
+                                    activeTimers[timerId].status = 'Playing';
+                                }
+                            }
+
+                            // Auto start countdown if status is Playing
+                            if (isPlayingNow && !activeTimers[timerId].intervalId) {
+                                startTimer(timerId);
+                            }
+                        });
+
+                        let customerPillsHtml = '';
+                        bList.forEach(b => {
+                            const timerId = `${currentGame}-${dateKey}-${court.replace(/\s/g, '')}-${slot.time24.replace(/:/g, '-')}-${b.id}`;
+                            const isPlaying = b.status === 'Playing';
+                            const isCancelled = b.status === 'Cancelled';
+                            if (isCancelled) return;
+
+                            const timerStatus = activeTimers[timerId] ? activeTimers[timerId].status : b.status;
+                            const isPlayingNow = isPlaying || timerStatus === 'Playing' || (activeTimers[timerId] && activeTimers[timerId].isRunning);
+                            const currentSecs = activeTimers[timerId] ? activeTimers[timerId].remaining : 3600;
+
+                            customerPillsHtml += `
+                                <div class="d-inline-flex align-items-center bg-white border border-secondary border-opacity-25 rounded px-2 py-1 me-1 mb-1 shadow-sm" style="font-size:0.75rem;">
+                                    <span class="fw-bold text-dark me-1 cursor-pointer" onclick="event.stopPropagation(); openTimerModal('${timerId}')" title="Click to open Timer & Match Status Modal">
+                                        <i class="fas fa-stopwatch ${isPlayingNow ? 'text-primary' : 'text-secondary'} me-1"></i>${b.player} (${b.num_persons}p)
+                                    </span>
+                                    ${!isPlayingNow ? `
+                                    <button type="button" class="btn btn-sm btn-success p-0 ms-1 px-1 me-1 text-white border-0 shadow-sm" style="font-size:0.68rem; line-height:1.2;"
+                                            onclick="event.stopPropagation(); startTimerDirectJS('${timerId}', ${b.id})" title="Start Timer for ${b.player}">
+                                        <i class="fas fa-play" style="font-size:0.62rem;"></i> Start
+                                    </button>` : `
+                                    <span id="${timerId}" class="badge bg-primary text-white font-monospace ms-1 me-1 shadow-sm cursor-pointer" style="font-size:0.72rem; font-weight:700;" onclick="event.stopPropagation(); openTimerModal('${timerId}')" title="Click to open timer modal">
+                                        <i class="fas fa-play me-1"></i>${formatTime(currentSecs)}
+                                    </span>`}
+                                    <button type="button" class="btn btn-sm btn-outline-danger p-0 ms-1 border-0" style="line-height:1; padding:0 3px !important;"
+                                            onclick="event.stopPropagation(); triggerCancelBookingJS(${b.id}, '${b.player}')" title="Cancel ${b.player}'s booking">
+                                        <i class="fas fa-times" style="font-size:0.7rem;"></i>
+                                    </button>
+                                </div>
+                            `;
+                        });
+
+                        if (remainingSeats > 0) {
+                            // Partially Booked Slot
+                            bodyHtml += `
+                            <td>
+                                <div class="time-slot available border border-info bg-info bg-opacity-10 p-2 rounded shadow-sm text-start"
+                                     data-time="${slot.time24.substring(0, 8)}"
+                                     data-display="${slot.display}"
+                                     data-court="${court}">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge bg-info text-dark fw-bold" style="font-size:0.75rem;">${totPersons}/${maxCap} Booked</span>
+                                        <span class="badge bg-success text-white fw-bold" style="font-size:0.75rem;">${remainingSeats} Left</span>
+                                    </div>
+                                    <div class="d-flex flex-wrap align-items-center my-1">
+                                        ${customerPillsHtml}
+                                    </div>
+                                    <div class="d-flex gap-1 mt-1 justify-content-between align-items-center" onclick="event.stopPropagation()">
+                                        <button class="slot-action-btn shadow-sm"
+                                                style="background:#0284c7;color:#fff;border-color:#0369a1;padding:3px 8px;font-size:0.72rem;"
+                                                onclick="openBookingModalJS('${slot.time24.substring(0, 8)}', '${slot.display}', '${court}')">
+                                            <i class="fas fa-plus-circle me-1"></i>Book (${remainingSeats} Left)
+                                        </button>
+                                        ${sportId ? `
+                                        <button class="slot-action-btn" style="background:#0ea5e9;color:#fff;border-color:#0369a1;"
+                                                onclick="openWaitlistModalJS(${sportId}, '${dateKey}', '${slot.time24.substring(0, 8)}', '${court}')">
+                                            <i class="fas fa-list-ul"></i> Wait
+                                        </button>` : ''}
+                                    </div>
+                                </div>
+                            </td>`;
+                            return;
+                        } else {
+                            // Fully Booked Capacity Slot
+                            bodyHtml += `
+                            <td>
+                                <div class="time-slot booked bg-danger bg-opacity-10 border border-danger p-2 rounded shadow-sm text-start">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge bg-danger text-white fw-bold" style="font-size:0.75rem;">FULL (${totPersons}/${maxCap})</span>
+                                        <span class="badge bg-dark text-white" style="font-size:0.7rem;">${bList.length} Booking(s)</span>
+                                    </div>
+                                    <div class="d-flex flex-wrap align-items-center my-1">
+                                        ${customerPillsHtml}
+                                    </div>
+                                </div>
+                            </td>`;
+                            return;
+                        }
+                    }
+
                     if (bookingInfo) {
+                        // Calculate rowspan for consecutive active non-cancelled slots belonging to the same player & status
+                        let span = 1;
+                        let lastEnd = bookingInfo.end;
+                        for (let nextIdx = slotIndex + 1; nextIdx < timeSlots.length; nextIdx++) {
+                            const nextSlot = timeSlots[nextIdx];
+                            const nextBooking = bookings[nextSlot.time24.substring(0, 5) + ':00'];
+                            if (!nextBooking) break;
+
+                            // Stop span if next booking is cancelled
+                            if (nextBooking.status && nextBooking.status.toLowerCase() === 'cancelled') break;
+
+                            const isSameUser = (nextBooking.player === bookingInfo.player) &&
+                                               (nextBooking.phone === bookingInfo.phone) &&
+                                               (nextBooking.status === bookingInfo.status);
+
+                            if (isSameUser) {
+                                span++;
+                                lastEnd = nextBooking.end;
+                            } else {
+                                break;
+                            }
+                        }
+
+                        if (span > 1) {
+                            skipMap[court] = span - 1;
+                        }
+
                         const timerId = `${currentGame}-${dateKey}-${court.replace(/\s/g, '')}-${slot.time24.replace(/:/g, '-')}`;
-                        const totalDuration = calculateDurationInSeconds(slot.time24, bookingInfo.end);
+                        const totalDuration = calculateDurationInSeconds(slot.time24, lastEnd);
                         const isNoShow = bookingInfo.status === 'No-Show';
                         const isPlaying = bookingInfo.status === 'Playing';
                         const isCompleted = bookingInfo.status === 'Completed' || bookingInfo.status === 'played' || bookingInfo.status === 'Played';
@@ -2412,44 +2828,130 @@
                         if (isNoShow) bgClass = 'bg-secondary bg-opacity-25';
                         if (isCompleted) bgClass = 'bg-info bg-opacity-10';
 
-                        bodyHtml += `
-                        <td>
-                            <div class="time-slot booked d-flex align-items-center justify-content-between p-2 rounded shadow-sm ${bgClass} mb-0" data-timer-id="${timerId}" ${isCompleted ? 'data-completed="true"' : ''} ${clickHandler} style="${cursorStyle}">
-                                
-                                <!-- Left: Avatar + Booking Info -->
-                                <div class="d-flex align-items-center flex-shrink-0" style="min-width: 0;">
-                                    <img alt="User Avatar"
-                                        class="rounded-circle shadow-sm me-2"
-                                        src="${bookingInfo.avatar || '/'}"
-                                        width="48" height="48">
-                                    <div class="booking-info text-truncate">
-                                        <strong class="d-block text-dark text-truncate">${bookingInfo.player} ${!bookingInfo.admin_comments ? '<i class="fas fa-mobile-alt ms-1 text-primary" title="Mobile App Booking"></i>' : ''}</strong>
-                                        <small class="d-block text-muted text-truncate">${bookingInfo.phone}</small>
+                        const rowspanAttr = span > 1 ? `rowspan="${span}"` : '';
+                        const firstSlotDisplay = slot.display.split(' - ')[0];
+                        const lastSlotDisplay = timeSlots[slotIndex + span - 1].display.split(' - ')[1];
+                        const overallTimeText = span > 1 ? `${firstSlotDisplay} – ${lastSlotDisplay}` : '';
+
+                        const safeAvatarSrc = (bookingInfo.avatar && bookingInfo.avatar !== '/' && !bookingInfo.avatar.endsWith('/'))
+                            ? bookingInfo.avatar
+                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(bookingInfo.player)}&background=0ea5e9&color=fff`;
+
+                        if (span > 1) {
+                            // Multi-slot continuous container filling 100% height of all spanned slots
+                            let subSlotsPillsHtml = '';
+                            for (let k = 0; k < span; k++) {
+                                const sObj = timeSlots[slotIndex + k];
+                                subSlotsPillsHtml += `
+                                    <span class="badge bg-white text-dark border border-secondary border-opacity-25 font-monospace shadow-sm" style="font-size: 0.74rem; font-weight: 600; padding: 3px 6px;">
+                                        <i class="far fa-clock text-primary me-1"></i>${sObj.display}
+                                    </span>
+                                `;
+                            }
+
+                            bodyHtml += `
+                            <td ${rowspanAttr} style="vertical-align: top; padding: 2px; height: 1px;">
+                                <div class="time-slot booked d-flex flex-column justify-content-between p-2 rounded shadow-sm ${bgClass} mb-0" data-timer-id="${timerId}" ${isCompleted ? 'data-completed="true"' : ''} ${clickHandler} style="${cursorStyle}; height: calc(100% - 4px); max-height: calc(100% - 4px); overflow: hidden;">
+                                    
+                                    <!-- Top Header: Player Avatar + Info + Badges -->
+                                    <div class="d-flex align-items-center justify-content-between w-100 pb-1 border-bottom border-dark border-opacity-10" style="flex-shrink: 0;">
+                                        <div class="d-flex align-items-center flex-shrink-0" style="min-width: 0;">
+                                    <img src="${safeAvatarSrc}"
+                                                onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(bookingInfo.player)}&background=0ea5e9&color=fff';"
+                                                alt=""
+                                                class="rounded-circle shadow-sm me-2"
+                                                width="28" height="28"
+                                                style="object-fit: cover; flex-shrink: 0;">
+                                            <div class="booking-info text-start text-truncate" style="padding: 0;">
+                                                <strong class="d-inline text-dark text-truncate" style="font-size: 0.82rem;">${bookingInfo.player}</strong>
+                                                ${bookingInfo.is_private ? '<i class="fas fa-lock ms-1 text-warning" title="Private Booking"></i>' : ''}
+                                                ${!bookingInfo.admin_comments ? '<i class="fas fa-mobile-alt ms-1 text-primary" style="font-size:0.75rem;" title="Mobile App Booking"></i>' : ''}
+                                                <small class="d-block text-muted text-truncate" style="font-size: 0.72rem;">${bookingInfo.phone}</small>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span class="badge bg-dark text-white" style="font-size: 0.7rem;">${span}h (${span * 60}m)</span>
+                                            ${statusBadge}
+                                            ${bookingInfo.permanent_source_id ? `<span class="badge bg-dark text-white">P</span>` : ''}
+                                            ${bookingInfo.is_private ? `<span class="badge bg-warning text-dark" title="Private Booking"><i class="fas fa-lock me-1"></i>Private</span>` : ''}
+                                        </div>
                                     </div>
+
+                                    <!-- Middle Section: Time Range & Active Timer & Column-wise Sub-Slots -->
+                                    <div class="d-flex flex-column align-items-center justify-content-center my-1 w-100 text-center" style="overflow: hidden;">
+                                        <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap mb-1">
+                                            <span class="fw-bold text-dark" style="font-size: 0.82rem;">
+                                                <i class="far fa-calendar-alt text-primary me-1"></i>${overallTimeText}
+                                            </span>
+                                            ${timerDisplay ? `<span class="fw-bold text-primary ms-1" style="font-size: 0.95rem;">${timerDisplay}</span>` : ''}
+                                        </div>
+
+                                        <div class="sub-slots-inline-row d-flex align-items-center justify-content-center flex-wrap gap-1">
+                                            ${subSlotsPillsHtml}
+                                        </div>
+                                    </div>
+
+                                    <!-- Bottom Footer: Action / Waitlist Button -->
+                                    <div class="d-flex justify-content-between align-items-center w-100 pt-1 border-top border-dark border-opacity-10" onclick="event.stopPropagation()" style="flex-shrink: 0;">
+                                        <small class="text-muted fst-italic" style="font-size: 0.7rem;">Continuous (${span} Slots)</small>
+                                        ${sportId ? `
+                                        <button class="slot-action-btn"
+                                                style="background:#0ea5e9;color:#fff;border-color:#0369a1;padding: 2px 7px; font-size: 0.72rem;"
+                                                onclick="openWaitlistModalJS(${sportId}, '${dateKey}', '${slot.time24.substring(0,8)}', '${court}')"
+                                                title="View/Add to waitlist">
+                                            <i class="fas fa-list-ul me-1"></i> Waitlist
+                                        </button>` : ''}
+                                    </div>
+
                                 </div>
+                            </td>
+                            `;
+                        } else {
+                            // Single-slot standard layout
+                            bodyHtml += `
+                            <td ${rowspanAttr} style="vertical-align: middle;">
+                                <div class="time-slot booked d-flex align-items-center justify-content-between p-2 rounded shadow-sm ${bgClass} mb-0" data-timer-id="${timerId}" ${isCompleted ? 'data-completed="true"' : ''} ${clickHandler} style="${cursorStyle}">
+                                    
+                                    <!-- Left: Avatar + Booking Info -->
+                                    <div class="d-flex align-items-center flex-shrink-0" style="min-width: 0;">
+                                        <img src="${safeAvatarSrc}"
+                                            onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(bookingInfo.player)}&background=0ea5e9&color=fff';"
+                                            alt=""
+                                            class="rounded-circle shadow-sm me-2"
+                                            width="36" height="36"
+                                            style="object-fit: cover; flex-shrink: 0;">
+                                        <div class="booking-info text-truncate">
+                                            <strong class="d-block text-dark text-truncate">${bookingInfo.player} ${bookingInfo.is_private ? '<i class="fas fa-lock ms-1 text-warning" title="Private Booking"></i>' : ''} ${!bookingInfo.admin_comments ? '<i class="fas fa-mobile-alt ms-1 text-primary" title="Mobile App Booking"></i>' : ''}</strong>
+                                            <small class="d-block text-muted text-truncate">${bookingInfo.phone}</small>
+                                        </div>
+                                    </div>
 
-                                <!-- Center: Status + Timer -->
-                                <div class="text-center flex-grow-1">
-                                    ${statusBadge}
-                                    ${timerDisplay}
+                                    <!-- Center: Status + Timer -->
+                                    <div class="d-flex align-items-center justify-content-center gap-2 flex-grow-1 px-2">
+                                        <div class="text-center flex-shrink-0">
+                                            ${statusBadge}
+                                            ${timerDisplay}
+                                        </div>
+                                    </div>
+
+                                    <!-- Right: Badges + Waitlist -->
+                                    <div class="badges d-flex flex-column align-items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+                                        ${bookingInfo.permanent_source_id ? `<span class="badge bg-dark text-white">P</span>` : ''}
+                                        ${bookingInfo.is_private ? `<span class="badge bg-warning text-dark" title="Private Booking"><i class="fas fa-lock"></i></span>` : ''}
+                                        ${sportId ? `
+                                        <button class="slot-action-btn mt-1"
+                                                style="background:#0ea5e9;color:#fff;border-color:#0369a1;"
+                                                onclick="openWaitlistModalJS(${sportId}, '${dateKey}', '${slot.time24.substring(0,8)}', '${court}')"
+                                                title="View/Add to waitlist">
+                                            <i class="fas fa-list-ul"></i> Wait
+                                        </button>` : ''}
+                                    </div>
+
                                 </div>
-
-                                <!-- Right: Badges + Waitlist -->
-                                <div class="badges d-flex flex-column align-items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
-                                    ${bookingInfo.permanent_source_id ? `<span class="badge bg-dark text-white">P</span>` : ''}
-                                    ${sportId ? `
-                                    <button class="slot-action-btn mt-1"
-                                            style="background:#0ea5e9;color:#fff;border-color:#0369a1;"
-                                            onclick="openWaitlistModalJS(${sportId}, '${dateKey}', '${slot.time24.substring(0,8)}', '${court}')"
-                                            title="View/Add to waitlist">
-                                        <i class="fas fa-list-ul"></i> Wait
-                                    </button>` : ''}
-                                </div>
-
-                            </div>
-                        </td>
-
-                        `;
+                            </td>
+                            `;
+                        }
 
                     } else {
                         // Check if this time slot has already passed
@@ -2480,8 +2982,7 @@
                             : (isRecurringBlocked ? 'Recurring block' : null);
                         const blockEndTime = rawBlockValue && typeof rawBlockValue === 'object'
                             ? rawBlockValue.end_time : null;
-                        // Recurring blocks aren't unblockable from this page — they live in Settings → Sports.
-                        const canUnblockHere = !!rawBlockValue;
+                        const canUnblockHere = true;
 
                         // Check if slot is on hold (mobile user in checkout via Django webhook)
                         const isHeld = !!(sportId &&
@@ -2603,7 +3104,7 @@
             updateCalendar();
         }
 
-        function generateTimeSlots() {
+        function generateTimeSlots(includePast = false) {
             // Generate slots based on venue opening hours for the currently selected date
             const slots = [];
             const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
@@ -2618,8 +3119,13 @@
             const [closeHStr, closeMStr] = (dayHours.close || '00:00').split(':');
             let openH = parseInt(openHStr, 10);
             const openM = parseInt(openMStr || '0', 10);
-            const closeH = parseInt(closeHStr, 10);
+            let closeH = parseInt(closeHStr, 10);
             const closeM = parseInt(closeMStr || '0', 10);
+
+            // Handle 00:00 midnight closing time as 24:00 (end of day)
+            if (closeH === 0 || (dayHours.close && (dayHours.close === '00:00' || dayHours.close.startsWith('00:00')))) {
+                closeH = 24;
+            }
 
             // Round start up if minutes > 0
             if (openM > 0) openH += 1;
@@ -2633,7 +3139,21 @@
 
             if (openH > lastStart) return slots;
 
+            const now = new Date();
+            const isToday = currentDate.getFullYear() === now.getFullYear() &&
+                            currentDate.getMonth() === now.getMonth() &&
+                            currentDate.getDate() === now.getDate();
+
             for (let hour = openH; hour <= lastStart; hour++) {
+                // If viewing today and includePast is false, filter out past slots (where slot end time has passed)
+                if (isToday && !includePast) {
+                    const slotEndHour = hour + 1;
+                    const slotEndDateTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), slotEndHour, 0, 0);
+                    if (now >= slotEndDateTime) {
+                        continue; // Skip past time slots for today
+                    }
+                }
+
                 const startHour = hour % 12 || 12;
                 const ampm = hour < 12 ? 'AM' : 'PM';
                 const nextHour24 = (hour + 1) % 24;
@@ -2725,6 +3245,10 @@
             const timerState = activeTimers[timerIdToControl];
             if (!timerState || timerState.intervalId) return;
 
+            if (!localStorage.getItem('timer_started_at_' + timerIdToControl)) {
+                localStorage.setItem('timer_started_at_' + timerIdToControl, Date.now().toString());
+            }
+
             // Update booking status to Playing in the database
             if (timerState.bookingId && timerState.status !== 'Playing') {
                 @this.call('startBooking', timerState.bookingId).then(success => {
@@ -2740,10 +3264,11 @@
             updateTimerButtons(true, timerIdToControl);
 
             timerState.intervalId = setInterval(() => {
-                if (timerState.remaining > 0) {
-                    timerState.remaining--;
-                    updateTimerDisplay(timerIdToControl);
-                } else {
+                const calcRem = getCalculatedRemainingSeconds(timerIdToControl, timerState.dateKey, timerState.rawTime, timerState.totalDuration);
+                timerState.remaining = calcRem;
+                updateTimerDisplay(timerIdToControl);
+
+                if (calcRem <= 0) {
                     clearInterval(timerState.intervalId);
                     timerState.intervalId = null;
                     timerState.isRunning = false;

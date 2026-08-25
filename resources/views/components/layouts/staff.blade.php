@@ -49,12 +49,22 @@
             background-color: white;
             box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
             overflow-y: auto;
+            transition: transform 0.25s ease-in-out;
         }
 
         .main-content {
             margin-left: var(--sidebar-width);
             padding: 0 2rem;
             width: 100%;
+            transition: margin-left 0.25s ease-in-out;
+        }
+
+        body.sidebar-collapsed .sidebar {
+            transform: translateX(-100%);
+        }
+
+        body.sidebar-collapsed .main-content {
+            margin-left: 0 !important;
         }
 
         .header {
@@ -62,6 +72,8 @@
             border-bottom: 1px solid #dee2e6;
             margin: 0 -2rem 2rem -2rem;
             padding: 1rem 2rem;
+            position: relative;
+            z-index: 1030;
         }
 
         .sidebar .nav-link {
@@ -255,14 +267,15 @@
                                 </a>
                             </li>
                             
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('staff.tournament') ? 'active' : '' }}" href="{{ route('staff.tournament') }}">
-                                    <i class="fas fa-trophy me-2"></i> Tournament
-                                </a>
-                            </li>
+                            
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('staff.announcements') ? 'active' : '' }}" href="{{ route('staff.announcements') }}">
                                     <i class="fas fa-bullhorn me-2"></i> Announcements
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.tournament') ? 'active' : '' }}" href="{{ route('staff.tournament') }}">
+                                    <i class="fas fa-trophy me-2"></i> Tournament
                                 </a>
                             </li>
                         </ul>
@@ -382,7 +395,7 @@
                 <header class="header d-flex justify-content-between align-items-center">
                     <!-- Left: hamburger + logo on mobile -->
                     <div class="d-flex align-items-center">
-                        <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none me-2" style="padding:0.35rem 0.6rem;">
+                        <button id="sidebarToggle" class="btn btn-outline-secondary me-3" style="padding:0.35rem 0.6rem;" title="Toggle Sidebar">
                             <i class="fas fa-bars"></i>
                         </button>
                         <!-- App logo — visible on mobile only -->
@@ -491,9 +504,21 @@
             const sidebar = document.querySelector('.sidebar');
             const sidebarToggle = document.getElementById('sidebarToggle');
 
+            // Restore desktop collapsed state
+            if (localStorage.getItem('sidebar-collapsed') === 'true' && window.innerWidth > 991.98) {
+                document.body.classList.add('sidebar-collapsed');
+            }
+
             if (sidebarToggle && sidebar) {
-                sidebarToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('show');
+                sidebarToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (window.innerWidth <= 991.98) {
+                        sidebar.classList.toggle('show');
+                    } else {
+                        document.body.classList.toggle('sidebar-collapsed');
+                        localStorage.setItem('sidebar-collapsed', document.body.classList.contains('sidebar-collapsed') ? 'true' : 'false');
+                    }
                 });
 
                 document.addEventListener('click', function(event) {
@@ -506,6 +531,38 @@
                     }
                 });
             }
+
+            // Universal Dropdown Delegation Handler
+            document.addEventListener('click', function(e) {
+                const toggleBtn = e.target.closest('[data-bs-toggle="dropdown"]');
+                if (toggleBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const menu = toggleBtn.nextElementSibling || toggleBtn.parentElement.querySelector('.dropdown-menu');
+                    if (menu) {
+                        const isShown = menu.classList.contains('show');
+                        document.querySelectorAll('.dropdown-menu.show').forEach(m => {
+                            if (m !== menu) m.classList.remove('show');
+                        });
+                        document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(btn => {
+                            if (btn !== toggleBtn) btn.setAttribute('aria-expanded', 'false');
+                        });
+
+                        if (isShown) {
+                            menu.classList.remove('show');
+                            toggleBtn.setAttribute('aria-expanded', 'false');
+                        } else {
+                            menu.classList.add('show');
+                            toggleBtn.setAttribute('aria-expanded', 'true');
+                        }
+                    }
+                } else if (!e.target.closest('.dropdown-menu')) {
+                    document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+                    document.querySelectorAll('[data-bs-toggle="dropdown"][aria-expanded="true"]').forEach(btn => {
+                        btn.setAttribute('aria-expanded', 'false');
+                    });
+                }
+            });
 
             const cafeteriaToggle = document.getElementById('cafeteriaToggleBtn');
             const cafeteriaSubmenu = document.getElementById('cafeteriaSubmenu');

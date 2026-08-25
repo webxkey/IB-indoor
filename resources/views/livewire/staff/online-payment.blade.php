@@ -251,38 +251,68 @@
         </div>
     </div>
 
+    @if(session()->has('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <!-- Summary Cards -->
     <div class="row g-4 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="summary-card">
                 <div class="summary-icon revenue">
                     <i class="fas fa-wallet"></i>
                 </div>
                 <div class="summary-info">
-                    <h6>Total Revenue (Paid)</h6>
-                    <h3>₹{{ number_format($totalRevenue, 2) }}</h3>
+                    <h6>Total Online Paid</h6>
+                    <h3>Rs.{{ number_format($totalOnlinePaid, 2) }}</h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="summary-card">
-                <div class="summary-icon advance">
+                <div class="summary-icon balance" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="summary-info">
+                    <h6>Pending Amount</h6>
+                    <h3>Rs.{{ number_format($pendingSettlement, 2) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-icon advance" style="background: rgba(34, 197, 94, 0.1); color: #16a34a;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="summary-info d-flex justify-content-between align-items-center w-100">
+                    <div>
+                        <h6>Withdrawable Amount</h6>
+                        <h3>Rs.{{ number_format($withdrawableAmount, 2) }}</h3>
+                    </div>
+                    <div class="d-flex flex-column gap-2 align-items-end">
+                        @if($withdrawableAmount > 0)
+                            <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" wire:click="openWithdrawalModal()"><i class="fas fa-paper-plane me-1"></i> Request</button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
                     <i class="fas fa-money-bill-wave"></i>
                 </div>
-                <div class="summary-info">
-                    <h6>Total Advance Collected</h6>
-                    <h3>₹{{ number_format($totalAdvance, 2) }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="summary-card">
-                <div class="summary-icon balance">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                </div>
-                <div class="summary-info">
-                    <h6>Total Balance Due</h6>
-                    <h3>₹{{ number_format($totalBalance, 2) }}</h3>
+                <div class="summary-info d-flex justify-content-between align-items-center w-100">
+                    <div>
+                        <h6>Withdrawn Amount</h6>
+                        <h3>Rs.{{ number_format($totalWithdrawn, 2) }}</h3>
+                    </div>
+                    <div class="d-flex flex-column gap-2 align-items-end">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" wire:click="openWithdrawalHistoryModal()"><i class="fas fa-history me-1"></i> History</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -333,6 +363,7 @@
                         <th class="text-end">Total Price</th>
                         <th class="text-end">Advance</th>
                         <th class="text-end">Balance</th>
+                        <th class="text-center">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -353,11 +384,23 @@
                                 </div>
                             </td>
                             <td>
-                                <div><strong>{{ $booking->sport->name ?? $booking->game_name ?? 'N/A' }}</strong></div>
-                                <div class="booking-meta">
-                                    {{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}<br>
-                                    {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
-                                </div>
+                                @if(isset($booking->item_type) && $booking->item_type === 'pool')
+                                    <div><strong>{{ $booking->pool->name ?? 'Pool' }}</strong></div>
+                                    <div class="booking-meta">
+                                        @if($booking->occurrence)
+                                            {{ \Carbon\Carbon::parse($booking->occurrence->date)->format('M d, Y') }}<br>
+                                            {{ \Carbon\Carbon::parse($booking->occurrence->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($booking->occurrence->end_time)->format('h:i A') }}
+                                        @else
+                                            {{ $booking->created_at->format('M d, Y h:i A') }}
+                                        @endif
+                                    </div>
+                                @else
+                                    <div><strong>{{ $booking->sport->name ?? $booking->game_name ?? 'N/A' }}</strong></div>
+                                    <div class="booking-meta">
+                                        {{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}<br>
+                                        {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
+                                    </div>
+                                @endif
                             </td>
                             <td>
                                 @php
@@ -384,20 +427,38 @@
                                 </span>
                             </td>
                             <td>
-                                @if($booking->payment_method)
-                                    <span class="text-capitalize"><i class="fas fa-{{ strtolower($booking->payment_method) == 'cash' ? 'money-bill' : 'globe' }} text-muted me-1"></i> {{ $booking->payment_method }}</span>
+                                @if(isset($booking->item_type) && $booking->item_type === 'pool')
+                                    <span class="text-capitalize"><i class="fas fa-money-bill text-muted me-1"></i> {{ $booking->payment_method ?? 'Online' }}</span>
                                 @else
-                                    <span class="text-muted">-</span>
+                                    @if($booking->payment_method)
+                                        @php
+                                            $displayMethod = strtolower($booking->payment_method) == 'genie' ? 'Online' : $booking->payment_method;
+                                        @endphp
+                                        <span class="text-capitalize"><i class="fas fa-{{ strtolower($booking->payment_method) == 'cash' ? 'money-bill' : 'credit-card' }} text-muted me-1"></i> {{ $displayMethod }}</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="text-end currency text-success">
-                                ₹{{ number_format($booking->price, 2) }}
+                                Rs.{{ number_format($booking->price ?? $booking->booking_total, 2) }}
                             </td>
                             <td class="text-end currency text-info">
-                                ₹{{ number_format($booking->advance_amount, 2) }}
+                                Rs.{{ number_format($booking->advance_amount, 2) }}
                             </td>
                             <td class="text-end currency {{ $booking->balance_due > 0 ? 'text-warning' : 'text-muted' }}">
-                                ₹{{ number_format($booking->balance_due, 2) }}
+                                Rs.{{ number_format($booking->balance_due, 2) }}
+                            </td>
+                            <td class="text-center">
+                                @if($booking->balance_due > 0 || in_array(strtolower($booking->payment_status ?? $booking->financial_status), ['pending', 'partially_paid', 'unpaid']))
+                                    <button class="btn btn-sm btn-outline-success fw-bold rounded-pill" wire:click="openPaymentModal({{ $booking->id }}, '{{ $booking->item_type ?? 'sport' }}')">
+                                        <i class="fas fa-money-bill-wave"></i> Payment
+                                    </button>
+                                @else
+                                    <button class="btn btn-sm btn-outline-info fw-bold rounded-pill" wire:click="openDetailsModal({{ $booking->id }}, '{{ $booking->item_type ?? 'sport' }}')">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @empty
@@ -421,4 +482,240 @@
         </div>
         @endif
     </div>
+
+    <!-- Withdrawal Requests History Modal -->
+    @if($showWithdrawalHistoryModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border-0 rounded-4">
+                <div class="modal-header bg-light border-bottom-0">
+                    <h5 class="modal-title font-weight-bold d-flex align-items-center gap-2">
+                        <i class="fas fa-hand-holding-usd text-success me-2"></i> Withdrawal Requests History
+                    </h5>
+                    <button type="button" class="btn-close" wire:click="closeWithdrawalHistoryModal()"></button>
+                </div>
+                
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 custom-table">
+                            <thead class="table-light text-muted small text-uppercase">
+                                <tr>
+                                    <th class="ps-4">Request ID</th>
+                                    <th>Requested By</th>
+                                    <th>Date</th>
+                                    <th class="text-end">Request Amount</th>
+                                    <th class="text-end">Paid Amount</th>
+                                    <th class="text-center pe-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($withdrawalRequests as $req)
+                                    <tr>
+                                        <td class="ps-4 fw-bold text-dark">#REQ-{{ $req->id }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="avatar-circle bg-light text-primary fw-bold" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                                    {{ strtoupper(substr($req->requester->name ?? 'U', 0, 1)) }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark">{{ $req->requester->name ?? 'Unknown User' }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ $req->created_at->format('M d, Y h:i A') }}</td>
+                                        <td class="text-end fw-bold text-dark">Rs.{{ number_format($req->request_amount, 2) }}</td>
+                                        <td class="text-end fw-bold text-success">Rs.{{ number_format($req->paid_amount, 2) }}</td>
+                                        <td class="text-center pe-4">
+                                            @if(strtolower($req->status) === 'pending')
+                                                <span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Pending</span>
+                                            @elseif(strtolower($req->status) === 'approved')
+                                                <span class="badge bg-info"><i class="fas fa-check"></i> Approved</span>
+                                            @elseif(strtolower($req->status) === 'completed')
+                                                <span class="badge bg-success"><i class="fas fa-check-circle"></i> Completed</span>
+                                            @elseif(strtolower($req->status) === 'rejected')
+                                                <span class="badge bg-danger"><i class="fas fa-times"></i> Rejected</span>
+                                            @else
+                                                <span class="badge bg-secondary">{{ ucfirst($req->status) }}</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5 text-muted">
+                                            <i class="fas fa-file-invoice mb-3 text-secondary opacity-50" style="font-size: 3rem;"></i>
+                                            <h5>No withdrawal requests found.</h5>
+                                            <p class="mb-0">You have not made any requests to withdraw funds yet.</p>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    @if($withdrawalRequests->hasPages())
+                    <div class="px-4 py-3 border-top bg-light">
+                        {{ $withdrawalRequests->links() }}
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Collect Payment Modal -->
+    @if($showPaymentModal && $paymentBooking)
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+            <div class="modal-dialog modal-dialog-centered max-w-sm">
+                <div class="modal-content shadow-lg border-0 rounded-4">
+                    <div class="modal-header bg-light border-bottom-0">
+                        <h5 class="modal-title font-weight-bold flex items-center gap-2">
+                            <i class="fas fa-money-bill-wave text-success me-2"></i> Collect Payment
+                        </h5>
+                        <button type="button" class="btn-close" wire:click="closePaymentModal()"></button>
+                    </div>
+                    
+                    <div class="modal-body p-4">
+                        <div class="bg-light p-3 rounded mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Booking ID:</span>
+                                <span class="fw-bold">#{{ $paymentBooking->id }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Customer:</span>
+                                <span class="fw-bold">{{ $paymentBooking->user_name }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Amount Due:</span>
+                                <span class="fw-bold text-success fs-5">LKR {{ number_format($paymentBooking->balance_due > 0 ? $paymentBooking->balance_due : max(0, $paymentBooking->price - $paymentBooking->advance_amount), 2) }}</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label text-muted small text-uppercase fw-bold mb-2">Select Payment Method</label>
+                            <div class="d-flex gap-2">
+                                <div class="flex-fill border rounded p-2 text-center {{ $collectPaymentMethod === 'cash' ? 'border-success bg-success bg-opacity-10 text-success fw-bold' : 'bg-white text-secondary' }}"
+                                     style="cursor:pointer;" wire:click="$set('collectPaymentMethod', 'cash')">
+                                    <i class="fas fa-money-bill d-block mb-1 fs-5"></i>
+                                    <small>Cash</small>
+                                </div>
+                                <div class="flex-fill border rounded p-2 text-center {{ $collectPaymentMethod === 'card' ? 'border-success bg-success bg-opacity-10 text-success fw-bold' : 'bg-white text-secondary' }}"
+                                     style="cursor:pointer;" wire:click="$set('collectPaymentMethod', 'card')">
+                                    <i class="fas fa-credit-card d-block mb-1 fs-5"></i>
+                                    <small>Card</small>
+                                </div>
+                                <div class="flex-fill border rounded p-2 text-center {{ $collectPaymentMethod === 'transfer' ? 'border-success bg-success bg-opacity-10 text-success fw-bold' : 'bg-white text-secondary' }}"
+                                     style="cursor:pointer;" wire:click="$set('collectPaymentMethod', 'transfer')">
+                                    <i class="fas fa-exchange-alt d-block mb-1 fs-5"></i>
+                                    <small>Transfer</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-top-0 bg-light rounded-bottom-4">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" wire:click="closePaymentModal()">Cancel</button>
+                        <button type="button" class="btn btn-success rounded-pill px-4" wire:click="collectPayment()">Confirm Payment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- View Payment Details Modal -->
+    @if($showDetailsModal && $detailsBooking)
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+            <div class="modal-dialog modal-dialog-centered max-w-sm">
+                <div class="modal-content shadow-lg border-0 rounded-4">
+                    <div class="modal-header bg-light border-bottom-0">
+                        <h5 class="modal-title font-weight-bold flex items-center gap-2">
+                            <i class="fas fa-receipt text-info me-2"></i> Payment Details
+                        </h5>
+                        <button type="button" class="btn-close" wire:click="closeDetailsModal()"></button>
+                    </div>
+                    
+                    <div class="modal-body p-4">
+                        <div class="bg-light p-3 rounded mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Booking ID:</span>
+                                <span class="fw-bold">#{{ $detailsBooking->id }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Customer:</span>
+                                <span class="fw-bold">{{ $detailsBooking->user_name }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Total Price:</span>
+                                <span class="fw-bold">Rs.{{ number_format($detailsBooking->price, 2) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Final Status:</span>
+                                <span class="badge bg-success">{{ preg_replace('/(?<!^)([A-Z])/', ' $1', ucfirst($detailsBooking->financial_status)) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="border rounded p-3 bg-white">
+                            <h6 class="fw-bold mb-3 text-uppercase small text-muted">Payment Breakdown</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary"><i class="fas fa-globe me-2"></i>Online Paid</span>
+                                <span class="fw-bold text-dark">Rs.{{ number_format($detailsBooking->online_paid_amount ?: 0, 2) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span class="text-secondary"><i class="fas fa-money-bill-wave me-2"></i>Offline Paid</span>
+                                <span class="fw-bold text-dark">Rs.{{ number_format($detailsBooking->offline_paid_amount ?: 0, 2) }}</span>
+                            </div>
+                            <hr class="my-2 text-muted opacity-25">
+                            <div class="d-flex justify-content-between mt-3">
+                                <span class="fw-bold">Total Paid</span>
+                                <span class="fw-bold text-success fs-5">Rs.{{ number_format($detailsBooking->amount_paid ?: 0, 2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-top-0 bg-light rounded-bottom-4">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4 w-100" wire:click="closeDetailsModal()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Request Withdrawal Modal -->
+    @if($showWithdrawalModal)
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+            <div class="modal-dialog modal-dialog-centered max-w-sm">
+                <div class="modal-content shadow-lg border-0 rounded-4">
+                    <div class="modal-header bg-light border-bottom-0">
+                        <h5 class="modal-title font-weight-bold flex items-center gap-2">
+                            <i class="fas fa-paper-plane text-primary me-2"></i> Request Withdrawal
+                        </h5>
+                        <button type="button" class="btn-close" wire:click="closeWithdrawalModal()"></button>
+                    </div>
+                    
+                    <div class="modal-body p-4">
+                        <div class="bg-success bg-opacity-10 p-3 rounded mb-4 text-center border border-success border-opacity-25">
+                            <span class="text-success small fw-bold text-uppercase d-block mb-1">Max Withdrawable Amount</span>
+                            <span class="fw-bold text-success fs-3">Rs.{{ number_format($withdrawableAmount, 2) }}</span>
+                        </div>
+                        
+                        @if(session()->has('error'))
+                            <div class="alert alert-danger py-2 px-3 small rounded-3">
+                                <i class="fas fa-exclamation-circle me-1"></i> {{ session('error') }}
+                            </div>
+                        @endif
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">Request Amount (Rs.)</label>
+                            <input type="number" step="0.01" class="form-control form-control-lg fw-bold" wire:model="withdrawalAmount" placeholder="0.00" max="{{ $withdrawableAmount }}">
+                            <small class="text-muted mt-2 d-block">Type the exact amount you wish to withdraw.</small>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-top-0 bg-light rounded-bottom-4">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" wire:click="closeWithdrawalModal()">Cancel</button>
+                        <button type="button" class="btn btn-primary rounded-pill px-4" wire:click="submitWithdrawalRequest()">Send Request</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

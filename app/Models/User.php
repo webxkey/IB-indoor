@@ -30,6 +30,7 @@ class User extends Authenticatable
         'role',
         'contact',
         'complex_id', // Added complex_id to fillable attributes
+        'is_active',
     ];
 
     /**

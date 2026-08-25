@@ -53,12 +53,13 @@
             top: 0;
             bottom: 0;
             left: 0;
-            z-index: 100;
+            z-index: 1040;
             padding: 0;
             box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
             background-color: white;
             width: var(--sidebar-width);
             overflow-y: auto;
+            transition: transform 0.25s ease-in-out;
         }
 
         .sidebar-brand {
@@ -109,6 +110,15 @@
             padding: 0 2rem;
             min-width: 0;
             width: 100%;
+            transition: margin-left 0.25s ease-in-out;
+        }
+
+        body.sidebar-collapsed .sidebar {
+            transform: translateX(-100%);
+        }
+
+        body.sidebar-collapsed .admin-main-content {
+            margin-left: 0 !important;
         }
 
         /* Header */
@@ -118,6 +128,8 @@
             margin: 0 -2rem 2rem -2rem;
             padding-left: 2rem;
             padding-right: 2rem;
+            position: relative;
+            z-index: 1030;
         }
 
         .search-box .form-control {
@@ -704,7 +716,7 @@
                 <!-- Header -->
                 <header class="d-flex justify-content-between align-items-center py-3 mb-4">
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-outline-secondary d-md-none me-2" type="button" id="adminSidebarToggle">
+                        <button class="btn btn-outline-secondary me-3" type="button" id="adminSidebarToggle" title="Toggle Sidebar">
                             <i class="fas fa-bars"></i>
                         </button>
                     </div>
@@ -808,19 +820,58 @@
         const sidebar = document.getElementById('adminSidebar');
         const toggle  = document.getElementById('adminSidebarToggle');
 
+        if (localStorage.getItem('admin-sidebar-collapsed') === 'true' && window.innerWidth > 767.98) {
+            document.body.classList.add('sidebar-collapsed');
+        }
+
         if (toggle && sidebar) {
-            toggle.addEventListener('click', function() {
-                sidebar.classList.toggle('show');
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (window.innerWidth <= 767.98) {
+                    sidebar.classList.toggle('show');
+                } else {
+                    document.body.classList.toggle('sidebar-collapsed');
+                    localStorage.setItem('admin-sidebar-collapsed', document.body.classList.contains('sidebar-collapsed') ? 'true' : 'false');
+                }
             });
             document.addEventListener('click', function(e) {
-                if (window.innerWidth < 768 && !sidebar.contains(e.target) && !toggle.contains(e.target)) {
+                if (window.innerWidth <= 767.98 && !sidebar.contains(e.target) && !toggle.contains(e.target)) {
                     sidebar.classList.remove('show');
                 }
             });
         }
 
-        document.querySelectorAll('.dropdown-menu form').forEach(form => {
-            form.addEventListener('click', e => e.stopPropagation());
+        // Universal Dropdown Delegation Handler
+        document.addEventListener('click', function(e) {
+            const toggleBtn = e.target.closest('[data-bs-toggle="dropdown"]');
+            if (toggleBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const menu = toggleBtn.nextElementSibling || toggleBtn.parentElement.querySelector('.dropdown-menu');
+                if (menu) {
+                    const isShown = menu.classList.contains('show');
+                    document.querySelectorAll('.dropdown-menu.show').forEach(m => {
+                        if (m !== menu) m.classList.remove('show');
+                    });
+                    document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(btn => {
+                        if (btn !== toggleBtn) btn.setAttribute('aria-expanded', 'false');
+                    });
+
+                    if (isShown) {
+                        menu.classList.remove('show');
+                        toggleBtn.setAttribute('aria-expanded', 'false');
+                    } else {
+                        menu.classList.add('show');
+                        toggleBtn.setAttribute('aria-expanded', 'true');
+                    }
+                }
+            } else if (!e.target.closest('.dropdown-menu')) {
+                document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+                document.querySelectorAll('[data-bs-toggle="dropdown"][aria-expanded="true"]').forEach(btn => {
+                    btn.setAttribute('aria-expanded', 'false');
+                });
+            }
         });
     });
 </script>

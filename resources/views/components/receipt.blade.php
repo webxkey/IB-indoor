@@ -19,16 +19,16 @@
                 <tr>
                     <td>{{ $item->watch_name }}</td>
                     <td>{{ $item->quantity }}</td>
-                    <td>₹{{ number_format($item->unit_price,2) }}</td>
-                    <td>₹{{ number_format($item->discount,2) }}</td>
-                    <td>₹{{ number_format($item->total,2) }}</td>
+                    <td>Rs.{{ number_format($item->unit_price,2) }}</td>
+                    <td>Rs.{{ number_format($item->discount,2) }}</td>
+                    <td>Rs.{{ number_format($item->total,2) }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
     <hr>
-    <p><strong>Subtotal:</strong> ₹{{ number_format($receipt->subtotal,2) }}</p>
-    <p><strong>Discount:</strong> ₹{{ number_format($receipt->discount_amount,2) }}</p>
-    <p><strong>Grand Total:</strong> ₹{{ number_format($receipt->total_amount,2) }}</p>
+    <p><strong>Subtotal:</strong> Rs.{{ number_format($receipt->subtotal,2) }}</p>
+    <p><strong>Discount:</strong> Rs.{{ number_format($receipt->discount_amount,2) }}</p>
+    <p><strong>Grand Total:</strong> Rs.{{ number_format($receipt->total_amount,2) }}</p>
     <p><strong>Payment Status:</strong> {{ ucfirst($receipt->payment_status) }}</p>
 </div>

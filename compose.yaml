@@ -1,0 +1,84 @@
+name: sportynix-laravel
+
+x-laravel-service: &laravel-service
+  image: sportynix-laravel:${IMAGE_TAG:-local}
+
+  env_file:
+    - path: ${LARAVEL_ENV_FILE:-.env.production}
+      required: true
+      format: raw
+
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+  networks:
+    - laravel_net
+
+  volumes:
+    - laravel_storage:/var/www/html/storage/app/public
+
+
+services:
+  app:
+    <<: *laravel-service
+    restart: unless-stopped
+
+    volumes:
+      - laravel_storage:/var/www/html/storage/app/public
+      - laravel_framework:/var/www/html/storage/framework
+      - laravel_logs:/var/www/html/storage/logs
+
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(extension_loaded(\"pdo_pgsql\") ? 0 : 1);'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+
+  reverb:
+    <<: *laravel-service
+    restart: unless-stopped
+
+    command:
+      - php
+      - artisan
+      - reverb:start
+      - --host=0.0.0.0
+      - --port=8081
+
+    volumes:
+      - laravel_storage:/var/www/html/storage/app/public
+      - laravel_framework:/var/www/html/storage/framework
+      - laravel_logs:/var/www/html/storage/logs
+
+
+  nginx:
+    image: sportynix-laravel-nginx:${IMAGE_TAG:-local}
+    restart: unless-stopped
+
+    depends_on:
+      app:
+        condition: service_healthy
+      reverb:
+        condition: service_started
+
+    ports:
+      - "127.0.0.1:8082:80"
+
+    volumes:
+      - laravel_storage:/var/www/html/storage/app/public:ro
+
+    networks:
+      - laravel_net
+
+
+networks:
+  laravel_net:
+    name: sportynix_laravel_net
+    driver: bridge
+
+
+volumes:
+  laravel_storage:
+  laravel_framework:
+  laravel_logs:
