@@ -20,11 +20,13 @@ class Finance extends Component
 
     public $search = '';
     public $startDate = '';
+    public $endDate = '';
     public $paymentStatus = '';
     public $paymentMethod = '';
 
     public $showPaymentModal = false;
     public $paymentBooking = null;
+    public $bookingTypeForPayment = 'sport';
     public $collectPaymentMethod = 'cash';
 
     public $showDetailsModal = false;
@@ -65,7 +67,11 @@ class Finance extends Component
         }
     }
 
-    public $bookingTypeForPayment = 'sport';
+    public function closePaymentModal()
+    {
+        $this->showPaymentModal = false;
+        $this->paymentBooking = null;
+    }
 
     public function collectPayment()
     {

@@ -42,6 +42,8 @@ class StaffReport extends Component
     public $bookedHours = 0;
     public $complexName;
     public $complexAddress;
+    public $complexPhone;
+    public $complexEmail;
     public $complexPhoto;
     public $complex_id;
 
@@ -63,6 +65,8 @@ class StaffReport extends Component
         $complex = BookingVenue::find($this->complex_id);
         $this->complexName = $complex->name ?? 'Default Complex';
         $this->complexAddress = $complex->address ?? 'N/A';
+        $this->complexPhone = $complex->contact_number ?? (Auth::user()->contact ?? null);
+        $this->complexEmail = $complex->email_address ?? (Auth::user()->email ?? null);
         $this->complexPhoto = $complex->cover_image ? asset('storage/' . $complex->cover_image) : asset('fd.jpg');
     }
 

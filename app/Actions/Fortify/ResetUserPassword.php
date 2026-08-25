@@ -24,6 +24,18 @@ class ResetUserPassword implements ResetsUserPasswords
 
         $user->forceFill([
             'password' => Hash::make($input['password']),
-        ])->save();
+        ]);
+
+        // If the user is staff, deactivate them so an admin has to re-enable
+        if ($user->role === 'staff') {
+            $user->forceFill([
+                'is_active' => false,
+            ]);
+
+            // Deactivate in UserUser table as well
+            \App\Models\UserUser::where('email', $user->email)->update(['is_active' => false]);
+        }
+
+        $user->save();
     }
 }

@@ -321,31 +321,200 @@
         color: var(--cancelled-bookings-text);
     }
 
-     @media print {
+    .report-doc-header {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .report-meta-box {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* Print styles optimized for A4 paper */
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 10mm 12mm 12mm 12mm;
+        }
+
+        html, body {
+            background: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 10pt !important;
+            color: #1e293b !important;
+            width: 100% !important;
+        }
+
         body * {
             visibility: hidden;
         }
-        .print-section, .print-section * {
+
+        /* Show active modal in full page */
+        .modal.show,
+        .modal.show .modal-dialog,
+        .modal.show .modal-content,
+        .modal.show .modal-body,
+        .modal.show .print-section,
+        .modal.show .print-section * {
             visibility: visible;
         }
-        .print-section {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+
+        .modal.show {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            display: block !important;
         }
-        .report-header {
+
+        .modal-dialog {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            transform: none !important;
+        }
+
+        .modal-content {
+            border: none !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+        }
+
+        .modal-header,
+        .modal-footer,
+        .modal-backdrop,
+        .btn,
+        .btn-close {
+            display: none !important;
+        }
+
+        .modal-body {
+            padding: 0 !important;
+            overflow: visible !important;
+        }
+
+        .report-doc-header {
+            background: #f8fafc !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            padding: 12px 15px !important;
+            margin-bottom: 15px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .report-meta-box {
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 8.5pt !important;
+            margin-bottom: 15px !important;
+            page-break-inside: auto;
+        }
+
+        .table th {
             background: #198754 !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            padding: 6px 8px !important;
+            font-size: 8.5pt !important;
+            border: 1px solid #146c43 !important;
+            font-weight: 600 !important;
         }
-        .report-table th {
-            background: #198754 !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+
+        .table td {
+            padding: 5px 8px !important;
+            border: 1px solid #dee2e6 !important;
+            font-size: 8.5pt !important;
+            background-color: transparent !important;
         }
-        .btn {
-            display: none;
+
+        .table tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+
+        .table tfoot th {
+            background: #f1f5f9 !important;
+            color: #1e293b !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            font-weight: 700 !important;
+        }
+
+        /* Stat cards in Performance Modal */
+        .row {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            margin-right: -5px !important;
+            margin-left: -5px !important;
+        }
+
+        .col-md-3 {
+            width: 25% !important;
+            flex: 0 0 25% !important;
+            max-width: 25% !important;
+            padding-right: 5px !important;
+            padding-left: 5px !important;
+        }
+
+        .card {
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+        }
+
+        .card.bg-primary {
+            background-color: #0d6efd !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .card.bg-success {
+            background-color: #198754 !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .card.bg-warning {
+            background-color: #ffc107 !important;
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .card.bg-info {
+            background-color: #0dcaf0 !important;
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .badge {
+            border: 1px solid currentColor !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
     }
 
@@ -501,65 +670,96 @@
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content print-section">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="bookingReportModalLabel">Comprehensive Booking Details Report - Sportynix Hub</h5>
+                        <h5 class="modal-title" id="bookingReportModalLabel">
+                            <i class="fas fa-book text-primary me-2"></i> Comprehensive Booking Details Report
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <!-- Complex Details -->
-                        <div class="text-center mb-4">
-                            <img src="{{ $complexPhoto }}" alt="Complex Photo" class="img-fluid complex-img mb-2">
-                            <h3>{{ $complexName }}</h3>
-                            <p>{{ $complexAddress }}</p>
+                    <div class="modal-body p-4">
+                        <!-- Professional Report Document Header -->
+                        <div class="report-doc-header mb-4">
+                            <div class="d-flex justify-content-between align-items-start pb-3 border-bottom border-2 border-success">
+                                <div>
+                                    <div class="d-inline-flex align-items-center gap-2 mb-1">
+                                        <span class="badge bg-success px-2.5 py-1 text-uppercase fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                            <i class="fas fa-file-alt me-1"></i> Booking Details Report
+                                        </span>
+                                    </div>
+                                    <h3 class="fw-bold text-dark mb-1">{{ $complexName }}</h3>
+                                    <p class="text-muted mb-2 small"><i class="fas fa-map-marker-alt text-danger me-1"></i>{{ $complexAddress }}</p>
+                                    <div class="d-flex flex-wrap gap-3 small text-secondary">
+                                        @if($complexPhone && $complexPhone !== 'N/A')
+                                            <span><i class="fas fa-phone-alt text-success me-1"></i><strong>Phone:</strong> {{ $complexPhone }}</span>
+                                        @endif
+                                        @if($complexEmail && $complexEmail !== 'N/A')
+                                            <span><i class="fas fa-envelope text-primary me-1"></i><strong>Email:</strong> {{ $complexEmail }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="report-meta-box p-2.5 bg-light border rounded text-start" style="min-width: 230px;">
+                                        <div class="d-flex justify-content-between mb-1 pb-1 border-bottom">
+                                            <span class="text-muted small"><strong>Period:</strong></span>
+                                            <span class="text-dark small fw-bold">{{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} - {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted small"><strong>Generated:</strong></span>
+                                            <span class="text-muted small">{{ now()->format('M d, Y h:i A') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                         <!-- Report Content -->
-                        <p><strong>Dates:</strong> {{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} to {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</p>
-                        <hr>
-                        <h4>BOOKING DETAILS</h4>
-                        <table class="table table-bordered table-striped align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Booking ID</th>
-                                    <th>Username</th>
-                                    <th>Court</th>
-                                    <th>Sport</th>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Duration (Hours)</th>
-                                    <th>Status</th>
-                                    <th>Revenue</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($bookingDetailModel as $booking)
+                        <h6 class="fw-bold text-uppercase text-secondary mb-3"><i class="fas fa-list me-1"></i> Booking Records</h6>
+                        <div class="table-responsive p-0">
+                            <table class="table table-bordered table-striped align-middle mb-0">
+                                <thead class="table-light">
                                     <tr>
-                                        <td>{{ $booking->id }}</td>
-                                        <td>{{ $booking->user_name ?? 'N/A' }}</td>
-                                        <td>{{ $booking->court_number ?? 'N/A' }}</td>
-                                        <td>{{ $booking->sport->name ?? 'N/A' }}</td>
-                                        <td>{{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}</td>
-                                        <td>
-                                            {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} -
-                                            {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
-                                        </td>
-                                        <td>{{ number_format(\Carbon\Carbon::parse($booking->end_time)->diffInHours(\Carbon\Carbon::parse($booking->start_time)), 2) }}</td>
-                                        <td>
-                                            <span class="badge {{ $booking->status === 'Booked' || $booking->status === 'Upcoming' ? 'bg-success' : ($booking->status === 'Pending' ? 'bg-warning' : 'bg-danger') }}">
-                                                {{ $booking->status }}
-                                            </span>
-                                        </td>
-                                        <td>LKR {{ number_format($booking->price, 2) }}</td>
+                                        <th>Booking ID</th>
+                                        <th>Username</th>
+                                        <th>Court</th>
+                                        <th>Sport</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Duration</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Revenue</th>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="12" class="text-center text-muted">No bookings found for the selected period.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @forelse($bookingDetailModel as $booking)
+                                        <tr>
+                                            <td class="fw-bold">#{{ $booking->id }}</td>
+                                            <td>{{ $booking->user_name ?? 'N/A' }}</td>
+                                            <td>{{ $booking->court_number ?? 'N/A' }}</td>
+                                            <td>{{ $booking->sport->name ?? 'N/A' }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}</td>
+                                            <td>
+                                                {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} -
+                                                {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
+                                            </td>
+                                            <td>{{ number_format(\Carbon\Carbon::parse($booking->end_time)->diffInHours(\Carbon\Carbon::parse($booking->start_time)), 2) }} hrs</td>
+                                            <td>
+                                                <span class="badge {{ $booking->status === 'Booked' || $booking->status === 'Upcoming' ? 'bg-success' : ($booking->status === 'Pending' ? 'bg-warning' : 'bg-danger') }}">
+                                                    {{ $booking->status }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end fw-semibold">LKR {{ number_format($booking->price, 2) }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="9" class="text-center text-muted py-4">No bookings found for the selected period.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-primary btn-print" onclick="window.print()">
-                            <i class="bi bi-printer"></i> Print Report
+                            <i class="fas fa-print me-1"></i> Print Report
                         </button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
@@ -572,124 +772,190 @@
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content print-section">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="revenueReportModalLabel">Comprehensive Revenue Report - Sportynix Hub</h5>
+                        <h5 class="modal-title" id="revenueReportModalLabel">
+                            <i class="fas fa-dollar-sign text-success me-2"></i> Comprehensive Revenue Report
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <!-- Complex Details -->
-                        <div class="text-center mb-4">
-                            <img src="{{ $complexPhoto }}" alt="Complex Photo" class="img-fluid complex-img mb-2">
-                            <h3>{{ $complexName }}</h3>
-                            <p>{{ $complexAddress }}</p>
+                    <div class="modal-body p-4">
+                        <!-- Professional Report Document Header -->
+                        <div class="report-doc-header mb-4">
+                            <div class="d-flex justify-content-between align-items-start pb-3 border-bottom border-2 border-success">
+                                <div>
+                                    <div class="d-inline-flex align-items-center gap-2 mb-1">
+                                        <span class="badge bg-success px-2.5 py-1 text-uppercase fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                            <i class="fas fa-chart-line me-1"></i> Revenue Summary Report
+                                        </span>
+                                    </div>
+                                    <h3 class="fw-bold text-dark mb-1">{{ $complexName }}</h3>
+                                    <p class="text-muted mb-2 small"><i class="fas fa-map-marker-alt text-danger me-1"></i>{{ $complexAddress }}</p>
+                                    <div class="d-flex flex-wrap gap-3 small text-secondary">
+                                        @if($complexPhone && $complexPhone !== 'N/A')
+                                            <span><i class="fas fa-phone-alt text-success me-1"></i><strong>Phone:</strong> {{ $complexPhone }}</span>
+                                        @endif
+                                        @if($complexEmail && $complexEmail !== 'N/A')
+                                            <span><i class="fas fa-envelope text-primary me-1"></i><strong>Email:</strong> {{ $complexEmail }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="report-meta-box p-2.5 bg-light border rounded text-start" style="min-width: 230px;">
+                                        <div class="d-flex justify-content-between mb-1 pb-1 border-bottom">
+                                            <span class="text-muted small"><strong>Period:</strong></span>
+                                            <span class="text-dark small fw-bold">{{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} - {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted small"><strong>Generated:</strong></span>
+                                            <span class="text-muted small">{{ now()->format('M d, Y h:i A') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                         <!-- Report Content -->
-                        <p><strong>Dates:</strong> {{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} to {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</p>
-                        <hr>
-                        <h4>REVENUE SUMMARY</h4>
-                        <table class="table table-bordered table-striped align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Sport</th>
-                                    <th>Court</th>
-                                    <th>Total Bookings</th>
-                                    <th>Total Hours Booked</th>
-                                    <th>Total Revenue (LKR)</th>
-                                    <th>Average Revenue per Booking (LKR)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($revenueReportData as $revenue)
+                        <h6 class="fw-bold text-uppercase text-secondary mb-3"><i class="fas fa-table me-1"></i> Revenue Summary by Sport & Court</h6>
+                        <div class="table-responsive p-0">
+                            <table class="table table-bordered table-striped align-middle mb-0">
+                                <thead class="table-light">
                                     <tr>
-                                        <td>{{ data_get($revenue, 'sport_name', 'N/A') }}</td>
-                                        <td>{{ data_get($revenue, 'court_number', 'N/A') }}</td>
-                                        <td>{{ data_get($revenue, 'total_bookings', 0) }}</td>
-                                        <td>{{ number_format((float) data_get($revenue, 'total_hours', 0), 2) }}</td>
-                                        <td>LKR {{ number_format((float) data_get($revenue, 'total_revenue', 0), 2) }}</td>
-                                        <td>LKR {{ number_format((float) data_get($revenue, 'average_revenue', 0), 2) }}</td>
+                                        <th>Sport</th>
+                                        <th>Court</th>
+                                        <th class="text-center">Total Bookings</th>
+                                        <th class="text-center">Total Hours Booked</th>
+                                        <th class="text-end">Total Revenue (LKR)</th>
+                                        <th class="text-end">Average Revenue / Booking (LKR)</th>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center text-muted">No revenue data found for the selected period.</td>
+                                </thead>
+                                <tbody>
+                                    @forelse($revenueReportData as $revenue)
+                                        <tr>
+                                            <td class="fw-semibold">{{ data_get($revenue, 'sport_name', 'N/A') }}</td>
+                                            <td>{{ data_get($revenue, 'court_number', 'N/A') }}</td>
+                                            <td class="text-center">{{ data_get($revenue, 'total_bookings', 0) }}</td>
+                                            <td class="text-center">{{ number_format((float) data_get($revenue, 'total_hours', 0), 2) }}</td>
+                                            <td class="text-end fw-semibold">LKR {{ number_format((float) data_get($revenue, 'total_revenue', 0), 2) }}</td>
+                                            <td class="text-end">LKR {{ number_format((float) data_get($revenue, 'average_revenue', 0), 2) }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted py-4">No revenue data found for the selected period.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light fw-bold">
+                                        <th colspan="2" class="text-end">Total:</th>
+                                        <th class="text-center">{{ collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_bookings', 0)) }}</th>
+                                        <th class="text-center">{{ number_format((float) collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_hours', 0)), 2) }}</th>
+                                        <th class="text-end text-success">LKR {{ number_format((float) collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_revenue', 0)), 2) }}</th>
+                                        <th class="text-end">
+                                            @php
+                                                $totalBk = collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_bookings', 0));
+                                                $totalRev = collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_revenue', 0));
+                                            @endphp
+                                            LKR {{ number_format($totalBk > 0 ? $totalRev / $totalBk : 0, 2) }}
+                                        </th>
                                     </tr>
-                                @endforelse
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <th colspan="2" class="text-end">Total:</th>
-                                    <th>{{ collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_bookings', 0)) }}</th>
-                                    <th>{{ number_format((float) collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_hours', 0)), 2) }}</th>
-                                    <th>LKR {{ number_format((float) collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_revenue', 0)), 2) }}</th>
-                                    <th>
-                                        @php
-                                            $totalBk = collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_bookings', 0));
-                                            $totalRev = collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_revenue', 0));
-                                        @endphp
-                                        LKR {{ number_format($totalBk > 0 ? $totalRev / $totalBk : 0, 2) }}
-                                    </th>
-                                </tr>
-                            </tfoot>
-                        </table>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-primary btn-print" onclick="window.print()">
-                            <i class="bi bi-printer"></i> Print Report
+                            <i class="fas fa-print me-1"></i> Print Report
                         </button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
         </div>
+
         <!-- Customer Report Modal -->
-        <div class="modal fade" id="customerReportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="customerReportModal" tabindex="-1" aria-labelledby="customerReportModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content print-section">
                     <div class="modal-header">
-                        <h5 class="modal-title">Customer Report</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <h5 class="modal-title" id="customerReportModalLabel">
+                            <i class="fas fa-users text-purple me-2" style="color: #8b5cf6;"></i> Customer Report
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="text-center mb-4">
-                            <h3>{{ $complexName }}</h3>
-                            <p>{{ $complexAddress }}</p>
+                    <div class="modal-body p-4">
+                        <!-- Professional Report Document Header -->
+                        <div class="report-doc-header mb-4">
+                            <div class="d-flex justify-content-between align-items-start pb-3 border-bottom border-2 border-success">
+                                <div>
+                                    <div class="d-inline-flex align-items-center gap-2 mb-1">
+                                        <span class="badge bg-success px-2.5 py-1 text-uppercase fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                            <i class="fas fa-user-check me-1"></i> Customer Booking Report
+                                        </span>
+                                    </div>
+                                    <h3 class="fw-bold text-dark mb-1">{{ $complexName }}</h3>
+                                    <p class="text-muted mb-2 small"><i class="fas fa-map-marker-alt text-danger me-1"></i>{{ $complexAddress }}</p>
+                                    <div class="d-flex flex-wrap gap-3 small text-secondary">
+                                        @if($complexPhone && $complexPhone !== 'N/A')
+                                            <span><i class="fas fa-phone-alt text-success me-1"></i><strong>Phone:</strong> {{ $complexPhone }}</span>
+                                        @endif
+                                        @if($complexEmail && $complexEmail !== 'N/A')
+                                            <span><i class="fas fa-envelope text-primary me-1"></i><strong>Email:</strong> {{ $complexEmail }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="report-meta-box p-2.5 bg-light border rounded text-start" style="min-width: 230px;">
+                                        <div class="d-flex justify-content-between mb-1 pb-1 border-bottom">
+                                            <span class="text-muted small"><strong>Period:</strong></span>
+                                            <span class="text-dark small fw-bold">{{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} - {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted small"><strong>Generated:</strong></span>
+                                            <span class="text-muted small">{{ now()->format('M d, Y h:i A') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <p><strong>Period:</strong> {{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} to {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</p>
-                        <hr>
-                        <h4>CUSTOMER BOOKING SUMMARY</h4>
-                        <table class="table table-bordered table-striped">
-                            <thead class="table-success">
-                                <tr>
-                                    <th>Player Name</th>
-                                    <th>Phone</th>
-                                    <th>Total Bookings</th>
-                                    <th>Total Spent (LKR)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @php
-                                    $customerData = $bookingDetails->groupBy('user_name')->map(function($bookings, $name) {
-                                        return (object)[
-                                            'name' => $name ?: 'N/A',
-                                            'phone' => $bookings->first()->user_number ?? 'N/A',
-                                            'total' => $bookings->count(),
-                                            'spent' => $bookings->sum('price'),
-                                        ];
-                                    })->sortByDesc('total')->values();
-                                @endphp
-                                @forelse($customerData as $customer)
+
+                        <!-- Report Content -->
+                        <h6 class="fw-bold text-uppercase text-secondary mb-3"><i class="fas fa-users me-1"></i> Customer Booking Summary</h6>
+                        <div class="table-responsive p-0">
+                            <table class="table table-bordered table-striped align-middle mb-0">
+                                <thead class="table-light">
                                     <tr>
-                                        <td>{{ data_get($customer, 'name') }}</td>
-                                        <td>{{ data_get($customer, 'phone') }}</td>
-                                        <td>{{ data_get($customer, 'total') }}</td>
-                                        <td>LKR {{ number_format((float) data_get($customer, 'spent', 0), 2) }}</td>
+                                        <th>Player Name</th>
+                                        <th>Phone</th>
+                                        <th class="text-center">Total Bookings</th>
+                                        <th class="text-end">Total Spent (LKR)</th>
                                     </tr>
-                                @empty
-                                    <tr><td colspan="4" class="text-center text-muted">No customer data available.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @php
+                                        $customerData = $bookingDetails->groupBy('user_name')->map(function($bookings, $name) {
+                                            return (object)[
+                                                'name' => $name ?: 'N/A',
+                                                'phone' => $bookings->first()->user_number ?? 'N/A',
+                                                'total' => $bookings->count(),
+                                                'spent' => $bookings->sum('price'),
+                                            ];
+                                        })->sortByDesc('total')->values();
+                                    @endphp
+                                    @forelse($customerData as $customer)
+                                        <tr>
+                                            <td class="fw-semibold">{{ data_get($customer, 'name') }}</td>
+                                            <td>{{ data_get($customer, 'phone') }}</td>
+                                            <td class="text-center">{{ data_get($customer, 'total') }}</td>
+                                            <td class="text-end fw-semibold">LKR {{ number_format((float) data_get($customer, 'spent', 0), 2) }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="4" class="text-center text-muted py-4">No customer data available.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print me-1"></i> Print</button>
+                        <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print me-1"></i> Print Report</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
@@ -697,82 +963,122 @@
         </div>
 
         <!-- Performance & Utilization Modal -->
-        <div class="modal fade" id="performanceReportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="performanceReportModal" tabindex="-1" aria-labelledby="performanceReportModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content print-section">
                     <div class="modal-header">
-                        <h5 class="modal-title">Performance & Utilization Report</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <h5 class="modal-title" id="performanceReportModalLabel">
+                            <i class="fas fa-chart-bar text-warning me-2"></i> Performance & Utilization Report
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="text-center mb-4">
-                            <h3>{{ $complexName }}</h3>
-                            <p>{{ $complexAddress }}</p>
+                    <div class="modal-body p-4">
+                        <!-- Professional Report Document Header -->
+                        <div class="report-doc-header mb-4">
+                            <div class="d-flex justify-content-between align-items-start pb-3 border-bottom border-2 border-success">
+                                <div>
+                                    <div class="d-inline-flex align-items-center gap-2 mb-1">
+                                        <span class="badge bg-success px-2.5 py-1 text-uppercase fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                            <i class="fas fa-chart-pie me-1"></i> Performance & Utilization Report
+                                        </span>
+                                    </div>
+                                    <h3 class="fw-bold text-dark mb-1">{{ $complexName }}</h3>
+                                    <p class="text-muted mb-2 small"><i class="fas fa-map-marker-alt text-danger me-1"></i>{{ $complexAddress }}</p>
+                                    <div class="d-flex flex-wrap gap-3 small text-secondary">
+                                        @if($complexPhone && $complexPhone !== 'N/A')
+                                            <span><i class="fas fa-phone-alt text-success me-1"></i><strong>Phone:</strong> {{ $complexPhone }}</span>
+                                        @endif
+                                        @if($complexEmail && $complexEmail !== 'N/A')
+                                            <span><i class="fas fa-envelope text-primary me-1"></i><strong>Email:</strong> {{ $complexEmail }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="report-meta-box p-2.5 bg-light border rounded text-start" style="min-width: 230px;">
+                                        <div class="d-flex justify-content-between mb-1 pb-1 border-bottom">
+                                            <span class="text-muted small"><strong>Period:</strong></span>
+                                            <span class="text-dark small fw-bold">{{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} - {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted small"><strong>Generated:</strong></span>
+                                            <span class="text-muted small">{{ now()->format('M d, Y h:i A') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <p><strong>Period:</strong> {{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} to {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</p>
-                        <hr>
+
+                        <!-- Summary Cards -->
                         <div class="row mb-4">
-                            <div class="col-md-3 text-center">
-                                <div class="card bg-primary text-white p-3">
-                                    <h4>{{ $totalBookings }}</h4>
-                                    <small>Total Bookings</small>
+                            <div class="col-md-3 text-center mb-2 mb-md-0">
+                                <div class="card bg-primary text-white p-3 h-100 justify-content-center">
+                                    <h4 class="fw-bold mb-1">{{ $totalBookings }}</h4>
+                                    <small class="text-white-50 text-uppercase fw-semibold">Total Bookings</small>
                                 </div>
                             </div>
-                            <div class="col-md-3 text-center">
-                                <div class="card bg-success text-white p-3">
-                                    <h4>LKR {{ number_format($totalRevenue, 0) }}</h4>
-                                    <small>Total Revenue</small>
+                            <div class="col-md-3 text-center mb-2 mb-md-0">
+                                <div class="card bg-success text-white p-3 h-100 justify-content-center">
+                                    <h4 class="fw-bold mb-1">LKR {{ number_format($totalRevenue, 0) }}</h4>
+                                    <small class="text-white-50 text-uppercase fw-semibold">Total Revenue</small>
                                 </div>
                             </div>
-                            <div class="col-md-3 text-center">
-                                <div class="card bg-warning text-dark p-3">
-                                    <h4>{{ $cancelledBookings }}</h4>
-                                    <small>Cancelled Bookings</small>
+                            <div class="col-md-3 text-center mb-2 mb-md-0">
+                                <div class="card bg-warning text-dark p-3 h-100 justify-content-center">
+                                    <h4 class="fw-bold mb-1">{{ $cancelledBookings }}</h4>
+                                    <small class="text-dark-50 text-uppercase fw-semibold">Cancelled Bookings</small>
                                 </div>
                             </div>
-                            <div class="col-md-3 text-center">
-                                <div class="card bg-info text-white p-3">
-                                    <h4>{{ number_format($occupancyRate, 1) }}%</h4>
-                                    <small>Occupancy Rate</small>
+                            <div class="col-md-3 text-center mb-2 mb-md-0">
+                                <div class="card bg-info text-white p-3 h-100 justify-content-center">
+                                    <h4 class="fw-bold mb-1">{{ number_format($occupancyRate, 1) }}%</h4>
+                                    <small class="text-white-50 text-uppercase fw-semibold">Occupancy Rate</small>
                                 </div>
                             </div>
                         </div>
-                        <h4>SPORT PERFORMANCE</h4>
-                        <table class="table table-bordered table-striped">
-                            <thead class="table-warning">
-                                <tr>
-                                    <th>Sport</th>
-                                    <th>Total Bookings</th>
-                                    <th>Total Revenue (LKR)</th>
-                                    <th>Cancellations</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @php
-                                    $sportPerf = $bookingDetails->groupBy('game_name')->map(function($bks, $name) {
-                                        return (object)[
-                                            'name' => $name ?: 'N/A',
-                                            'total' => $bks->count(),
-                                            'revenue' => $bks->sum('price'),
-                                            'cancelled' => $bks->where('status', 'Cancelled')->count(),
-                                        ];
-                                    })->values();
-                                @endphp
-                                @forelse($sportPerf as $sp)
+
+                        <!-- Report Content -->
+                        <h6 class="fw-bold text-uppercase text-secondary mb-3"><i class="fas fa-futbol me-1"></i> Sport Performance Breakdown</h6>
+                        <div class="table-responsive p-0">
+                            <table class="table table-bordered table-striped align-middle mb-0">
+                                <thead class="table-light">
                                     <tr>
-                                        <td>{{ data_get($sp, 'name') }}</td>
-                                        <td>{{ data_get($sp, 'total') }}</td>
-                                        <td>LKR {{ number_format((float) data_get($sp, 'revenue', 0), 2) }}</td>
-                                        <td>{{ data_get($sp, 'cancelled') }}</td>
+                                        <th>Sport</th>
+                                        <th class="text-center">Total Bookings</th>
+                                        <th class="text-end">Total Revenue (LKR)</th>
+                                        <th class="text-center">Cancellations</th>
                                     </tr>
-                                @empty
-                                    <tr><td colspan="4" class="text-center text-muted">No data available.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @php
+                                        $sportPerf = $bookingDetails->groupBy('game_name')->map(function($bks, $name) {
+                                            return (object)[
+                                                'name' => $name ?: 'N/A',
+                                                'total' => $bks->count(),
+                                                'revenue' => $bks->sum('price'),
+                                                'cancelled' => $bks->where('status', 'Cancelled')->count(),
+                                            ];
+                                        })->values();
+                                    @endphp
+                                    @forelse($sportPerf as $sp)
+                                        <tr>
+                                            <td class="fw-semibold">{{ data_get($sp, 'name') }}</td>
+                                            <td class="text-center">{{ data_get($sp, 'total') }}</td>
+                                            <td class="text-end fw-semibold">LKR {{ number_format((float) data_get($sp, 'revenue', 0), 2) }}</td>
+                                            <td class="text-center">
+                                                <span class="badge {{ data_get($sp, 'cancelled') > 0 ? 'bg-danger' : 'bg-success' }}">
+                                                    {{ data_get($sp, 'cancelled') }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="4" class="text-center text-muted py-4">No data available.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print me-1"></i> Print</button>
+                        <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print me-1"></i> Print Report</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>

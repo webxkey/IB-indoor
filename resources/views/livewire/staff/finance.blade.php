@@ -494,7 +494,7 @@
                             </div>
                             <div class="d-flex justify-content-between">
                                 <span class="text-muted">Amount Due:</span>
-                                <span class="fw-bold text-success fs-5">LKR {{ number_format($paymentBooking->balance_due > 0 ? $paymentBooking->balance_due : max(0, $paymentBooking->price - $paymentBooking->advance_amount), 2) }}</span>
+                                <span class="fw-bold text-success fs-5">Rs. {{ number_format($paymentBooking->balance_due > 0 ? $paymentBooking->balance_due : max(0, ($paymentBooking->price ?? $paymentBooking->booking_total) - ($paymentBooking->advance_amount ?? 0)), 2) }}</span>
                             </div>
                         </div>
 
@@ -553,7 +553,7 @@
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Total Price:</span>
-                                <span class="fw-bold">Rs.{{ number_format($detailsBooking->price, 2) }}</span>
+                                <span class="fw-bold">Rs.{{ number_format($detailsBooking->price ?? $detailsBooking->booking_total, 2) }}</span>
                             </div>
                             <div class="d-flex justify-content-between">
                                 <span class="text-muted">Final Status:</span>
