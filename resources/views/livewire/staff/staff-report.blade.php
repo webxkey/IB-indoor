@@ -600,12 +600,12 @@
                             <tbody>
                                 @forelse($revenueReportData as $revenue)
                                     <tr>
-                                        <td>{{ $revenue->sport_name ?? 'N/A' }}</td>
-                                        <td>{{ $revenue->court_number ?? 'N/A' }}</td>
-                                        <td>{{ $revenue->total_bookings }}</td>
-                                        <td>{{ number_format($revenue->total_hours, 2) }}</td>
-                                        <td>LKR {{ number_format($revenue->total_revenue, 2) }}</td>
-                                        <td>LKR {{ number_format($revenue->average_revenue, 2) }}</td>
+                                        <td>{{ data_get($revenue, 'sport_name', 'N/A') }}</td>
+                                        <td>{{ data_get($revenue, 'court_number', 'N/A') }}</td>
+                                        <td>{{ data_get($revenue, 'total_bookings', 0) }}</td>
+                                        <td>{{ number_format((float) data_get($revenue, 'total_hours', 0), 2) }}</td>
+                                        <td>LKR {{ number_format((float) data_get($revenue, 'total_revenue', 0), 2) }}</td>
+                                        <td>LKR {{ number_format((float) data_get($revenue, 'average_revenue', 0), 2) }}</td>
                                     </tr>
                                 @empty
                                     <tr>
@@ -616,14 +616,15 @@
                             <tfoot>
                                 <tr>
                                     <th colspan="2" class="text-end">Total:</th>
-                                    <th>{{ collect($revenueReportData)->sum('total_bookings') }}</th>
-                                    <th>{{ number_format(collect($revenueReportData)->sum('total_hours'), 2) }}</th>
-                                    <th>LKR {{ number_format(collect($revenueReportData)->sum('total_revenue'), 2) }}</th>
+                                    <th>{{ collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_bookings', 0)) }}</th>
+                                    <th>{{ number_format((float) collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_hours', 0)), 2) }}</th>
+                                    <th>LKR {{ number_format((float) collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_revenue', 0)), 2) }}</th>
                                     <th>
-                                        LKR {{ number_format(
-                                            collect($revenueReportData)->sum('total_bookings') > 0
-                                            ? collect($revenueReportData)->sum('total_revenue') / collect($revenueReportData)->sum('total_bookings')
-                                            : 0, 2) }}
+                                        @php
+                                            $totalBk = collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_bookings', 0));
+                                            $totalRev = collect($revenueReportData)->sum(fn($r) => data_get($r, 'total_revenue', 0));
+                                        @endphp
+                                        LKR {{ number_format($totalBk > 0 ? $totalRev / $totalBk : 0, 2) }}
                                     </th>
                                 </tr>
                             </tfoot>
@@ -676,10 +677,10 @@
                                 @endphp
                                 @forelse($customerData as $customer)
                                     <tr>
-                                        <td>{{ $customer->name }}</td>
-                                        <td>{{ $customer->phone }}</td>
-                                        <td>{{ $customer->total }}</td>
-                                        <td>LKR {{ number_format($customer->spent, 2) }}</td>
+                                        <td>{{ data_get($customer, 'name') }}</td>
+                                        <td>{{ data_get($customer, 'phone') }}</td>
+                                        <td>{{ data_get($customer, 'total') }}</td>
+                                        <td>LKR {{ number_format((float) data_get($customer, 'spent', 0), 2) }}</td>
                                     </tr>
                                 @empty
                                     <tr><td colspan="4" class="text-center text-muted">No customer data available.</td></tr>
@@ -759,10 +760,10 @@
                                 @endphp
                                 @forelse($sportPerf as $sp)
                                     <tr>
-                                        <td>{{ $sp->name }}</td>
-                                        <td>{{ $sp->total }}</td>
-                                        <td>LKR {{ number_format($sp->revenue, 2) }}</td>
-                                        <td>{{ $sp->cancelled }}</td>
+                                        <td>{{ data_get($sp, 'name') }}</td>
+                                        <td>{{ data_get($sp, 'total') }}</td>
+                                        <td>LKR {{ number_format((float) data_get($sp, 'revenue', 0), 2) }}</td>
+                                        <td>{{ data_get($sp, 'cancelled') }}</td>
                                     </tr>
                                 @empty
                                     <tr><td colspan="4" class="text-center text-muted">No data available.</td></tr>

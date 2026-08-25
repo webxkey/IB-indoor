@@ -93,7 +93,7 @@ class StaffDashboard extends Component
                 ->first();
 
             if ($pb) {
-                $this->selectedBooking = (object) [
+                $this->selectedBooking = [
                     'id' => $pb->id,
                     'game_name' => $pb->pool ? ($pb->pool->name ?: 'Pools') : 'Pools',
                     'user_name' => $pb->user_name,
@@ -106,9 +106,22 @@ class StaffDashboard extends Component
             }
         } else {
             // Only show booking details if it belongs to the current venue
-            $this->selectedBooking = BookingBooking::where('id', $booking_id)
+            $b = BookingBooking::where('id', $booking_id)
                 ->where('complex_id_id', $this->complex_id)
                 ->first();
+
+            if ($b) {
+                $this->selectedBooking = [
+                    'id' => $b->id,
+                    'game_name' => $b->game_name,
+                    'user_name' => $b->user_name,
+                    'court_number' => $b->court_number,
+                    'status' => $b->status,
+                    'start_time' => $b->start_time,
+                    'end_time' => $b->end_time,
+                    'booking_date' => $b->booking_date,
+                ];
+            }
         }
     }
 
@@ -257,7 +270,8 @@ class StaffDashboard extends Component
             ->limit(5)
             ->get();
 
-        $this->recentBookings = $regularBookings->concat($poolBookings)
+        $this->recentBookings = $regularBookings->toBase()
+            ->concat($poolBookings->toBase())
             ->sortByDesc('created_at')
             ->take(5)
             ->values();
@@ -612,7 +626,7 @@ class StaffDashboard extends Component
             ->where('status', '!=', 'Cancelled')
             ->get()
             ->map(function ($b) {
-                return (object) [
+                return [
                     'id' => $b->id,
                     'type' => 'sport',
                     'user_name' => $b->user_name,
@@ -641,7 +655,7 @@ class StaffDashboard extends Component
             ->map(function ($pb) {
                 $startTime = $pb->occurrence ? $pb->occurrence->start_time : $pb->created_at;
                 $dateStr = $pb->occurrence ? $pb->occurrence->session_date : $pb->created_at;
-                return (object) [
+                return [
                     'id' => $pb->id,
                     'type' => 'pool',
                     'user_name' => $pb->user_name,
@@ -656,10 +670,11 @@ class StaffDashboard extends Component
 
         $this->todayUpcomingBookings = $sportBookings->concat($poolBookings)
             ->sortBy(function ($item) {
-                return Carbon::parse($item->start_time)->format('H:i:s');
+                return Carbon::parse(data_get($item, 'start_time'))->format('H:i:s');
             })
             ->take(5)
-            ->values();
+            ->values()
+            ->all();
     }
 
     public function getSportsListProperty()
@@ -668,7 +683,7 @@ class StaffDashboard extends Component
             ->whereRaw('LOWER(status) = ?', ['active'])
             ->get()
             ->map(function ($sport) {
-                return (object) [
+                return [
                     'id' => (string) $sport->id,
                     'name' => $sport->name,
                     'is_pool' => false,
@@ -679,7 +694,7 @@ class StaffDashboard extends Component
             ->whereRaw('LOWER(status) = ?', ['active'])
             ->get()
             ->map(function ($pool) {
-                return (object) [
+                return [
                     'id' => 'pool_' . $pool->id,
                     'name' => $pool->name ?: 'Pools',
                     'is_pool' => true,

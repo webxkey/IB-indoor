@@ -298,7 +298,7 @@
                                     @foreach($complexes->amenities as $amenity)
                                     <span class="badge bg-light text-dark border small fw-normal py-2 px-3 d-flex align-items-center">
                                         <i class="fas fa-check-circle text-success me-2"></i>
-                                        {{ $amenity }}
+                                        {{ is_array($amenity) ? ($amenity['name'] ?? ($amenity['title'] ?? json_encode($amenity))) : $amenity }}
                                     </span>
                                     @endforeach
                                 @else
@@ -329,12 +329,15 @@
                             @if(isset($existing_gallery_images) && is_array($existing_gallery_images) && count($existing_gallery_images) > 0)
                             <div class="d-flex flex-wrap gap-3">
                                 @foreach($existing_gallery_images as $index => $image)
+                                @php
+                                    $imgUrl = is_array($image) ? ($image['url'] ?? ($image['path'] ?? json_encode($image))) : $image;
+                                @endphp
                                 <div class="position-relative" style="width: 120px; height: 120px;">
-                                    <img src="{{ asset($image) }}"
+                                    <img src="{{ asset($imgUrl) }}"
                                         alt="Gallery Image"
                                         class="rounded-2 w-100 h-100"
                                         style="object-fit: cover;">
-                                    <a href="{{ asset($image) }}"
+                                    <a href="{{ asset($imgUrl) }}"
                                         target="_blank"
                                         class="position-absolute top-0 end-0 m-1 bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center"
                                         style="width: 28px; height: 28px;"
@@ -371,9 +374,18 @@
                             <div class="d-flex flex-wrap gap-3">
                                 @if(isset($complexes->social_links) && is_array($complexes->social_links) && count($complexes->social_links) > 0)
                                     @foreach($complexes->social_links as $platform => $url)
-                                    <a href="{{ $url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center">
-                                        <i class="fab fa-{{ strtolower($platform) }} me-2"></i>
-                                        {{ ucfirst($platform) }}
+                                    @php
+                                        if (is_array($url)) {
+                                            $platName = $url['platform'] ?? (is_string($platform) ? $platform : 'link');
+                                            $platUrl  = $url['url'] ?? json_encode($url);
+                                        } else {
+                                            $platName = is_string($platform) ? $platform : 'link';
+                                            $platUrl  = $url;
+                                        }
+                                    @endphp
+                                    <a href="{{ $platUrl }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center">
+                                        <i class="fab fa-{{ strtolower($platName) }} me-2"></i>
+                                        {{ ucfirst($platName) }}
                                     </a>
                                     @endforeach
                                 @else
@@ -777,15 +789,17 @@
                                             @if(is_array($opening_hours) && count($opening_hours) > 0)
                                                 @foreach($opening_hours as $day => $time)
                                                 <tr>
-                                                    <td class="w-25 fw-medium text-muted">{{ ucfirst($day) }}</td>
+                                                    <td class="w-25 fw-medium text-muted">{{ ucfirst((string)$day) }}</td>
                                                     <td>
-                                                        @if(isset($time['closed']) && $time['closed'])
+                                                        @if(is_array($time) && isset($time['closed']) && $time['closed'])
                                                             <span class="badge bg-danger bg-opacity-10 text-danger">Closed</span>
                                                         @else
                                                             @php
-                                                                $open = $time['open'] ?? null;
-                                                                $close = $time['close'] ?? null;
-                                                                $label = $open && $close ? $open . ' - ' . $close : ($open ?? '-');
+                                                                $open = is_array($time) ? ($time['open'] ?? null) : null;
+                                                                $close = is_array($time) ? ($time['close'] ?? null) : null;
+                                                                $openStr = is_array($open) ? implode(', ', $open) : $open;
+                                                                $closeStr = is_array($close) ? implode(', ', $close) : $close;
+                                                                $label = $openStr && $closeStr ? $openStr . ' - ' . $closeStr : ($openStr ?? (is_string($time) ? $time : '-'));
                                                             @endphp
                                                             <span class="text-muted">{{ $label }}</span>
                                                         @endif
@@ -827,15 +841,15 @@
                                 <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
                                     <div>
                                         <h6 class="fw-semibold mb-1">
-                                            {{ $sport->name }}
-                                            <span class="badge bg-{{ strtolower($sport->status) === 'active' ? 'success' : 'secondary' }} ms-2">
-                                                {{ ucfirst($sport->status) }}
+                                            {{ is_array($sport->name) ? json_encode($sport->name) : $sport->name }}
+                                            <span class="badge bg-{{ strtolower((string)(is_array($sport->status) ? 'Active' : $sport->status)) === 'active' ? 'success' : 'secondary' }} ms-2">
+                                                {{ ucfirst((string)(is_array($sport->status) ? 'Active' : $sport->status)) }}
                                             </span>
                                         </h6>
                                         <div class="small text-muted">
-                                            <i class="fas fa-tag me-1"></i> Rs. {{ number_format((float)$sport->price, 2) }} / {{ $sport->rate_type ?? 'hour' }}
+                                            <i class="fas fa-tag me-1"></i> Rs. {{ number_format((float)(is_array($sport->price) ? ($sport->price[0] ?? 0) : $sport->price), 2) }} / {{ is_array($sport->rate_type) ? implode(', ', $sport->rate_type) : ($sport->rate_type ?? 'hour') }}
                                             &nbsp;•&nbsp;
-                                            <i class="fas fa-th me-1"></i> {{ $sport->maximum_court ?? 1 }} court(s)
+                                            <i class="fas fa-th me-1"></i> {{ is_array($sport->maximum_court) ? count($sport->maximum_court) : ($sport->maximum_court ?? 1) }} court(s)
                                             &nbsp;•&nbsp;
                                             <i class="fas fa-clock me-1"></i>
                                             @if(!empty($sport->opening_hours))
@@ -919,11 +933,15 @@
                                                 $h = is_array($sport->opening_hours) ? ($sport->opening_hours[$day] ?? null) : null;
                                             @endphp
                                             <div class="col-md-3 col-6">
-                                                <span class="text-muted">{{ ucfirst($day) }}:</span>
-                                                @if($h && ($h['closed'] ?? false))
+                                                <span class="text-muted">{{ ucfirst((string)$day) }}:</span>
+                                                @if(is_array($h) && ($h['closed'] ?? false))
                                                     <span class="badge bg-danger bg-opacity-10 text-danger">Closed</span>
-                                                @elseif($h)
-                                                    <span>{{ $h['open'] ?? '—' }} - {{ $h['close'] ?? '—' }}</span>
+                                                @elseif(is_array($h))
+                                                    @php
+                                                        $openStr  = is_array($h['open'] ?? null) ? implode(', ', $h['open']) : ($h['open'] ?? '—');
+                                                        $closeStr = is_array($h['close'] ?? null) ? implode(', ', $h['close']) : ($h['close'] ?? '—');
+                                                    @endphp
+                                                    <span>{{ $openStr }} - {{ $closeStr }}</span>
                                                 @else
                                                     <span class="text-muted">—</span>
                                                 @endif
@@ -957,7 +975,7 @@
                                             <button type="button"
                                                     class="btn btn-sm btn-outline-danger"
                                                     wire:click="clearSportRecurringBlocks({{ $sport->id }})"
-                                                    wire:confirm="Remove ALL recurring blocks for {{ $sport->name }}?">
+                                                    wire:confirm="Remove ALL recurring blocks for {{ is_array($sport->name) ? json_encode($sport->name) : $sport->name }}?">
                                                 <i class="fas fa-trash me-1"></i> Clear all recurring
                                             </button>
                                         @endif
@@ -1074,16 +1092,24 @@
                                                         @foreach($times as $time => $courts)
                                                             @if(!is_array($courts)) @continue @endif
                                                             @foreach($courts as $court => $reason)
+                                                            @php
+                                                                $courtStr = is_array($court) ? implode(', ', $court) : (string)$court;
+                                                                if (is_array($reason)) {
+                                                                    $reasonStr = $reason['reason'] ?? ($reason['title'] ?? json_encode($reason));
+                                                                } else {
+                                                                    $reasonStr = (string)$reason;
+                                                                }
+                                                            @endphp
                                                             <tr>
                                                                 <td>{{ $date }}</td>
                                                                 <td>{{ $time }}</td>
-                                                                <td>Court {{ $court }}</td>
-                                                                <td>{{ $reason }}</td>
+                                                                <td>Court {{ $courtStr }}</td>
+                                                                <td>{{ $reasonStr }}</td>
                                                                 <td class="text-end">
                                                                     <button type="button"
                                                                             class="btn btn-sm btn-link text-danger p-0"
                                                                             title="Unblock"
-                                                                            wire:click="unblockSportSlot({{ $sport->id }}, '{{ $date }}', '{{ $time }}', '{{ $court }}')"
+                                                                            wire:click="unblockSportSlot({{ $sport->id }}, '{{ $date }}', '{{ $time }}', '{{ $courtStr }}')"
                                                                             wire:confirm="Remove this block?">
                                                                         <i class="fas fa-times"></i>
                                                                     </button>
@@ -1578,7 +1604,7 @@
                                                     @foreach($amenities as $index => $amenity)
                                                     <div class="col">
                                                         <div class="bg-light text-dark border small fw-normal py-2 px-3 d-flex align-items-center justify-content-between rounded">
-                                                            <span>{{ $amenity }}</span>
+                                                            <span>{{ is_array($amenity) ? ($amenity['name'] ?? ($amenity['title'] ?? json_encode($amenity))) : $amenity }}</span>
                                                             <button type="button"
                                                                 class="btn btn-sm btn-link text-danger p-0"
                                                                 wire:click="removeAmenity({{ $index }})"
@@ -1658,14 +1684,17 @@
                                         <div class="d-flex flex-wrap gap-3 mt-3">
                                             <!-- Existing Images -->
                                             @foreach($existing_gallery_images as $index => $image)
+                                            @php
+                                                $imgUrl = is_array($image) ? ($image['url'] ?? ($image['path'] ?? json_encode($image))) : $image;
+                                            @endphp
                                             <div class="card position-relative" style="width: 120px;">
-                                                <img src="{{ asset($image) }}"
+                                                <img src="{{ asset($imgUrl) }}"
                                                     class="card-img-top"
                                                     alt="Gallery image {{ $index + 1 }}"
                                                     height="100">
                                                 <div class="card-body p-2">
                                                     <div class="d-flex justify-content-between">
-                                                        <a href="{{ asset($image) }}"
+                                                        <a href="{{ asset($imgUrl) }}"
                                                             target="_blank"
                                                             class="btn btn-sm btn-link text-primary"
                                                             title="View">
@@ -1726,15 +1755,24 @@
                                         <!-- Display Current Links -->
                                         <div class="d-flex flex-wrap gap-2 mb-3">
                                             @foreach($social_links as $platform => $url)
+                                            @php
+                                                if (is_array($url)) {
+                                                    $platName = $url['platform'] ?? (is_string($platform) ? $platform : 'link');
+                                                    $platUrl  = $url['url'] ?? json_encode($url);
+                                                } else {
+                                                    $platName = is_string($platform) ? $platform : 'link';
+                                                    $platUrl  = $url;
+                                                }
+                                            @endphp
                                             <div class="position-relative">
-                                                <a href="{{ $url }}" target="_blank"
+                                                <a href="{{ $platUrl }}" target="_blank"
                                                     class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center pe-4">
-                                                    <i class="fab fa-{{ strtolower($platform) }} me-1"></i>
-                                                    {{ ucfirst($platform) }}
+                                                    <i class="fab fa-{{ strtolower($platName) }} me-1"></i>
+                                                    {{ ucfirst($platName) }}
                                                 </a>
                                                 <button type="button" class="btn btn-sm btn-link text-danger position-absolute end-0 top-50 translate-middle-y"
                                                     wire:click="removeSocialLink('{{ $platform }}')"
-                                                    title="Remove {{ $platform }}">
+                                                    title="Remove {{ $platName }}">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>

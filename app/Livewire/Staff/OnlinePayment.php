@@ -283,7 +283,7 @@ class OnlinePayment extends Component
         $poolsList = $poolsQuery->get();
         $poolsList->each(function($item) { $item->item_type = 'pool'; });
 
-        $combined = $sportsList->concat($poolsList)->sortByDesc('created_at')->values();
+        $combined = $sportsList->toBase()->concat($poolsList->toBase())->sortByDesc('created_at')->values();
 
         $page = $this->getPage('bookingsPage');
         $perPage = 15;

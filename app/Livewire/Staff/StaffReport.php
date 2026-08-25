@@ -209,7 +209,7 @@ class StaffReport extends Component
             ->groupBy('game_id_id', 'court_number')
             ->get()
             ->map(function ($revenue) {
-                return (object) [
+                return [
                     'sport_name'     => $revenue->sport ? $revenue->sport->name : 'N/A',
                     'court_number'   => $revenue->court_number ?? 'N/A',
                     'total_bookings' => $revenue->total_bookings,
@@ -218,7 +218,8 @@ class StaffReport extends Component
                     'average_revenue' => $revenue->average_revenue ?? 0,
                 ];
             })
-            ->values();
+            ->values()
+            ->all();
 
         $this->dispatch('openRevenueModal');
     }

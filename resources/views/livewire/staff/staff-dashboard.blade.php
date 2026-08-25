@@ -478,35 +478,37 @@
                         <div class="card-body">
                             <div class="row mb-3">
                                 <div class="col-4 fw-semibold text-secondary">Game</div>
-                                <div class="col-8">{{ $selectedBooking->game_name }}</div>
+                                <div class="col-8">{{ data_get($selectedBooking, 'game_name') }}</div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-4 fw-semibold text-secondary">User</div>
-                                <div class="col-8">{{ $selectedBooking->user_name }}</div>
+                                <div class="col-8">{{ data_get($selectedBooking, 'user_name') }}</div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-4 fw-semibold text-secondary">Court</div>
-                                <div class="col-8">{{ $selectedBooking->court_number }}</div>
+                                <div class="col-8">{{ data_get($selectedBooking, 'court_number') }}</div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-4 fw-semibold text-secondary">Status</div>
                                 <div class="col-8">
                                     <span
-                                        class="badge {{ $selectedBooking->status === 'Confirmed' ? 'bg-success' : 'bg-warning' }}">
-                                        {{ $selectedBooking->status }}
+                                        class="badge {{ data_get($selectedBooking, 'status') === 'Confirmed' ? 'bg-success' : 'bg-warning' }}">
+                                        {{ data_get($selectedBooking, 'status') }}
                                     </span>
                                 </div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-4 fw-semibold text-secondary">Time</div>
+                                <div class="col-4 fw-semibold text-secondary">Date</div>
                                 <div class="col-8">{{
-                                    \Carbon\Carbon::parse($selectedBooking->start_time)->format('M-d-Y') }}</div>
+                                    \Carbon\Carbon::parse(data_get($selectedBooking, 'start_time') ?: data_get($selectedBooking, 'booking_date'))->format('M-d-Y') }}</div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-4 fw-semibold text-secondary">Time</div>
                                 <div class="col-8">
-                                    {{ \Carbon\Carbon::parse($selectedBooking->start_time)->format(' h:i A') }} -
-                                    {{ \Carbon\Carbon::parse($selectedBooking->end_time)->format('h:i A') }}
+                                    {{ \Carbon\Carbon::parse(data_get($selectedBooking, 'start_time'))->format('h:i A') }}
+                                    @if(data_get($selectedBooking, 'end_time'))
+                                    - {{ \Carbon\Carbon::parse(data_get($selectedBooking, 'end_time'))->format('h:i A') }}
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -543,7 +545,7 @@
                         <select wire:model.live="selectedSportFilter" class="form-select form-select-sm" style="width: auto; min-width: 150px;">
                             <option value="all">All Sports</option>
                             @foreach($this->sportsList as $sport)
-                                <option value="{{ $sport->id }}">{{ $sport->name }}</option>
+                                <option value="{{ data_get($sport, 'id') }}">{{ data_get($sport, 'name') }}</option>
                             @endforeach
                         </select>
                         <a href="{{ route('staff.bookings') }}" class="btn btn-success btn-sm">
@@ -684,15 +686,19 @@
                     @php
                         $colors = ['blue', 'orange', 'green', 'purple'];
                         $color = $colors[$index % count($colors)];
-                        $initials = collect(explode(' ', $booking->user_name))->map(fn($word) => strtoupper(substr($word, 0, 1)))->take(2)->join('');
+                        $userName = data_get($booking, 'user_name', '');
+                        $gameName = data_get($booking, 'game_name', '');
+                        $startTime = data_get($booking, 'start_time');
+                        $bookingDate = data_get($booking, 'booking_date');
+                        $initials = collect(explode(' ', $userName))->map(fn($word) => strtoupper(substr($word, 0, 1)))->take(2)->join('');
                     @endphp
                     <div class="upcoming-item">
                         <div class="upcoming-avatar {{ $color }}">
                             {{ $initials }}
                         </div>
                         <div class="upcoming-details flex-grow-1">
-                            <h6>{{ $booking->user_name }}</h6>
-                            <span>{{ $booking->game_name }} • {{ \Carbon\Carbon::parse($booking->start_time)->format('g:i A') }} {{ \Carbon\Carbon::parse($booking->booking_date)->isToday() ? 'Today' : \Carbon\Carbon::parse($booking->booking_date)->format('M d') }}</span>
+                            <h6>{{ $userName }}</h6>
+                            <span>{{ $gameName }} • {{ \Carbon\Carbon::parse($startTime)->format('g:i A') }} {{ \Carbon\Carbon::parse($bookingDate)->isToday() ? 'Today' : \Carbon\Carbon::parse($bookingDate)->format('M d') }}</span>
                         </div>
                         <i class="fas fa-chevron-right text-muted"></i>
                     </div>
