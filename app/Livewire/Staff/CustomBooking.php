@@ -9,6 +9,11 @@ use Livewire\Attributes\Title;
 use Carbon\Carbon;
 use App\Models\BookingBooking;
 use App\Models\BookingSport;
+use App\Models\PoolsPool;
+use App\Models\PoolsPooladmissiontype;
+use App\Models\PoolsPoolbooking;
+use App\Models\PoolsPoolbookingitem;
+use App\Models\PoolsPoolsessionoccurrence;
 use App\Models\UserUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -59,6 +64,10 @@ class CustomBooking extends Component
     public $selectedCourt = '';
     public $is_private = false;
     public $num_persons = 1;
+
+    // Swimming Pool Admissions / Tiers State
+    public $poolAdmissionTypes = [];
+    public $ticketQuantities = [];
 
     // Staging / Package Draft items inside Modal
     public $draftPackageItems = [];
@@ -113,7 +122,7 @@ class CustomBooking extends Component
         $this->draftPackageItems = [];
         $this->is_private = false;
         if (!empty($this->sports) && empty($this->selectedGame)) {
-            $this->selectedGame = $this->sports->first()->name ?? '';
+            $this->selectedGame = $this->sports[0]['name'] ?? '';
             $this->updatedSelectedGame($this->selectedGame);
         }
         $this->showCreateModal = true;
@@ -130,31 +139,97 @@ class CustomBooking extends Component
             return;
         }
 
-        $this->sports = BookingSport::where('venue_id', $this->complex_id)
+        $courtSports = BookingSport::where('venue_id', $this->complex_id)
             ->whereRaw('LOWER(status) = ?', ['active'])
-            ->get();
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'type' => 'sport',
+                    'maximum_court' => $s->maximum_court ?? 1,
+                    'price' => (float) ($s->price ?? 0),
+                    'private_booking_enabled' => (bool) $s->private_booking_enabled,
+                    'blocked_slots' => $s->blocked_slots,
+                    'additional_charges' => $s->additional_charges,
+                ];
+            });
 
-        if ($this->sports->count() > 0 && empty($this->selectedGame)) {
-            $this->selectedGame = $this->sports->first()->name;
+        $pools = PoolsPool::where('venue_id', $this->complex_id)
+            ->whereRaw('LOWER(status) = ?', ['active'])
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'type' => 'pool',
+                    'maximum_court' => 1,
+                    'price' => (float) ($p->private_booking_price ?? 0),
+                    'private_booking_enabled' => !is_null($p->private_booking_enabled) ? (bool) $p->private_booking_enabled : true,
+                    'blocked_slots' => $p->blocked_slots,
+                    'additional_charges' => null,
+                ];
+            });
+
+        $this->sports = $courtSports->concat($pools)->toArray();
+
+        if (count($this->sports) > 0 && empty($this->selectedGame)) {
+            $this->selectedGame = $this->sports[0]['name'];
             $this->updatedSelectedGame($this->selectedGame);
         }
     }
 
+    protected function getFacilityByName($name)
+    {
+        foreach ($this->sports as $facility) {
+            if (is_array($facility) && strtolower($facility['name']) === strtolower($name)) {
+                return $facility;
+            }
+        }
+        return null;
+    }
+
     public function updatedSelectedGame($value)
     {
-        $sport = BookingSport::where('venue_id', $this->complex_id)
-            ->whereRaw('LOWER(name) = ?', [strtolower($value)])
-            ->first();
-
-        $maxCourts = $sport ? ($sport->maximum_court ?? 1) : 1;
-        $this->availableCourts = [];
-        for ($i = 1; $i <= $maxCourts; $i++) {
-            $this->availableCourts[] = "{$i}";
+        $facility = $this->getFacilityByName($value);
+        if ($facility && $facility['type'] === 'pool') {
+            $this->availableCourts = ['Main Pool'];
+            $admissions = PoolsPooladmissiontype::where('pool_id', $facility['id'])
+                ->where('is_active', true)
+                ->orderBy('sort_order', 'asc')
+                ->get();
+            $this->poolAdmissionTypes = $admissions->toArray();
+            $this->ticketQuantities = [];
+            foreach ($this->poolAdmissionTypes as $type) {
+                $this->ticketQuantities[$type['id']] = 0;
+            }
+            if (!empty($this->poolAdmissionTypes)) {
+                $firstId = $this->poolAdmissionTypes[0]['id'];
+                $this->ticketQuantities[$firstId] = 1;
+            }
+        } else {
+            $maxCourts = $facility ? ($facility['maximum_court'] ?? 1) : 1;
+            $this->availableCourts = [];
+            for ($i = 1; $i <= $maxCourts; $i++) {
+                $this->availableCourts[] = "{$i}";
+            }
+            $this->poolAdmissionTypes = [];
+            $this->ticketQuantities = [];
         }
 
         if (!in_array($this->selectedCourt, $this->availableCourts)) {
             $this->selectedCourt = $this->availableCourts[0] ?? '1';
         }
+    }
+
+    public function incrementTicket($typeId)
+    {
+        $this->ticketQuantities[$typeId] = ($this->ticketQuantities[$typeId] ?? 0) + 1;
+    }
+
+    public function decrementTicket($typeId)
+    {
+        $this->ticketQuantities[$typeId] = max(0, ($this->ticketQuantities[$typeId] ?? 0) - 1);
     }
 
     public function buildTimeOptions()
@@ -206,19 +281,12 @@ class CustomBooking extends Component
             return false;
         }
 
-        $sport = BookingSport::where('venue_id', $this->complex_id)
-            ->whereRaw('LOWER(name) = ?', [strtolower($this->selectedGame)])
-            ->first();
-
-        if (!$sport) {
+        $facility = $this->getFacilityByName($this->selectedGame);
+        if (!$facility) {
             return false;
         }
 
-        if (!is_null($sport->private_booking_enabled)) {
-            return (bool) $sport->private_booking_enabled;
-        }
-
-        return !empty($sport->private_booking_price) || ($sport->private_booking_pricing_mode === 'normal_total' && $sport->private_booking_price_multiplier > 1);
+        return (bool) ($facility['private_booking_enabled'] ?? false);
     }
 
     public function getDaySlotsTimeline()
@@ -227,17 +295,18 @@ class CustomBooking extends Component
             return [];
         }
 
-        $sport = BookingSport::where('venue_id', $this->complex_id)
-            ->whereRaw('LOWER(name) = ?', [strtolower($this->selectedGame)])
-            ->first();
+        $facility = $this->getFacilityByName($this->selectedGame);
+        if (!$facility) return [];
 
-        if (!$sport) return [];
+        $isPool = ($facility['type'] === 'pool');
+        $pool = $isPool ? PoolsPool::find($facility['id']) : null;
+        $sport = !$isPool ? BookingSport::find($facility['id']) : null;
 
-        $blockedSlotsData = ($sport && $sport->blocked_slots)
-            ? (is_array($sport->blocked_slots) ? $sport->blocked_slots : json_decode($sport->blocked_slots, true))
-            : [];
-        $charges = is_array($sport->additional_charges) ? $sport->additional_charges : (json_decode($sport->additional_charges, true) ?? []);
-        $maxCapForGame = (int) ($charges['max_persons_per_hour'] ?? 1);
+        $rawBlocked = $isPool ? ($pool ? $pool->blocked_slots : []) : ($sport ? $sport->blocked_slots : []);
+        $blockedSlotsData = is_array($rawBlocked) ? $rawBlocked : (json_decode($rawBlocked, true) ?? []);
+
+        $charges = !$isPool && $sport ? (is_array($sport->additional_charges) ? $sport->additional_charges : (json_decode($sport->additional_charges, true) ?? [])) : [];
+        $maxCapForGame = $isPool ? ($pool->capacity ?: 50) : (int) ($charges['max_persons_per_hour'] ?? 1);
 
         $timeline = [];
         for ($h = 6; $h <= 23; $h++) {
@@ -246,25 +315,42 @@ class CustomBooking extends Component
             $startDisplay = Carbon::parse($slotStartStr)->format('g:i A');
             $endDisplay = Carbon::parse($slotEndStr)->format('g:i A');
 
-            $existingBookings = BookingBooking::where('complex_id_id', $this->complex_id)
-                ->whereRaw('LOWER(game_name) = ?', [strtolower($this->selectedGame)])
-                ->where('court_number', $this->selectedCourt)
-                ->where('booking_date', $this->selectedDate)
-                ->where('start_time', $slotStartStr)
-                ->whereRaw('LOWER(status) != ?', ['cancelled'])
-                ->get();
+            if ($isPool && $pool) {
+                $existingCount = PoolsPoolbooking::where('pool_id', $pool->id)
+                    ->where(function($q) use ($slotStartStr) {
+                        $q->whereDate('created_at', $this->selectedDate)
+                          ->orWhereHas('occurrence', function($occQ) use ($slotStartStr) {
+                              $occQ->whereDate('session_date', $this->selectedDate)
+                                   ->where('start_time', '<=', $slotStartStr)
+                                   ->where('end_time', '>', $slotStartStr);
+                          });
+                    })
+                    ->whereRaw('LOWER(status) != ?', ['cancelled'])
+                    ->sum('total_admissions');
+                
+                $isBlocked = isset($blockedSlotsData[$this->selectedDate][$slotStartStr]);
+            } else {
+                $existingBookings = BookingBooking::where('complex_id_id', $this->complex_id)
+                    ->whereRaw('LOWER(game_name) = ?', [strtolower($this->selectedGame)])
+                    ->where('court_number', $this->selectedCourt)
+                    ->where('booking_date', $this->selectedDate)
+                    ->where('start_time', $slotStartStr)
+                    ->whereRaw('LOWER(status) != ?', ['cancelled'])
+                    ->get();
+                $existingCount = $existingBookings->count();
 
-            $courtKey = 'court_' . strtolower(str_replace(['court ', 'court'], '', trim(strtolower($this->selectedCourt))));
-            $isBlocked = isset($blockedSlotsData[$this->selectedDate][$slotStartStr][$courtKey]) || isset($blockedSlotsData[$this->selectedDate][$slotStartStr][$this->selectedCourt]);
+                $courtKey = 'court_' . strtolower(str_replace(['court ', 'court'], '', trim(strtolower($this->selectedCourt))));
+                $isBlocked = isset($blockedSlotsData[$this->selectedDate][$slotStartStr][$courtKey]) || isset($blockedSlotsData[$this->selectedDate][$slotStartStr][$this->selectedCourt]);
+            }
 
             $status = 'available';
             $bookedBy = null;
 
             if ($isBlocked) {
                 $status = 'blocked';
-            } elseif ($existingBookings->count() >= $maxCapForGame) {
+            } elseif ($existingCount >= $maxCapForGame) {
                 $status = 'booked';
-                $bookedBy = $existingBookings->first()->user_name ?: 'Booked';
+                $bookedBy = 'Booked';
             }
 
             $timeline[] = [
@@ -335,15 +421,13 @@ class CustomBooking extends Component
             'selectedCourt' => 'required|string',
         ]);
 
-        $sport = BookingSport::where('venue_id', $this->complex_id)
-            ->whereRaw('LOWER(name) = ?', [strtolower($this->selectedGame)])
-            ->whereRaw('LOWER(status) = ?', ['active'])
-            ->first();
-
-        if (!$sport) {
-            $this->addError('selectedGame', 'Selected sport is not available.');
+        $facility = $this->getFacilityByName($this->selectedGame);
+        if (!$facility) {
+            $this->addError('selectedGame', 'Selected facility is not available.');
             return;
         }
+
+        $isPool = ($facility['type'] === 'pool');
 
         $startHour = (int) Carbon::parse($this->selectedTime)->format('H');
         $endHour = (int) Carbon::parse($this->selectedEndTime)->format('H');
@@ -351,20 +435,47 @@ class CustomBooking extends Component
 
         $duration = $endHour - $startHour;
 
-        // Private booking pricing logic: use private booking price from sport table if is_private is enabled
-        $unitPrice = (float) ($sport->price ?? 1800.00);
-        if ($this->is_private) {
-            $charges = is_array($sport->additional_charges) ? $sport->additional_charges : (json_decode($sport->additional_charges, true) ?? []);
-            if (!empty($sport->private_booking_price)) {
-                $unitPrice = (float) $sport->private_booking_price;
-            } elseif (!empty($charges['private_booking_price'])) {
-                $unitPrice = (float) $charges['private_booking_price'];
-            } elseif (!empty($charges['private_price'])) {
-                $unitPrice = (float) $charges['private_price'];
+        $ticketBreakdown = [];
+        $totalPersons = 0;
+        $poolTicketsTotal = 0;
+
+        if ($isPool && !empty($this->poolAdmissionTypes)) {
+            foreach ($this->poolAdmissionTypes as $type) {
+                $q = (int) ($this->ticketQuantities[$type['id']] ?? 0);
+                if ($q > 0) {
+                    $totalPersons += $q;
+                    $lineVal = $q * (float) $type['price'];
+                    $poolTicketsTotal += $lineVal;
+                    $ticketBreakdown[] = [
+                        'admission_type_id' => $type['id'],
+                        'name' => $type['name'],
+                        'quantity' => $q,
+                        'unit_price' => (float) $type['price'],
+                        'line_total' => $lineVal,
+                    ];
+                }
             }
         }
 
-        $itemTotalPrice = $unitPrice * max(1, (int) $this->num_persons) * $duration;
+        if ($totalPersons === 0) {
+            $totalPersons = max(1, (int) $this->num_persons);
+        }
+
+        $unitPrice = (float) ($facility['price'] ?? 1800.00);
+        if ($isPool) {
+            if ($this->is_private) {
+                $unitPrice = (float) ($facility['price'] ?? 5000.00);
+                $itemTotalPrice = $unitPrice * $duration;
+            } elseif (!empty($ticketBreakdown)) {
+                $unitPrice = $totalPersons > 0 ? ($poolTicketsTotal / $totalPersons) : 500.00;
+                $itemTotalPrice = $poolTicketsTotal * $duration;
+            } else {
+                $unitPrice = 500.00;
+                $itemTotalPrice = $unitPrice * $totalPersons * $duration;
+            }
+        } else {
+            $itemTotalPrice = $unitPrice * $totalPersons * $duration;
+        }
 
         $dateCarbon = Carbon::parse($this->selectedDate);
         $formattedDate = $dateCarbon->format('Y-m-d') . ' (' . $dateCarbon->format('l') . ')';
@@ -373,39 +484,11 @@ class CustomBooking extends Component
         $endDisplay = Carbon::parse($this->selectedEndTime)->format('g:i A');
         $formattedTime = "{$startDisplay} - {$endDisplay} ({$duration} " . ($duration === 1 ? 'hr' : 'hrs') . ")";
 
-        // Pre-check availability for this draft slot item
-        $blockedSlotsData = ($sport && $sport->blocked_slots)
-            ? (is_array($sport->blocked_slots) ? $sport->blocked_slots : json_decode($sport->blocked_slots, true))
-            : [];
-        $charges = is_array($sport->additional_charges) ? $sport->additional_charges : (json_decode($sport->additional_charges, true) ?? []);
-        $maxCapForGame = (int) ($charges['max_persons_per_hour'] ?? 1);
-
-        $availCount = 0;
-        $blockedCount = 0;
-
-        for ($h = $startHour; $h < $endHour; $h++) {
-            $slotStartStr = sprintf('%02d:00:00', $h);
-            $existingCount = BookingBooking::where('complex_id_id', $this->complex_id)
-                ->whereRaw('LOWER(game_name) = ?', [strtolower($this->selectedGame)])
-                ->where('court_number', $this->selectedCourt)
-                ->where('booking_date', $this->selectedDate)
-                ->where('start_time', $slotStartStr)
-                ->whereRaw('LOWER(status) != ?', ['cancelled'])
-                ->count();
-
-            $courtKey = 'court_' . strtolower(str_replace(['court ', 'court'], '', trim(strtolower($this->selectedCourt))));
-            $isBlocked = isset($blockedSlotsData[$this->selectedDate][$slotStartStr][$courtKey]) || isset($blockedSlotsData[$this->selectedDate][$slotStartStr][$this->selectedCourt]);
-
-            if ($existingCount >= $maxCapForGame || $isBlocked) {
-                $blockedCount++;
-            } else {
-                $availCount++;
-            }
-        }
-
         $this->draftPackageItems[] = [
             'temp_id' => uniqid(),
             'game_name' => $this->selectedGame,
+            'facility_type' => $facility['type'],
+            'facility_id' => $facility['id'],
             'court_number' => $this->selectedCourt,
             'booking_date' => $this->selectedDate,
             'formatted_date' => $formattedDate,
@@ -416,10 +499,11 @@ class CustomBooking extends Component
             'duration' => $duration,
             'is_private' => (bool) $this->is_private,
             'unit_price' => $unitPrice,
-            'num_persons' => $this->num_persons,
+            'num_persons' => $totalPersons,
+            'ticket_breakdown' => $ticketBreakdown,
             'estimated_price' => $itemTotalPrice,
-            'avail_count' => $availCount,
-            'blocked_count' => $blockedCount,
+            'avail_count' => $duration,
+            'blocked_count' => 0,
         ];
 
         session()->flash('draft_message', 'Item added to package builder table.');
@@ -456,9 +540,7 @@ class CustomBooking extends Component
         $advancePaid = max(0, (float) ($this->advance_amount ?? 0));
 
         foreach ($this->draftPackageItems as $item) {
-            $sport = BookingSport::where('venue_id', $this->complex_id)
-                ->whereRaw('LOWER(name) = ?', [strtolower($item['game_name'])])
-                ->first();
+            $isPool = ($item['facility_type'] ?? 'sport') === 'pool';
 
             $startHour = (int) Carbon::parse($item['start_time'])->format('H');
             $endHour = (int) Carbon::parse($item['end_time'])->format('H');
@@ -469,45 +551,9 @@ class CustomBooking extends Component
                 'custom_booking' => true,
                 'package_code' => $packageCode,
                 'num_persons' => $numPersonsCount,
-            ]);
-
-            $unitPrice = $item['unit_price'] ?? ($sport->price ?? 1800.00);
-            $slotPrice = $unitPrice * $numPersonsCount;
-
-            $baseData = [
-                'user_id_id' => $userUser?->id,
-                'complex_id_id' => $this->complex_id,
-                'game_id_id' => $sport?->id,
                 'game_name' => $item['game_name'],
-                'user_name' => $this->playerName,
-                'user_number' => $this->phoneNumber,
                 'court_number' => $item['court_number'],
-                'duration' => 60,
-                'price' => $slotPrice,
-                'advance_amount' => $advancePaid,
-                'amount_paid' => $advancePaid,
-                'balance_due' => max(0, $slotPrice - $advancePaid),
-                'financial_status' => $advancePaid > 0 ? 'Partial' : 'Pending',
-                'is_initial_permanent_occurrence' => false,
-                'offline_paid_amount' => $advancePaid,
-                'online_paid_amount' => 0,
-                'points_discount_amount' => 0,
-                'requires_advance_payment' => $advancePaid > 0,
-                'reward_status' => 'not_eligible',
-                'payment_status' => $advancePaid > 0 ? 'Partial' : 'Pending',
-                'payment_method' => $advancePaid > 0 ? 'Cash' : null,
-                'status' => $this->status,
-                'notes' => $this->notes ?: '',
-                'admin_comments' => $adminCommentsPayload,
-                'is_challenge_booking' => false,
-                'is_private' => !empty($item['is_private']),
-            ];
-
-            $charges = is_array($sport?->additional_charges) ? $sport->additional_charges : (json_decode($sport?->additional_charges, true) ?? []);
-            $maxCapForGame = (int) ($charges['max_persons_per_hour'] ?? 1);
-            $blockedSlotsData = ($sport && $sport->blocked_slots)
-                ? (is_array($sport->blocked_slots) ? $sport->blocked_slots : json_decode($sport->blocked_slots, true))
-                : [];
+            ]);
 
             $dStr = $item['booking_date'];
             $formattedDate = Carbon::parse($dStr)->format('D, M j, Y') . ' (' . Carbon::parse($dStr)->format('l') . ')';
@@ -517,29 +563,101 @@ class CustomBooking extends Component
                 $slotEndStr = sprintf('%02d:00:00', ($h + 1) % 24);
                 $slotLabel = Carbon::parse($slotStartStr)->format('g:i A') . ' - ' . Carbon::parse($slotEndStr)->format('g:i A');
 
-                $existingBookings = BookingBooking::where('complex_id_id', $this->complex_id)
-                    ->whereRaw('LOWER(game_name) = ?', [strtolower($item['game_name'])])
-                    ->where('court_number', $item['court_number'])
-                    ->where('booking_date', $dStr)
-                    ->where('start_time', $slotStartStr)
-                    ->whereRaw('LOWER(status) != ?', ['cancelled'])
-                    ->get();
+                if ($isPool) {
+                    $pool = PoolsPool::find($item['facility_id']) ?: PoolsPool::where('venue_id', $this->complex_id)->first();
+                    if ($pool) {
+                        $occ = PoolsPoolsessionoccurrence::firstOrCreate([
+                            'pool_id' => $pool->id,
+                            'session_date' => $dStr,
+                            'start_time' => $slotStartStr,
+                            'end_time' => $slotEndStr,
+                        ], [
+                            'name' => "Session ({$slotLabel})",
+                            'capacity' => $pool->capacity ?: 50,
+                            'status' => 'open',
+                        ]);
 
-                $courtKey = 'court_' . strtolower(str_replace(['court ', 'court'], '', trim(strtolower($item['court_number']))));
-                $isBlocked = isset($blockedSlotsData[$dStr][$slotStartStr][$courtKey]) || isset($blockedSlotsData[$dStr][$slotStartStr][$item['court_number']]);
+                        $unitPrice = $item['unit_price'] ?? ($pool->private_booking_price ?? 500.00);
+                        $slotPrice = $item['estimated_price'] / max(1, $item['duration']);
 
-                if ($existingBookings->count() >= $maxCapForGame || $isBlocked) {
-                    $reason = $isBlocked ? 'Blocked' : 'Already Booked';
-                    if ($existingBookings->count() > 0 && $existingBookings->first()->user_name) {
-                        $reason .= " by {$existingBookings->first()->user_name}";
+                        $poolBooking = PoolsPoolbooking::create([
+                            'booking_reference' => 'PKG-POOL-' . strtoupper(substr(md5(uniqid()), 0, 6)),
+                            'pool_id' => $pool->id,
+                            'user_id' => $userUser?->id,
+                            'occurrence_id' => $occ->id,
+                            'user_name' => $this->playerName,
+                            'user_number' => $this->phoneNumber,
+                            'status' => $this->status,
+                            'total_admissions' => $numPersonsCount,
+                            'booking_total' => $slotPrice,
+                            'total_amount' => $slotPrice,
+                            'advance_amount' => $advancePaid,
+                            'amount_paid' => $advancePaid,
+                            'balance_due' => max(0, $slotPrice - $advancePaid),
+                            'financial_status' => $advancePaid > 0 ? 'Partial' : 'Pending',
+                            'payment_status' => $advancePaid > 0 ? 'Partial' : 'Pending',
+                            'is_private' => !empty($item['is_private']),
+                            'notes' => $adminCommentsPayload,
+                        ]);
+
+                        if (!empty($item['ticket_breakdown'])) {
+                            foreach ($item['ticket_breakdown'] as $tb) {
+                                PoolsPoolbookingitem::create([
+                                    'pool_booking_id' => $poolBooking->id,
+                                    'admission_type_id' => $tb['admission_type_id'],
+                                    'quantity' => $tb['quantity'],
+                                    'unit_price' => $tb['unit_price'],
+                                    'line_total' => $tb['line_total'],
+                                    'guest_name' => $this->playerName,
+                                    'created_at' => now(),
+                                ]);
+                            }
+                        }
+
+                        $this->bookedSlots[] = [
+                            'date' => $formattedDate,
+                            'slot' => $slotLabel,
+                            'court' => $item['court_number'],
+                        ];
+                        $this->bookedCount++;
                     }
-                    $this->skippedSlots[] = [
-                        'date' => $formattedDate,
-                        'slot' => $slotLabel,
-                        'court' => $item['court_number'],
-                        'reason' => $reason,
-                    ];
                 } else {
+                    $sport = BookingSport::where('venue_id', $this->complex_id)
+                        ->whereRaw('LOWER(name) = ?', [strtolower($item['game_name'])])
+                        ->first();
+
+                    $unitPrice = $item['unit_price'] ?? ($sport->price ?? 1800.00);
+                    $slotPrice = $unitPrice * $numPersonsCount;
+
+                    $baseData = [
+                        'user_id_id' => $userUser?->id,
+                        'complex_id_id' => $this->complex_id,
+                        'game_id_id' => $sport?->id,
+                        'game_name' => $item['game_name'],
+                        'user_name' => $this->playerName,
+                        'user_number' => $this->phoneNumber,
+                        'court_number' => $item['court_number'],
+                        'duration' => 60,
+                        'price' => $slotPrice,
+                        'advance_amount' => $advancePaid,
+                        'amount_paid' => $advancePaid,
+                        'balance_due' => max(0, $slotPrice - $advancePaid),
+                        'financial_status' => $advancePaid > 0 ? 'Partial' : 'Pending',
+                        'is_initial_permanent_occurrence' => false,
+                        'offline_paid_amount' => $advancePaid,
+                        'online_paid_amount' => 0,
+                        'points_discount_amount' => 0,
+                        'requires_advance_payment' => $advancePaid > 0,
+                        'reward_status' => 'not_eligible',
+                        'payment_status' => $advancePaid > 0 ? 'Partial' : 'Pending',
+                        'payment_method' => $advancePaid > 0 ? 'Cash' : null,
+                        'status' => $this->status,
+                        'notes' => $this->notes ?: '',
+                        'admin_comments' => $adminCommentsPayload,
+                        'is_challenge_booking' => false,
+                        'is_private' => !empty($item['is_private']),
+                    ];
+
                     BookingBooking::create(array_merge($baseData, [
                         'start_time' => $slotStartStr,
                         'end_time' => $slotEndStr,
@@ -554,22 +672,6 @@ class CustomBooking extends Component
                     ];
                     $this->bookedCount++;
                 }
-            }
-        }
-
-        if ($this->bookedCount > 0) {
-            try {
-                \App\Models\BookingNotification::create([
-                    'user_id' => auth()->id(),
-                    'type' => 'custom_package_created',
-                    'title' => 'Custom Package Created',
-                    'message' => "Package {$packageCode}: {$this->bookedCount} slot(s) booked for {$this->playerName}",
-                    'data' => ['package_code' => $packageCode, 'player' => $this->playerName],
-                    'is_read' => false,
-                    'created_at' => now(),
-                ]);
-            } catch (\Exception $e) {
-                Log::warning('Failed writing notification: ' . $e->getMessage());
             }
         }
 
@@ -596,9 +698,6 @@ class CustomBooking extends Component
         $this->viewPackageGroup = null;
     }
 
-    /**
-     * Initiate Package Cancellation flow with 3 options: Full Package, Day-Wise, or Slot-Wise
-     */
     public function initiateCancelPackage($packageCode)
     {
         $allPackages = $this->getGroupedPackages();
@@ -640,12 +739,23 @@ class CustomBooking extends Component
         if (empty($this->cancelPackageGroup)) return;
 
         $count = 0;
-        foreach ($this->cancelPackageGroup['slot_ids'] as $id) {
-            $b = BookingBooking::find($id);
-            if ($b && strtolower($b->status) !== 'cancelled') {
-                $b->status = 'Cancelled';
-                $b->save();
-                $count++;
+        foreach ($this->cancelPackageGroup['slot_details'] as $slot) {
+            if (strtolower($slot['status']) !== 'cancelled') {
+                if (($slot['item_type'] ?? 'sport') === 'pool') {
+                    $pb = PoolsPoolbooking::find($slot['id']);
+                    if ($pb) {
+                        $pb->status = 'Cancelled';
+                        $pb->save();
+                        $count++;
+                    }
+                } else {
+                    $b = BookingBooking::find($slot['id']);
+                    if ($b) {
+                        $b->status = 'Cancelled';
+                        $b->save();
+                        $count++;
+                    }
+                }
             }
         }
 
@@ -663,11 +773,20 @@ class CustomBooking extends Component
         $count = 0;
         foreach ($this->cancelPackageGroup['slot_details'] as $slot) {
             if (in_array($slot['booking_date'], $this->selectedCancelDates) && strtolower($slot['status']) !== 'cancelled') {
-                $b = BookingBooking::find($slot['id']);
-                if ($b) {
-                    $b->status = 'Cancelled';
-                    $b->save();
-                    $count++;
+                if (($slot['item_type'] ?? 'sport') === 'pool') {
+                    $pb = PoolsPoolbooking::find($slot['id']);
+                    if ($pb) {
+                        $pb->status = 'Cancelled';
+                        $pb->save();
+                        $count++;
+                    }
+                } else {
+                    $b = BookingBooking::find($slot['id']);
+                    if ($b) {
+                        $b->status = 'Cancelled';
+                        $b->save();
+                        $count++;
+                    }
                 }
             }
         }
@@ -684,12 +803,23 @@ class CustomBooking extends Component
         }
 
         $count = 0;
-        foreach ($this->selectedCancelSlotIds as $id) {
-            $b = BookingBooking::find($id);
-            if ($b && strtolower($b->status) !== 'cancelled') {
-                $b->status = 'Cancelled';
-                $b->save();
-                $count++;
+        foreach ($this->cancelPackageGroup['slot_details'] as $slot) {
+            if (in_array((string)$slot['id'], $this->selectedCancelSlotIds) && strtolower($slot['status']) !== 'cancelled') {
+                if (($slot['item_type'] ?? 'sport') === 'pool') {
+                    $pb = PoolsPoolbooking::find($slot['id']);
+                    if ($pb) {
+                        $pb->status = 'Cancelled';
+                        $pb->save();
+                        $count++;
+                    }
+                } else {
+                    $b = BookingBooking::find($slot['id']);
+                    if ($b) {
+                        $b->status = 'Cancelled';
+                        $b->save();
+                        $count++;
+                    }
+                }
             }
         }
 
@@ -716,42 +846,36 @@ class CustomBooking extends Component
         $this->notes = '';
         $this->is_private = false;
         $this->num_persons = 1;
+        $this->poolAdmissionTypes = [];
+        $this->ticketQuantities = [];
         $this->draftPackageItems = [];
         $this->bookedSlots = [];
         $this->skippedSlots = [];
         $this->bookedCount = 0;
     }
 
-    /**
-     * Group custom bookings by Package Code / Group Session
-     */
     protected function getGroupedPackages()
     {
-        $query = BookingBooking::where('complex_id_id', $this->complex_id);
+        $grouped = [];
 
+        // 1. Fetch BookingBooking records
+        $sportQuery = BookingBooking::where('complex_id_id', $this->complex_id);
         if (!empty($this->search)) {
             $s = trim($this->search);
-            $query->where(function ($q) use ($s) {
+            $sportQuery->where(function ($q) use ($s) {
                 $q->where('user_name', 'like', '%' . $s . '%')
                   ->orWhere('user_number', 'like', '%' . $s . '%')
                   ->orWhere('game_name', 'like', '%' . $s . '%')
-                  ->orWhere('court_number', 'like', '%' . $s . '%')
-                  ->orWhere('admin_comments', 'like', '%' . $s . '%')
-                  ->orWhere('id', 'like', '%' . $s . '%');
+                  ->orWhere('admin_comments', 'like', '%' . $s . '%');
             });
         }
-
         if (!empty($this->filterDate)) {
-            $query->where('booking_date', $this->filterDate);
+            $sportQuery->where('booking_date', $this->filterDate);
         }
 
-        $allBookings = $query->orderBy('created_at', 'desc')
-            ->orderBy('booking_date', 'asc')
-            ->orderBy('start_time', 'asc')
-            ->get();
+        $sportBookings = $sportQuery->orderBy('created_at', 'desc')->get();
 
-        $grouped = [];
-        foreach ($allBookings as $b) {
+        foreach ($sportBookings as $b) {
             $pkgCode = null;
             if (!empty($b->admin_comments) && str_contains($b->admin_comments, '{')) {
                 $jPayload = json_decode($b->admin_comments, true);
@@ -760,21 +884,101 @@ class CustomBooking extends Component
                 }
             }
 
-            // Only display custom package bookings in this table
-            if (!$pkgCode) {
-                continue;
-            }
+            if (!$pkgCode) continue;
 
             if (!isset($grouped[$pkgCode])) {
                 $grouped[$pkgCode] = [];
             }
-            $grouped[$pkgCode][] = $b;
+
+            $grouped[$pkgCode][] = [
+                'id' => $b->id,
+                'item_type' => 'sport',
+                'package_code' => $pkgCode,
+                'user_name' => $b->user_name,
+                'user_number' => $b->user_number,
+                'game_name' => $b->game_name,
+                'court_number' => $b->court_number,
+                'booking_date' => is_object($b->booking_date) ? $b->booking_date->format('Y-m-d') : (string) $b->booking_date,
+                'start_time' => $b->start_time,
+                'end_time' => $b->end_time,
+                'price' => (float) ($b->price ?? 0),
+                'advance_amount' => (float) ($b->advance_amount ?? 0),
+                'status' => $b->status,
+                'payment_status' => $b->payment_status ?: $b->financial_status,
+                'is_private' => (bool) $b->is_private,
+                'created_at' => $b->created_at,
+            ];
         }
 
+        // 2. Fetch PoolsPoolbooking records
+        $poolQuery = PoolsPoolbooking::whereHas('pool', function($q) {
+            $q->where('venue_id', $this->complex_id);
+        })->with(['pool', 'occurrence']);
+
+        if (!empty($this->search)) {
+            $s = trim($this->search);
+            $poolQuery->where(function ($q) use ($s) {
+                $q->where('user_name', 'like', '%' . $s . '%')
+                  ->orWhere('user_number', 'like', '%' . $s . '%')
+                  ->orWhere('notes', 'like', '%' . $s . '%');
+            });
+        }
+        if (!empty($this->filterDate)) {
+            $poolQuery->where(function($q) {
+                $q->whereDate('created_at', $this->filterDate)
+                  ->orWhereHas('occurrence', function($occQ) {
+                      $occQ->whereDate('session_date', $this->filterDate);
+                  });
+            });
+        }
+
+        $poolBookings = $poolQuery->orderBy('created_at', 'desc')->get();
+
+        foreach ($poolBookings as $pb) {
+            $pkgCode = null;
+            if (!empty($pb->notes) && str_contains($pb->notes, '{')) {
+                $jPayload = json_decode($pb->notes, true);
+                if (isset($jPayload['package_code']) && !empty($jPayload['package_code'])) {
+                    $pkgCode = $jPayload['package_code'];
+                }
+            }
+
+            if (!$pkgCode) continue;
+
+            if (!isset($grouped[$pkgCode])) {
+                $grouped[$pkgCode] = [];
+            }
+
+            $bDate = $pb->occurrence ? Carbon::parse($pb->occurrence->session_date)->format('Y-m-d') : Carbon::parse($pb->created_at)->format('Y-m-d');
+            $sTime = $pb->occurrence ? $pb->occurrence->start_time : '09:00:00';
+            $eTime = $pb->occurrence ? $pb->occurrence->end_time : '10:00:00';
+            $gameName = $pb->pool ? $pb->pool->name : 'Swimming Pool';
+
+            $grouped[$pkgCode][] = [
+                'id' => $pb->id,
+                'item_type' => 'pool',
+                'package_code' => $pkgCode,
+                'user_name' => $pb->user_name,
+                'user_number' => $pb->user_number,
+                'game_name' => $gameName,
+                'court_number' => 'Main Pool',
+                'booking_date' => $bDate,
+                'start_time' => $sTime,
+                'end_time' => $eTime,
+                'price' => (float) ($pb->total_amount ?? $pb->booking_total ?? 0),
+                'advance_amount' => (float) ($pb->advance_amount ?? 0),
+                'status' => $pb->status,
+                'payment_status' => $pb->payment_status ?: $pb->financial_status,
+                'is_private' => (bool) $pb->is_private,
+                'created_at' => $pb->created_at,
+            ];
+        }
+
+        // 3. Build merged list
         $mergedList = [];
         foreach ($grouped as $pkgCode => $items) {
             $first = $items[0];
-            $displayCode = str_starts_with($pkgCode, 'PKG-LEGACY-') ? '#' . $first->id : $pkgCode;
+            $displayCode = str_starts_with($pkgCode, 'PKG-LEGACY-') ? '#' . $first['id'] : $pkgCode;
 
             $totalPrice = 0;
             $totalAdvance = 0;
@@ -787,18 +991,18 @@ class CustomBooking extends Component
             $dateSportGroupMap = [];
 
             foreach ($items as $item) {
-                $totalPrice += (float) ($item->price ?? 0);
-                $totalAdvance += (float) ($item->advance_amount ?? 0);
-                $slotIds[] = $item->id;
+                $totalPrice += (float) ($item['price'] ?? 0);
+                $totalAdvance += (float) ($item['advance_amount'] ?? 0);
+                $slotIds[] = $item['id'];
 
-                $isCancelled = strtolower($item->status) === 'cancelled';
+                $isCancelled = strtolower($item['status']) === 'cancelled';
                 if ($isCancelled) {
                     $anyCancelled = true;
                 } else {
                     $allCancelled = false;
                 }
 
-                $dStr = is_object($item->booking_date) ? $item->booking_date->format('Y-m-d') : (string) $item->booking_date;
+                $dStr = $item['booking_date'];
                 if (!isset($datesMap[$dStr])) {
                     $datesMap[$dStr] = [
                         'date' => $dStr,
@@ -808,44 +1012,45 @@ class CustomBooking extends Component
                 }
                 $datesMap[$dStr]['slots_count']++;
 
-                $spKey = $item->game_name . ' (Court ' . $item->court_number . ')';
+                $spKey = $item['game_name'] . ' (' . $item['court_number'] . ')';
                 $sportsMap[$spKey] = true;
 
                 $slotData = [
-                    'id' => $item->id,
+                    'id' => $item['id'],
+                    'item_type' => $item['item_type'],
                     'booking_date' => $dStr,
                     'formatted_date' => Carbon::parse($dStr)->format('D, M j, Y') . ' (' . Carbon::parse($dStr)->format('l') . ')',
-                    'start_time' => $item->start_time,
-                    'end_time' => $item->end_time,
-                    'formatted_time' => Carbon::parse($item->start_time)->format('g:i A') . ' - ' . Carbon::parse($item->end_time)->format('g:i A'),
-                    'game_name' => $item->game_name,
-                    'court_number' => $item->court_number,
-                    'price' => (float) ($item->price ?? 0),
-                    'status' => $item->status,
-                    'is_private' => (bool) $item->is_private,
+                    'start_time' => $item['start_time'],
+                    'end_time' => $item['end_time'],
+                    'formatted_time' => Carbon::parse($item['start_time'])->format('g:i A') . ' - ' . Carbon::parse($item['end_time'])->format('g:i A'),
+                    'game_name' => $item['game_name'],
+                    'court_number' => $item['court_number'],
+                    'price' => (float) ($item['price'] ?? 0),
+                    'status' => $item['status'],
+                    'is_private' => (bool) $item['is_private'],
                 ];
 
                 $slotDetails[] = $slotData;
 
-                $dsKey = $dStr . '|' . strtolower($item->game_name) . '|' . strtolower($item->court_number);
+                $dsKey = $dStr . '|' . strtolower($item['game_name']) . '|' . strtolower($item['court_number']);
                 if (!isset($dateSportGroupMap[$dsKey])) {
                     $dateSportGroupMap[$dsKey] = [
                         'date' => $dStr,
                         'formatted_date' => Carbon::parse($dStr)->format('D, M j, Y') . ' (' . Carbon::parse($dStr)->format('l') . ')',
-                        'game_name' => $item->game_name,
-                        'court_number' => $item->court_number,
+                        'game_name' => $item['game_name'],
+                        'court_number' => $item['court_number'],
                         'slots' => [],
                         'total_price' => 0,
                         'slot_count' => 0,
-                        'start_time' => $item->start_time,
-                        'end_time' => $item->end_time,
-                        'is_private' => (bool) $item->is_private,
+                        'start_time' => $item['start_time'],
+                        'end_time' => $item['end_time'],
+                        'is_private' => (bool) $item['is_private'],
                     ];
                 }
                 $dateSportGroupMap[$dsKey]['slots'][] = $slotData;
-                $dateSportGroupMap[$dsKey]['total_price'] += (float) ($item->price ?? 0);
+                $dateSportGroupMap[$dsKey]['total_price'] += (float) ($item['price'] ?? 0);
                 $dateSportGroupMap[$dsKey]['slot_count']++;
-                $dateSportGroupMap[$dsKey]['end_time'] = $item->end_time;
+                $dateSportGroupMap[$dsKey]['end_time'] = $item['end_time'];
             }
 
             $groupedByDateSport = [];
@@ -854,7 +1059,7 @@ class CustomBooking extends Component
                 $groupedByDateSport[] = $dsGroup;
             }
 
-            $overallStatus = $allCancelled ? 'Cancelled' : ($anyCancelled ? 'Partially Cancelled' : $first->status);
+            $overallStatus = $allCancelled ? 'Cancelled' : ($anyCancelled ? 'Partially Cancelled' : $first['status']);
             $uniqueDates = array_values($datesMap);
             $dateRangeStr = count($uniqueDates) === 1
                 ? $uniqueDates[0]['formatted']
@@ -863,21 +1068,21 @@ class CustomBooking extends Component
             $mergedList[] = [
                 'package_code' => $displayCode,
                 'raw_package_code' => $pkgCode,
-                'user_name' => $first->user_name,
-                'user_number' => $first->user_number,
+                'user_name' => $first['user_name'],
+                'user_number' => $first['user_number'],
                 'sports_summary' => implode(', ', array_keys($sportsMap)),
                 'date_range_summary' => $dateRangeStr,
                 'dates_list' => $uniqueDates,
                 'total_slots' => count($items),
                 'total_price' => $totalPrice,
                 'total_advance' => $totalAdvance,
-                'payment_status' => $first->payment_status,
+                'payment_status' => $first['payment_status'],
                 'status' => $overallStatus,
                 'slot_ids' => $slotIds,
                 'slot_details' => $slotDetails,
                 'grouped_by_date_sport' => $groupedByDateSport,
-                'is_private' => (bool) $first->is_private,
-                'created_at' => $first->created_at,
+                'is_private' => (bool) $first['is_private'],
+                'created_at' => $first['created_at'],
             ];
         }
 

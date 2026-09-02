@@ -265,9 +265,13 @@
                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">GAME</label>
                                     <select wire:model.live="selectedGame" class="w-full py-2 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
                                         @forelse($sports as $sport)
-                                            <option value="{{ $sport->name }}">{{ $sport->name }}</option>
+                                            @php
+                                                $sName = is_array($sport) ? $sport['name'] : $sport->name;
+                                                $sType = is_array($sport) ? ($sport['type'] ?? 'sport') : 'sport';
+                                            @endphp
+                                            <option value="{{ $sName }}">{{ $sName }} @if($sType === 'pool') (Pool) @endif</option>
                                         @empty
-                                            <option value="">No Sports Available</option>
+                                            <option value="">No Sports / Pools Available</option>
                                         @endforelse
                                     </select>
                                 </div>
@@ -324,6 +328,30 @@
                                 </div>
                                 @endif
                             </div>
+
+                            <!-- Swimming Pool Admissions & Member Entry Tiers -->
+                            @if(!empty($poolAdmissionTypes) && !$is_private)
+                            <div class="p-3 bg-emerald-100/60 border border-emerald-300/80 rounded-xl space-y-2">
+                                <label class="block text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
+                                    <i class="fas fa-ticket-alt text-emerald-700 me-1"></i> Admission Tickets & Member Tiers (1 Hour Session Limit)
+                                </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                    @foreach($poolAdmissionTypes as $adm)
+                                        <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                            <div>
+                                                <span class="font-bold text-xs text-slate-800">{{ $adm['name'] }}</span>
+                                                <span class="block text-[10px] font-semibold text-emerald-700">Rs. {{ number_format($adm['price'], 2) }}</span>
+                                            </div>
+                                            <div class="flex items-center gap-1.5">
+                                                <button type="button" class="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center border border-slate-300" wire:click="decrementTicket({{ $adm['id'] }})">-</button>
+                                                <span class="w-6 text-center font-extrabold text-xs text-slate-900">{{ $ticketQuantities[$adm['id']] ?? 0 }}</span>
+                                                <button type="button" class="w-6 h-6 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs flex items-center justify-center border border-emerald-300" wire:click="incrementTicket({{ $adm['id'] }})">+</button>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
 
                             <!-- Full Day Timeline & Availability Grid for Selected Date -->
                             @php

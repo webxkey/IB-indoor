@@ -375,6 +375,13 @@
             </div>
 
             <!-- Timetable Matrix Grid -->
+            @if(count($this->timeSlots) === 0)
+                <div class="p-5 text-center text-muted">
+                    <i class="fas fa-clock fa-3x mb-3 text-warning"></i>
+                    <h5 class="fw-bold text-dark">Pool Closed Today</h5>
+                    <p class="mb-0">The pool is closed on {{ \Carbon\Carbon::parse($selectedDate)->format('l, F j, Y') }} according to operating hours settings.</p>
+                </div>
+            @else
             <div class="table-responsive">
                 <table class="booking-calendar">
                     <thead>
@@ -457,6 +464,7 @@
                     </tbody>
                 </table>
             </div>
+            @endif
         </div>
     </div>
 

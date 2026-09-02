@@ -12,6 +12,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\BookingVenue;
 use App\Models\BookingSport;
+use App\Models\PoolsPool;
 use App\Models\VenueStaff;
 use App\Models\VenueCamera;
 
@@ -69,11 +70,16 @@ class StaffSetting extends Component
     public $editingCameraId = null;
     public $showCameraForm = false;
 
-    // Sport Management
+    // Sport & Pool Management
     public $sports = [];
     public $editingSportId = null;
     public $sportOpeningHours = [];   // ['monday' => ['open'=>'06:00','close'=>'22:00','closed'=>false], ...]
     public $sportOverrideHours = false; // true if sport uses its own hours instead of venue hours
+
+    public $pools = [];
+    public $editingPoolId = null;
+    public $poolOpeningHours = [];
+    public $poolOverrideHours = false;
 
     // Payment Options Customization Properties
     public $online_payments_enabled = true;
@@ -718,6 +724,12 @@ class StaffSetting extends Component
             ->orderBy('name')
             ->get()
             ->all();
+
+        $this->pools = PoolsPool::with('admissionTypes')
+            ->where('venue_id', $this->complex_id)
+            ->orderBy('name')
+            ->get()
+            ->all();
     }
 
     /**
@@ -861,6 +873,135 @@ class StaffSetting extends Component
         $sport->update(['blocked_slots' => $blocks]);
         $this->loadSportsData();
         session()->flash('message', 'Blocked slot removed.');
+    }
+
+    // =========================================================
+    // Pool-specific opening hours & blocked slots
+    // =========================================================
+
+    public function editPoolHours($poolId): void
+    {
+        $pool = PoolsPool::find($poolId);
+        if (!$pool || $pool->venue_id != $this->complex_id) {
+            session()->flash('error', 'Pool not found.');
+            return;
+        }
+
+        $this->editingPoolId = (int) $poolId;
+        $dbHours = is_string($pool->opening_hours)
+            ? (json_decode($pool->opening_hours, true) ?: [])
+            : ($pool->opening_hours ?: []);
+
+        $this->poolOverrideHours = !empty($dbHours);
+        $this->poolOpeningHours = $this->parseOpeningHoursFromDb($dbHours);
+    }
+
+    public function cancelPoolHoursEdit(): void
+    {
+        $this->editingPoolId = null;
+        $this->poolOpeningHours = [];
+        $this->poolOverrideHours = false;
+    }
+
+    public function savePoolHours(): void
+    {
+        if (!$this->editingPoolId) return;
+
+        try {
+            $this->validate([
+                'poolOpeningHours.*.open'   => 'nullable|date_format:H:i',
+                'poolOpeningHours.*.close'  => 'nullable|date_format:H:i',
+                'poolOpeningHours.*.closed' => 'nullable|boolean',
+            ]);
+
+            $pool = PoolsPool::find($this->editingPoolId);
+            if (!$pool || $pool->venue_id != $this->complex_id) {
+                session()->flash('error', 'Pool not found.');
+                return;
+            }
+
+            $pool->update([
+                'opening_hours' => $this->poolOverrideHours ? $this->poolOpeningHours : null,
+            ]);
+
+            $this->loadSportsData();
+            $this->cancelPoolHoursEdit();
+            session()->flash('message', 'Pool opening hours saved.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            session()->flash('error', 'Invalid time format (use HH:MM).');
+            throw $e;
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error saving pool hours: ' . $e->getMessage());
+            Log::error('Pool hours save error: ' . $e->getMessage());
+        }
+    }
+
+    public function togglePoolRecurringBlock($poolId, string $day, string $time): void
+    {
+        $pool = PoolsPool::find($poolId);
+        if (!$pool || $pool->venue_id != $this->complex_id) {
+            session()->flash('error', 'Pool not found.');
+            return;
+        }
+
+        $day = strtolower($day);
+        if (!in_array($day, $this->days, true)) return;
+
+        $blocks = is_array($pool->blocked_slots) ? $pool->blocked_slots : [];
+        $list   = $blocks[$day] ?? [];
+        if (!is_array($list)) $list = [];
+
+        if (in_array($time, $list, true)) {
+            $list = array_values(array_filter($list, fn($t) => $t !== $time));
+        } else {
+            $list[] = $time;
+            sort($list);
+        }
+
+        if (empty($list)) {
+            unset($blocks[$day]);
+        } else {
+            $blocks[$day] = $list;
+        }
+
+        $pool->update(['blocked_slots' => $blocks]);
+        $this->loadSportsData();
+    }
+
+    public function clearPoolRecurringBlocks($poolId): void
+    {
+        $pool = PoolsPool::find($poolId);
+        if (!$pool || $pool->venue_id != $this->complex_id) {
+            session()->flash('error', 'Pool not found.');
+            return;
+        }
+
+        $blocks = is_array($pool->blocked_slots) ? $pool->blocked_slots : [];
+        foreach ($this->days as $day) {
+            unset($blocks[$day]);
+        }
+        $pool->update(['blocked_slots' => $blocks]);
+
+        $this->loadSportsData();
+        session()->flash('message', 'Recurring blocks cleared for this pool.');
+    }
+
+    public function unblockPoolSlot($poolId, $date, $time, $court): void
+    {
+        $pool = PoolsPool::find($poolId);
+        if (!$pool || $pool->venue_id != $this->complex_id) {
+            session()->flash('error', 'Pool not found.');
+            return;
+        }
+
+        $blocks = is_array($pool->blocked_slots) ? $pool->blocked_slots : [];
+        unset($blocks[$date][$time][$court]);
+        if (empty($blocks[$date][$time])) unset($blocks[$date][$time]);
+        if (empty($blocks[$date]))        unset($blocks[$date]);
+
+        $pool->update(['blocked_slots' => $blocks]);
+        $this->loadSportsData();
+        session()->flash('message', 'Blocked pool slot removed.');
     }
 
     public function render()

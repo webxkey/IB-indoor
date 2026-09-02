@@ -76,17 +76,17 @@ class Finance extends Component
     public function collectPayment()
     {
         if ($this->paymentBooking) {
-            $this->paymentBooking->payment_status = 'Paid';
-            if ($this->bookingTypeForPayment !== 'pool') {
-                $this->paymentBooking->payment_method = $this->collectPaymentMethod;
-            }
-            
             $amountDue = $this->paymentBooking->balance_due > 0 
                 ? $this->paymentBooking->balance_due 
                 : max(0, ($this->paymentBooking->price ?? $this->paymentBooking->booking_total) - $this->paymentBooking->advance_amount);
+
+            $this->paymentBooking->payment_status = 'Paid';
+            if ($this->bookingTypeForPayment !== 'pool') {
+                $this->paymentBooking->payment_method = $this->collectPaymentMethod;
+                $this->paymentBooking->offline_paid_amount = ($this->paymentBooking->offline_paid_amount ?? 0) + $amountDue;
+            }
             
             $this->paymentBooking->amount_paid = ($this->paymentBooking->amount_paid ?? 0) + $amountDue;
-            $this->paymentBooking->offline_paid_amount = ($this->paymentBooking->offline_paid_amount ?? 0) + $amountDue;
             $this->paymentBooking->balance_due = 0;
             $this->paymentBooking->financial_status = 'FullyPaid';
 
@@ -170,8 +170,17 @@ class Finance extends Component
 
         if (!empty($this->paymentMethod)) {
             $sportsQuery->whereRaw('LOWER(payment_method) = ?', [strtolower($this->paymentMethod)]);
-            // PoolsPoolbooking doesn't have payment_method, so if searching by method, pools return empty
-            $poolsQuery->whereRaw('1 = 0');
+            $method = strtolower($this->paymentMethod);
+            if (in_array($method, ['genie', 'online', 'card'])) {
+                $poolsQuery->where('online_paid_amount', '>', 0);
+            } elseif ($method === 'cash') {
+                $poolsQuery->where('amount_paid', '>', 0)
+                           ->where(function($q) {
+                               $q->whereNull('online_paid_amount')->orWhere('online_paid_amount', 0);
+                           });
+            } else {
+                $poolsQuery->whereRaw('1 = 0');
+            }
         }
 
         // Summary Statistics
