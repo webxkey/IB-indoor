@@ -137,15 +137,33 @@ class BookingsManagement extends Component
         return $this->triggerSms($entry->customer_phone, $message);
     }
 
-    protected $rules = [
-        'selectedGame' => 'required|string',
-        'selectedDate' => 'required|date_format:Y-m-d',
-        'selectedTime' => 'required',
-        'selectedCourt' => 'required|string',
-        'playerName' => 'required|string|max:255',
-        'phoneNumber' => 'required|string|max:20',
-        'status' => 'required|in:Confirmed,Pending,Completed,Cancelled,No-Show,Playing',
-        'notes' => 'nullable|string|max:1000',
+    protected function rules(): array
+    {
+        return [
+            'selectedGame' => 'required|string',
+            'selectedDate' => 'required|date_format:Y-m-d',
+            'selectedTime' => 'required',
+            'selectedCourt' => 'required|string',
+            'playerName' => 'required|string|max:255',
+            'phoneNumber' => [
+                'required',
+                'string',
+                'regex:/^(?:\+?94|0)?[\s\-]?[1-9](?:[\s\-]?[0-9]){8}$/',
+                function ($attribute, $value, $fail) {
+                    $digits = preg_replace('/\D+/', '', $value);
+                    if (preg_match('/(\d)\1{5,}/', $digits) || in_array($digits, ['123456789', '1234567890', '0123456789', '9876543210'])) {
+                        $fail('The phone number appears to be a placeholder or invalid number.');
+                    }
+                },
+            ],
+            'status' => 'required|in:Confirmed,Pending,Completed,Cancelled,No-Show,Playing',
+            'notes' => 'nullable|string|max:1000',
+        ];
+    }
+
+    protected $messages = [
+        'phoneNumber.required' => 'Customer phone number is required.',
+        'phoneNumber.regex' => 'Please enter a valid 10-digit mobile number (e.g. 07XXXXXXXX).',
     ];
 
     protected $listeners = [

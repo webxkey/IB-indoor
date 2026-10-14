@@ -73,12 +73,30 @@ class CustomBooking extends Component
         'filterDate' => ['except' => ''],
     ];
 
-    protected $rules = [
-        'playerName' => 'required|string|max:255',
-        'phoneNumber' => 'required|string|max:20',
-        'status' => 'required|in:Confirmed,Pending,Completed,Cancelled,No-Show,Playing',
-        'advance_amount' => 'nullable|numeric|min:0',
-        'notes' => 'nullable|string|max:1000',
+    protected function rules(): array
+    {
+        return [
+            'playerName' => 'required|string|max:255',
+            'phoneNumber' => [
+                'required',
+                'string',
+                'regex:/^(?:\+?94|0)?[\s\-]?[1-9](?:[\s\-]?[0-9]){8}$/',
+                function ($attribute, $value, $fail) {
+                    $digits = preg_replace('/\D+/', '', $value);
+                    if (preg_match('/(\d)\1{5,}/', $digits) || in_array($digits, ['123456789', '1234567890', '0123456789', '9876543210'])) {
+                        $fail('The phone number appears to be a placeholder or invalid number.');
+                    }
+                },
+            ],
+            'status' => 'required|in:Confirmed,Pending,Completed,Cancelled,No-Show,Playing',
+            'advance_amount' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string|max:1000',
+        ];
+    }
+
+    protected $messages = [
+        'phoneNumber.required' => 'Customer phone number is required.',
+        'phoneNumber.regex' => 'Please enter a valid 10-digit mobile number (e.g. 07XXXXXXXX).',
     ];
 
     public function mount()
@@ -189,15 +207,41 @@ class CustomBooking extends Component
             $this->endTimeOptions[] = ['value' => $val, 'label' => $label];
         }
 
-        if (empty($this->selectedEndTime) || (int) Carbon::parse($this->selectedEndTime)->format('H') <= $startHour) {
+        $currentEndHour = !empty($this->selectedEndTime) ? (int) Carbon::parse($this->selectedEndTime)->format('H') : 0;
+        if ($currentEndHour === 0 && $this->selectedEndTime === '00:00') {
+            $currentEndHour = 24;
+        }
+
+        if (empty($this->selectedEndTime) || $currentEndHour <= $startHour) {
             $this->selectedEndTime = $this->endTimeOptions[0]['value'] ?? sprintf('%02d:00', ($startHour + 1) % 24);
         }
     }
 
+    public function updatedSelectedEndTime($value)
+    {
+        // Livewire hook to ensure range reactivity
+    }
+
     public function selectTimeSlotFromPill($timeVal)
     {
-        $this->selectedTime = $timeVal;
-        $this->updatedSelectedTime($timeVal);
+        $clickedHour = (int) Carbon::parse($timeVal)->format('H');
+        $currentStartHour = !empty($this->selectedTime) ? (int) Carbon::parse($this->selectedTime)->format('H') : null;
+        $currentEndHour = !empty($this->selectedEndTime) ? (int) Carbon::parse($this->selectedEndTime)->format('H') : null;
+        if ($currentEndHour === 0 && $this->selectedEndTime === '00:00') {
+            $currentEndHour = 24;
+        }
+
+        $isSingleSlot = ($currentEndHour === $currentStartHour + 1);
+        $canExtend = ($currentStartHour !== null && $clickedHour > $currentStartHour && ($clickedHour - $currentStartHour <= 8));
+
+        if ($canExtend && ($isSingleSlot || ($clickedHour >= $currentEndHour - 1 && $clickedHour <= $currentEndHour + 3))) {
+            $newEndHour = ($clickedHour + 1) % 24;
+            $this->selectedEndTime = sprintf('%02d:00', $newEndHour);
+        } else {
+            // New start time
+            $this->selectedTime = $timeVal;
+            $this->updatedSelectedTime($timeVal);
+        }
     }
 
     public function getIsPrivateBookingEnabledProperty()
@@ -437,7 +481,20 @@ class CustomBooking extends Component
     {
         $this->validate([
             'playerName' => 'required|string|max:255',
-            'phoneNumber' => 'required|string|max:20',
+            'phoneNumber' => [
+                'required',
+                'string',
+                'regex:/^(?:\+?94|0)?[\s\-]?[1-9](?:[\s\-]?[0-9]){8}$/',
+                function ($attribute, $value, $fail) {
+                    $digits = preg_replace('/\D+/', '', $value);
+                    if (preg_match('/(\d)\1{5,}/', $digits) || in_array($digits, ['123456789', '1234567890', '0123456789', '9876543210'])) {
+                        $fail('The phone number appears to be a placeholder or invalid number.');
+                    }
+                },
+            ],
+        ], [
+            'phoneNumber.required' => 'Customer phone number is required.',
+            'phoneNumber.regex' => 'Please enter a valid 10-digit mobile number (e.g. 07XXXXXXXX).',
         ]);
 
         if (empty($this->draftPackageItems)) {

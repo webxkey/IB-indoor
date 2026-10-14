@@ -182,11 +182,13 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Contact Email</label>
-                    <input wire:model="form_contact_email" type="email" class="form-control" placeholder="contact@example.com">
+                    <input wire:model="form_contact_email" type="email" class="form-control @error('form_contact_email') is-invalid @enderror" placeholder="contact@example.com">
+                    @error('form_contact_email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Contact Phone</label>
-                    <input wire:model="form_contact_phone" type="text" class="form-control" placeholder="+92 300 0000000">
+                    <input wire:model="form_contact_phone" type="text" class="form-control @error('form_contact_phone') is-invalid @enderror" placeholder="0771234567 or +94771234567">
+                    @error('form_contact_phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
             <div class="d-flex gap-2 mt-4">

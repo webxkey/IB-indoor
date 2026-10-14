@@ -740,8 +740,21 @@ class StaffDashboard extends Component
     {
         $this->validate([
             'bookingFormUserName' => 'required|min:2',
-            'bookingFormUserNumber' => 'required|min:10',
+            'bookingFormUserNumber' => [
+                'required',
+                'string',
+                'regex:/^(?:\+?94|0)?[\s\-]?[1-9](?:[\s\-]?[0-9]){8}$/',
+                function ($attribute, $value, $fail) {
+                    $digits = preg_replace('/\D+/', '', $value);
+                    if (preg_match('/(\d)\1{5,}/', $digits) || in_array($digits, ['123456789', '1234567890', '0123456789', '9876543210'])) {
+                        $fail('The phone number appears to be a placeholder or invalid number.');
+                    }
+                },
+            ],
             'bookingFormCourtNumber' => 'required|integer|min:1',
+        ], [
+            'bookingFormUserNumber.required' => 'Customer phone number is required.',
+            'bookingFormUserNumber.regex' => 'Please enter a valid 10-digit mobile number (e.g. 07XXXXXXXX).',
         ]);
 
         if (is_string($this->bookingFormSportId) && str_starts_with($this->bookingFormSportId, 'pool_')) {

@@ -67,14 +67,26 @@ class TournamentManagement extends Component
     protected function rules(): array
     {
         return [
-            'form_name'       => 'required|string|min:3|max:200',
-            'form_format'     => 'required|in:round_robin,knockout,group_knockout,league,bilateral',
-            'form_season_year'=> 'nullable|integer|min:2020|max:2035',
-            'form_start_date' => 'nullable|date',
-            'form_end_date'   => 'nullable|date|after_or_equal:form_start_date',
-            'form_num_teams'  => 'required|integer|min:2|max:32',
-            'form_overs'      => 'required|integer|min:1|max:100',
-            'form_status'     => 'required|in:draft,published,active,completed,cancelled',
+            'form_name'          => 'required|string|min:3|max:200',
+            'form_format'        => 'required|in:round_robin,knockout,group_knockout,league,bilateral',
+            'form_season_year'   => 'nullable|integer|min:2020|max:2035',
+            'form_start_date'    => 'nullable|date',
+            'form_end_date'      => 'nullable|date|after_or_equal:form_start_date',
+            'form_num_teams'     => 'required|integer|min:2|max:32',
+            'form_overs'         => 'required|integer|min:1|max:100',
+            'form_status'        => 'required|in:draft,published,active,completed,cancelled',
+            'form_contact_email' => 'nullable|email|max:100',
+            'form_contact_phone' => [
+                'nullable',
+                'regex:/^(?:\+?94|0)?[\s\-]?[1-9](?:[\s\-]?[0-9]){8}$/',
+                function ($attribute, $value, $fail) {
+                    if (!$value) return;
+                    $clean = preg_replace('/[^0-9]/', '', $value);
+                    if (preg_match('/(\d)\1{5,}/', $clean) || in_array($clean, ['123456789', '1234567890', '0123456789', '9876543210'])) {
+                        $fail('The contact phone number appears to be invalid or a placeholder.');
+                    }
+                },
+            ],
         ];
     }
 
@@ -162,27 +174,38 @@ class TournamentManagement extends Component
         $slug = Str::slug($this->form_name) . '-' . time();
 
         $tournament = LeagueLeague::create([
-            'id'             => (string) Str::uuid(),
-            'name'           => $this->form_name,
-            'slug'           => $slug,
-            'description'    => $this->form_description ?: null,
-            'sport_type'     => 'cricket',
-            'format'         => $this->form_format,
-            'season_year'    => $this->form_season_year ?: null,
-            'season_name'    => $this->form_season_name ?: null,
-            'start_date'     => $this->form_start_date ?: null,
-            'end_date'       => $this->form_end_date ?: null,
-            'num_teams'      => (int) $this->form_num_teams,
-            'status'         => $this->form_status,
-            'prize_pool'     => $this->form_prize_pool ? (float) $this->form_prize_pool : null,
-            'contact_email'  => $this->form_contact_email ?: null,
-            'contact_phone'  => $this->form_contact_phone ?: null,
-            'cricket_config' => ['overs' => (int) $this->form_overs],
-            'is_active'      => true,
-            'is_public'      => true,
-            'created_at'     => now(),
-            'updated_at'     => now(),
-            'created_by_id'  => $this->currentDjangoUserId(),
+            'id'                    => (string) Str::uuid(),
+            'name'                  => $this->form_name,
+            'slug'                  => $slug,
+            'description'           => $this->form_description ?: null,
+            'sport_type'            => 'cricket',
+            'format'                => $this->form_format,
+            'season_year'           => $this->form_season_year ?: null,
+            'season_name'           => $this->form_season_name ?: null,
+            'start_date'            => $this->form_start_date ?: null,
+            'end_date'              => $this->form_end_date ?: null,
+            'num_teams'             => (int) $this->form_num_teams,
+            'squad_size'            => 15,
+            'min_players'           => 11,
+            'total_matches_planned' => 0,
+            'matches_completed'     => 0,
+            'status'                => $this->form_status,
+            'prize_pool'            => $this->form_prize_pool ? (float) $this->form_prize_pool : null,
+            'contact_email'         => $this->form_contact_email ?: null,
+            'contact_phone'         => $this->form_contact_phone ?: null,
+            'cricket_config'        => ['overs' => (int) $this->form_overs],
+            'is_active'             => true,
+            'is_public'             => true,
+            'approval_status'       => 'pending',
+            'cricket_variant'       => 'softball',
+            'playing_players_count' => 11,
+            'admin_team_assignment_count' => 0,
+            'admin_team_removal_count' => 0,
+            'is_venue_hosted'       => false,
+            'venue_hosting_approval_status' => 'none',
+            'created_at'            => now(),
+            'updated_at'            => now(),
+            'created_by_id'         => $this->currentDjangoUserId(),
         ]);
 
         session()->flash('success', 'Tournament "' . $tournament->name . '" created! Now add teams.');

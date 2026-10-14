@@ -83,7 +83,7 @@
                         <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
                         <input type="text" 
                                class="w-full pl-8 pr-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl outline-none text-xs font-semibold focus:ring-1 focus:ring-brand-500 focus:border-brand-500" 
-                               placeholder="Search by ID..." 
+                               placeholder="Search bookings by name, phone or ID..." 
                                wire:model.live.debounce.300ms="search">
                     </div>
                 </div>
@@ -100,8 +100,7 @@
                 <table class="w-full text-left border-collapse text-xs align-middle">
                     <thead>
                         <tr class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                            <th class="pl-4 py-3" style="width: 80px;">ID</th>
-                            <th class="py-3">Player Info</th>
+                            <th class="pl-4 py-3">Player Info</th>
                             <th class="py-3">Time & Duration</th>
                             <th class="py-3">Price</th>
                             <th class="py-3">Schedule</th>
@@ -139,8 +138,7 @@
                                 $totalChildCount = $booking->bookings->count();
                             @endphp
                             <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="pl-4 py-3 font-mono font-bold text-slate-900 text-sm">#{{ $booking->id }}</td>
-                                <td class="py-3">
+                                <td class="pl-4 py-3">
                                     <div class="font-bold text-slate-800 flex items-center gap-1">
                                         {{ $userName }}
                                         @if($isMobile)

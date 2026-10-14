@@ -275,9 +275,9 @@
                                 <!-- COURT -->
                                 <div class="sm:col-span-1">
                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">COURT</label>
-                                    <select wire:model="selectedCourt" class="w-full py-2 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+                                    <select wire:model.live="selectedCourt" class="w-full py-2 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
                                         @foreach($availableCourts as $court)
-                                            <option value="{{ $court }}">{{ $court }}</option>
+                                            <option wire:key="court-opt-{{ $court }}" value="{{ $court }}">{{ $court }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -297,7 +297,7 @@
                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">START TIME</label>
                                     <select wire:model.live="selectedTime" class="w-full py-2 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500">
                                         @foreach($timeOptions as $t)
-                                            <option value="{{ $t['value'] }}">{{ $t['label'] }}</option>
+                                            <option wire:key="start-time-{{ $t['value'] }}" value="{{ $t['value'] }}">{{ $t['label'] }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -307,7 +307,7 @@
                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">END TIME</label>
                                     <select wire:model.live="selectedEndTime" class="w-full py-2 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500">
                                         @foreach($endTimeOptions as $et)
-                                            <option value="{{ $et['value'] }}">{{ $et['label'] }}</option>
+                                            <option wire:key="end-time-{{ $et['value'] }}" value="{{ $et['value'] }}">{{ $et['label'] }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -329,6 +329,11 @@
                             @php
                                 $dayTimeline = $this->getDaySlotsTimeline();
                                 $rangeInfo = $this->getRangeAvailabilityInfo();
+                                $startHourInt = !empty($selectedTime) ? (int) \Carbon\Carbon::parse($selectedTime)->format('H') : null;
+                                $endHourInt = !empty($selectedEndTime) ? (int) \Carbon\Carbon::parse($selectedEndTime)->format('H') : null;
+                                if ($endHourInt === 0 && $selectedEndTime === '00:00') {
+                                    $endHourInt = 24;
+                                }
                             @endphp
 
                             @if(!empty($dayTimeline))
@@ -336,7 +341,7 @@
                                     <div class="flex items-center justify-between mb-2">
                                         <span class="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1">
                                             <span class="material-symbols-outlined text-xs text-emerald-600">view_timeline</span>
-                                            Full Day Schedule for {{ $selectedCourt }} ({{ \Carbon\Carbon::parse($selectedDate)->format('D, M j') }})
+                                            Full Day Schedule for Court {{ $selectedCourt }} ({{ \Carbon\Carbon::parse($selectedDate)->format('D, M j') }})
                                         </span>
                                         <div class="flex items-center gap-3 text-[9.5px] font-bold">
                                             <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Available</span>
@@ -349,24 +354,43 @@
                                     <div class="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-18 gap-1.5 p-2 bg-white border border-slate-200/90 rounded-2xl shadow-inner">
                                         @foreach($dayTimeline as $tSlot)
                                             @php
-                                                $pillClass = match($tSlot['status']) {
-                                                    'booked' => 'bg-rose-100 text-rose-800 border-rose-200 hover:bg-rose-200 cursor-not-allowed',
-                                                    'blocked' => 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 cursor-not-allowed',
-                                                    default => 'bg-emerald-50 hover:bg-emerald-200 text-emerald-800 border-emerald-300 cursor-pointer',
-                                                };
-                                                $isSelectedStart = ($tSlot['time_val'] === $selectedTime);
-                                                if ($isSelectedStart) {
-                                                    $pillClass .= ' ring-2 ring-emerald-600 font-black shadow-md';
+                                                $isStart = ($tSlot['time_val'] === $selectedTime);
+                                                $isInRange = ($startHourInt !== null && $endHourInt !== null && $tSlot['hour'] >= $startHourInt && $tSlot['hour'] < $endHourInt);
+
+                                                if ($tSlot['status'] === 'booked') {
+                                                    $pillClass = $isInRange 
+                                                        ? 'bg-rose-200 text-rose-950 border-rose-400 ring-2 ring-rose-500 font-black cursor-not-allowed'
+                                                        : 'bg-rose-100 text-rose-800 border-rose-200 hover:bg-rose-200 cursor-not-allowed';
+                                                } elseif ($tSlot['status'] === 'blocked') {
+                                                    $pillClass = $isInRange
+                                                        ? 'bg-amber-200 text-amber-950 border-amber-400 ring-2 ring-amber-500 font-black cursor-not-allowed'
+                                                        : 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 cursor-not-allowed';
+                                                } else {
+                                                    // Available
+                                                    if ($isStart) {
+                                                        $pillClass = 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-500 font-black shadow-md cursor-pointer';
+                                                    } elseif ($isInRange) {
+                                                        $pillClass = 'bg-emerald-200 text-emerald-950 border-2 border-emerald-400 font-bold shadow-sm hover:bg-emerald-300 cursor-pointer';
+                                                    } else {
+                                                        $pillClass = 'bg-emerald-50 hover:bg-emerald-200 text-emerald-800 border-emerald-300 cursor-pointer';
+                                                    }
                                                 }
                                             @endphp
                                             <button type="button"
+                                                    wire:key="slot-pill-{{ $tSlot['time_val'] }}"
                                                     @if($tSlot['status'] === 'available') wire:click="selectTimeSlotFromPill('{{ $tSlot['time_val'] }}')" @endif
                                                     title="{{ $tSlot['slot_range'] }} - {{ ucfirst($tSlot['status']) }} {{ $tSlot['booked_by'] ? '(' . $tSlot['booked_by'] . ')' : '' }}"
                                                     class="py-1.5 px-1 rounded-xl border text-[9.5px] font-extrabold text-center transition-all flex flex-col items-center justify-center min-w-0 {{ $pillClass }}">
                                                 <span class="truncate w-full">{{ $tSlot['label'] }}</span>
                                                 <span class="text-[8px] font-semibold opacity-80">
                                                     @if($tSlot['status'] === 'available')
-                                                        Avail
+                                                        @if($isStart)
+                                                            Start
+                                                        @elseif($isInRange)
+                                                            Book
+                                                        @else
+                                                            Avail
+                                                        @endif
                                                     @elseif($tSlot['status'] === 'booked')
                                                         Taken
                                                     @else
@@ -388,7 +412,12 @@
                                                 <span class="material-symbols-outlined text-base {{ $rangeInfo['is_fully_available'] ? 'text-emerald-600' : 'text-amber-600' }}">
                                                     {{ $rangeInfo['is_fully_available'] ? 'check_circle' : 'warning' }}
                                                 </span>
-                                                Range Status ({{ \Carbon\Carbon::parse($selectedTime)->format('g:i A') }} - {{ \Carbon\Carbon::parse($selectedEndTime)->format('g:i A') }}):
+                                                @php
+                                                    $endDisplayFormatted = ($selectedEndTime === '00:00') 
+                                                        ? '12:00 AM (Next Day)' 
+                                                        : \Carbon\Carbon::parse($selectedEndTime)->format('g:i A');
+                                                @endphp
+                                                Range Status ({{ \Carbon\Carbon::parse($selectedTime)->format('g:i A') }} - {{ $endDisplayFormatted }}):
                                             </span>
                                             <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold {{ $rangeInfo['is_fully_available'] ? 'bg-emerald-200 text-emerald-800' : 'bg-amber-200 text-amber-800' }}">
                                                 {{ $rangeInfo['avail_count'] }}/{{ $rangeInfo['total_slots'] }} Slots Free

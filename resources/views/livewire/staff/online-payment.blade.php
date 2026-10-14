@@ -328,15 +328,15 @@
                     <input type="text" wire:model.live.debounce.300ms="search" class="filter-input" placeholder="User Name, ID, Phone..." style="padding-left: 2.5rem;">
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="filter-label">Start Date</label>
                 <input type="date" wire:model.live="startDate" class="filter-input">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="filter-label">End Date</label>
                 <input type="date" wire:model.live="endDate" class="filter-input">
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <label class="filter-label">Financial Status</label>
                 <select wire:model.live="financialStatus" class="filter-input">
                     <option value="">All Statuses</option>
@@ -345,6 +345,11 @@
                     <option value="PartiallyPaid">Partially Paid</option>
                     <option value="RefundPending">Refund Pending</option>
                 </select>
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="button" wire:click="resetFilters" class="btn btn-outline-secondary w-100 rounded-pill py-2" title="Reset Filters">
+                    <i class="fas fa-undo"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -370,7 +375,7 @@
                     @forelse($bookings as $booking)
                         <tr>
                             <td>
-                                <span class="booking-id">#{{ $booking->id }}</span>
+                                <span class="booking-id">{{ $booking->id }}</span>
                             </td>
                             <td>
                                 <div class="user-info">
@@ -578,7 +583,7 @@
                         <div class="bg-light p-3 rounded mb-4">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Booking ID:</span>
-                                <span class="fw-bold">#{{ $paymentBooking->id }}</span>
+                                <span class="fw-bold">{{ $paymentBooking->id }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Customer:</span>
@@ -613,8 +618,11 @@
                     </div>
 
                     <div class="modal-footer border-top-0 bg-light rounded-bottom-4">
-                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" wire:click="closePaymentModal()">Cancel</button>
-                        <button type="button" class="btn btn-success rounded-pill px-4" wire:click="collectPayment()">Confirm Payment</button>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" wire:click="closePaymentModal()" wire:loading.attr="disabled">Cancel</button>
+                        <button type="button" class="btn btn-success rounded-pill px-4 d-inline-flex align-items-center gap-2" wire:click="collectPayment()" wire:loading.attr="disabled">
+                            <span wire:loading wire:target="collectPayment" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>Confirm Payment</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -637,7 +645,7 @@
                         <div class="bg-light p-3 rounded mb-4">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Booking ID:</span>
-                                <span class="fw-bold">#{{ $detailsBooking->id }}</span>
+                                <span class="fw-bold">{{ $detailsBooking->id }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Customer:</span>

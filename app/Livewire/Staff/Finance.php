@@ -26,14 +26,17 @@ class Finance extends Component
 
     public $showPaymentModal = false;
     public $paymentBooking = null;
+    public $paymentBookingId = null;
     public $bookingTypeForPayment = 'sport';
     public $collectPaymentMethod = 'cash';
 
     public $showDetailsModal = false;
     public $detailsBooking = null;
+    public $detailsBookingId = null;
 
     public function openDetailsModal($id, $type = 'sport')
     {
+        $this->detailsBookingId = $id;
         if ($type === 'pool') {
             $this->detailsBooking = PoolsPoolbooking::find($id);
         } else {
@@ -48,11 +51,13 @@ class Finance extends Component
     {
         $this->showDetailsModal = false;
         $this->detailsBooking = null;
+        $this->detailsBookingId = null;
     }
 
     public function openPaymentModal($id, $type = 'sport')
     {
-        $this->bookingTypeForPayment = $type; // we need to remember this for collectPayment
+        $this->paymentBookingId = $id;
+        $this->bookingTypeForPayment = $type;
         if ($type === 'pool') {
             $this->paymentBooking = PoolsPoolbooking::find($id);
         } else {
@@ -71,30 +76,60 @@ class Finance extends Component
     {
         $this->showPaymentModal = false;
         $this->paymentBooking = null;
+        $this->paymentBookingId = null;
     }
 
     public function collectPayment()
     {
-        if ($this->paymentBooking) {
-            $this->paymentBooking->payment_status = 'Paid';
+        $booking = null;
+        if ($this->bookingTypeForPayment === 'pool') {
+            $booking = PoolsPoolbooking::find($this->paymentBookingId);
+        } else {
+            $booking = BookingBooking::find($this->paymentBookingId);
+        }
+
+        if (!$booking && $this->paymentBooking) {
+            $booking = $this->paymentBooking;
+        }
+
+        if ($booking) {
+            $booking->payment_status = 'Paid';
             if ($this->bookingTypeForPayment !== 'pool') {
-                $this->paymentBooking->payment_method = $this->collectPaymentMethod;
+                $booking->payment_method = $this->collectPaymentMethod;
             }
             
-            $amountDue = $this->paymentBooking->balance_due > 0 
-                ? $this->paymentBooking->balance_due 
-                : max(0, ($this->paymentBooking->price ?? $this->paymentBooking->booking_total) - $this->paymentBooking->advance_amount);
+            $amountDue = $booking->balance_due > 0 
+                ? (float) $booking->balance_due 
+                : max(0, (float) ($booking->price ?? $booking->booking_total ?? 0) - (float) ($booking->advance_amount ?? 0));
             
-            $this->paymentBooking->amount_paid = ($this->paymentBooking->amount_paid ?? 0) + $amountDue;
-            $this->paymentBooking->offline_paid_amount = ($this->paymentBooking->offline_paid_amount ?? 0) + $amountDue;
-            $this->paymentBooking->balance_due = 0;
-            $this->paymentBooking->financial_status = 'FullyPaid';
+            $booking->amount_paid = ((float) ($booking->amount_paid ?? 0)) + $amountDue;
+            
+            if ($this->bookingTypeForPayment !== 'pool') {
+                if (strtolower($this->collectPaymentMethod) === 'cash') {
+                    $booking->offline_paid_amount = ((float) ($booking->offline_paid_amount ?? 0)) + $amountDue;
+                } else {
+                    $booking->online_paid_amount = ((float) ($booking->online_paid_amount ?? 0)) + $amountDue;
+                }
+            }
 
-            $this->paymentBooking->save();
+            $booking->balance_due = 0;
+            $booking->financial_status = 'FullyPaid';
 
-            session()->flash('success', "Payment of Rs." . number_format($amountDue, 2) . " collected successfully.");
+            $booking->save();
+
+            session()->flash('success', "Payment of Rs." . number_format($amountDue, 2) . " collected successfully via " . ucfirst($this->collectPaymentMethod) . ".");
             $this->closePaymentModal();
         }
+    }
+
+    public function resetFilters()
+    {
+        $this->search = '';
+        $this->startDate = '';
+        $this->endDate = '';
+        $this->paymentStatus = '';
+        $this->paymentMethod = '';
+        $this->resetPage();
     }
 
     public function updatingSearch()
@@ -142,13 +177,13 @@ class Finance extends Component
         if (!empty($this->search)) {
             $search = '%' . $this->search . '%';
             $sportsQuery->where(function ($q) use ($search) {
-                $q->where('user_name', 'like', $search)
-                  ->orWhere('id', 'like', $search)
+                $q->where('user_name', 'ilike', $search)
+                  ->orWhereRaw('CAST(id AS TEXT) LIKE ?', [$search])
                   ->orWhere('user_number', 'like', $search);
             });
             $poolsQuery->where(function ($q) use ($search) {
-                $q->where('user_name', 'like', $search)
-                  ->orWhere('id', 'like', $search)
+                $q->where('user_name', 'ilike', $search)
+                  ->orWhereRaw('CAST(id AS TEXT) LIKE ?', [$search])
                   ->orWhere('user_number', 'like', $search);
             });
         }

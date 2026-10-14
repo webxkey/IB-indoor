@@ -447,7 +447,20 @@ class PoolBookingsManagement extends Component
     {
         $this->validate([
             'userName' => 'required|string|max:100',
-            'userNumber' => 'required|string|max:20',
+            'userNumber' => [
+                'required',
+                'string',
+                'regex:/^(?:\+?94|0)?[\s\-]?[1-9](?:[\s\-]?[0-9]){8}$/',
+                function ($attribute, $value, $fail) {
+                    $digits = preg_replace('/\D+/', '', $value);
+                    if (preg_match('/(\d)\1{5,}/', $digits) || in_array($digits, ['123456789', '1234567890', '0123456789', '9876543210'])) {
+                        $fail('The phone number appears to be a placeholder or invalid number.');
+                    }
+                },
+            ],
+        ], [
+            'userNumber.required' => 'Customer phone number is required.',
+            'userNumber.regex' => 'Please enter a valid 10-digit mobile number (e.g. 07XXXXXXXX).',
         ]);
 
         $this->loadData();

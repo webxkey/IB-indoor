@@ -168,7 +168,20 @@ class PermanentBookings extends Component
         }
 
         if ($this->search) {
-            $query->where('id', 'like', '%' . $this->search . '%');
+            $term = '%' . $this->search . '%';
+            $query->where(function ($q) use ($term) {
+                $q->whereRaw('CAST(id AS TEXT) LIKE ?', [$term])
+                  ->orWhereHas('user', function ($uq) use ($term) {
+                      $uq->where('first_name', 'ilike', $term)
+                         ->orWhere('last_name', 'ilike', $term)
+                         ->orWhere('phone_number', 'like', $term);
+                  })
+                  ->orWhereHas('bookings', function ($bq) use ($term) {
+                      $bq->where('user_name', 'ilike', $term)
+                         ->orWhere('user_number', 'like', $term)
+                         ->orWhere('game_name', 'ilike', $term);
+                  });
+            });
         }
 
         $bookings = $query->with(['user', 'bookings' => function($q) {

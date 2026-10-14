@@ -239,10 +239,9 @@ class StaffReport extends Component
                 ->with('sport')
                 ->get();
 
-            $csvContent = "Booking ID,Player Name,Court,Sport,Date,Start Time,End Time,Status,Payment Status,Revenue\n";
+            $csvContent = "Player Name,Court,Sport,Date,Start Time,End Time,Status,Payment Status,Revenue\n";
             foreach ($data as $booking) {
                 $csvContent .= implode(',', [
-                    $booking->id,
                     '"' . ($booking->user_name ?? 'N/A') . '"',
                     '"' . ($booking->court_number ?? 'N/A') . '"',
                     '"' . ($booking->sport->name ?? $booking->game_name ?? 'N/A') . '"',

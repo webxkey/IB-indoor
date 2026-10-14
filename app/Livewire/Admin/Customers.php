@@ -44,7 +44,18 @@ class Customers extends Component
             'firstName' => 'required|string|max:255',
             'lastName' => 'required|string|max:255',
             'email' => 'required|email|unique:users_user,email',
-            'phoneNumber' => 'nullable|string|max:20',
+            'phoneNumber' => [
+                'nullable',
+                'string',
+                'regex:/^(?:\+?94|0)?[\s\-]?[1-9](?:[\s\-]?[0-9]){8}$/',
+                function ($attribute, $value, $fail) {
+                    if (!$value) return;
+                    $digits = preg_replace('/\D+/', '', $value);
+                    if (preg_match('/(\d)\1{5,}/', $digits) || in_array($digits, ['123456789', '1234567890', '0123456789', '9876543210'])) {
+                        $fail('The phone number appears to be a placeholder or invalid number.');
+                    }
+                },
+            ],
             'password' => 'required|min:8',
             'isActive' => 'boolean',
         ];
