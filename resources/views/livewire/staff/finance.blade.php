@@ -414,18 +414,24 @@
                                 </span>
                             </td>
                             <td>
-                                @if(isset($booking->item_type) && $booking->item_type === 'pool')
-                                    <span class="text-capitalize"><i class="fas fa-money-bill text-muted me-1"></i> {{ $booking->payment_method ?? 'Online' }}</span>
-                                @else
-                                    @if($booking->payment_method)
-                                        @php
-                                            $displayMethod = strtolower($booking->payment_method) == 'genie' ? 'Online' : $booking->payment_method;
-                                        @endphp
-                                        <span class="text-capitalize"><i class="fas fa-{{ strtolower($booking->payment_method) == 'cash' ? 'money-bill' : 'credit-card' }} text-muted me-1"></i> {{ $displayMethod }}</span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                @endif
+                                 @if(isset($booking->item_type) && $booking->item_type === 'pool')
+                                     @if(($booking->online_paid_amount ?? 0) > 0)
+                                         <span class="text-capitalize"><i class="fas fa-globe text-muted me-1"></i> Online</span>
+                                     @elseif(($booking->amount_paid ?? 0) > 0)
+                                         <span class="text-capitalize"><i class="fas fa-money-bill text-muted me-1"></i> Cash</span>
+                                     @else
+                                         <span class="text-muted">-</span>
+                                     @endif
+                                 @else
+                                     @if($booking->payment_method)
+                                         @php
+                                             $displayMethod = strtolower($booking->payment_method) == 'genie' ? 'Online' : $booking->payment_method;
+                                         @endphp
+                                         <span class="text-capitalize"><i class="fas fa-{{ strtolower($booking->payment_method) == 'cash' ? 'money-bill' : 'credit-card' }} text-muted me-1"></i> {{ $displayMethod }}</span>
+                                     @else
+                                         <span class="text-muted">-</span>
+                                     @endif
+                                 @endif
                             </td>
                             <td class="text-end currency text-success">
                                 Rs.{{ number_format($booking->price ?? $booking->booking_total, 2) }}
@@ -569,7 +575,7 @@
                             </div>
                             <div class="d-flex justify-content-between mb-3">
                                 <span class="text-secondary"><i class="fas fa-money-bill-wave me-2"></i>Offline Paid</span>
-                                <span class="fw-bold text-dark">Rs.{{ number_format($detailsBooking->offline_paid_amount ?: 0, 2) }}</span>
+                                <span class="fw-bold text-dark">Rs.{{ number_format(($detailsBooking->offline_paid_amount ?? max(0, ($detailsBooking->amount_paid ?: 0) - ($detailsBooking->online_paid_amount ?: 0))), 2) }}</span>
                             </div>
                             <hr class="my-2 text-muted opacity-25">
                             <div class="d-flex justify-content-between mt-3">

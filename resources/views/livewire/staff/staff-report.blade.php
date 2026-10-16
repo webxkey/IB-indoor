@@ -712,50 +712,50 @@
                         </div>
 
                         <!-- Report Content -->
-                        <h6 class="fw-bold text-uppercase text-secondary mb-3"><i class="fas fa-list me-1"></i> Booking Records</h6>
-                        <div class="table-responsive p-0">
-                            <table class="table table-bordered table-striped align-middle mb-0">
-                                <thead class="table-light">
+                        <p><strong>Dates:</strong> {{ \Carbon\Carbon::parse($start_date)->format('M d, Y') }} to {{ \Carbon\Carbon::parse($end_date)->format('M d, Y') }}</p>
+                        <hr>
+                        <h4>BOOKING DETAILS</h4>
+                        <table class="table table-bordered table-striped align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Username</th>
+                                    <th>Court</th>
+                                    <th>Sport</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Duration (Hours)</th>
+                                    <th>Status</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($bookingDetailModel as $booking)
                                     <tr>
-                                        <th>Booking ID</th>
-                                        <th>Username</th>
-                                        <th>Court</th>
-                                        <th>Sport</th>
-                                        <th>Date</th>
-                                        <th>Time</th>
-                                        <th>Duration</th>
-                                        <th>Status</th>
-                                        <th class="text-end">Revenue</th>
+                                        <td>{{ $booking->id }}</td>
+                                        <td>{{ $booking->user_name ?? 'N/A' }}</td>
+                                        <td>{{ $booking->court_number ?? 'N/A' }}</td>
+                                        <td>{{ $booking->sport->name ?? 'N/A' }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}</td>
+                                        <td>
+                                            {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} -
+                                            {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
+                                        </td>
+                                        <td>{{ number_format(\Carbon\Carbon::parse($booking->end_time)->diffInHours(\Carbon\Carbon::parse($booking->start_time)), 2) }}</td>
+                                        <td>
+                                            <span class="badge {{ in_array(strtolower($booking->status), ['booked', 'upcoming', 'confirmed', 'played', 'completed']) ? 'bg-success' : (strtolower($booking->status) === 'pending' ? 'bg-warning' : 'bg-danger') }}">
+                                                {{ $booking->status }}
+                                            </span>
+                                        </td>
+                                        <td>LKR {{ number_format($booking->price, 2) }}</td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($bookingDetailModel as $booking)
-                                        <tr>
-                                            <td class="fw-bold">#{{ $booking->id }}</td>
-                                            <td>{{ $booking->user_name ?? 'N/A' }}</td>
-                                            <td>{{ $booking->court_number ?? 'N/A' }}</td>
-                                            <td>{{ $booking->sport->name ?? 'N/A' }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($booking->booking_date)->format('M d, Y') }}</td>
-                                            <td>
-                                                {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} -
-                                                {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
-                                            </td>
-                                            <td>{{ number_format(\Carbon\Carbon::parse($booking->end_time)->diffInHours(\Carbon\Carbon::parse($booking->start_time)), 2) }} hrs</td>
-                                            <td>
-                                                <span class="badge {{ $booking->status === 'Booked' || $booking->status === 'Upcoming' ? 'bg-success' : ($booking->status === 'Pending' ? 'bg-warning' : 'bg-danger') }}">
-                                                    {{ $booking->status }}
-                                                </span>
-                                            </td>
-                                            <td class="text-end fw-semibold">LKR {{ number_format($booking->price, 2) }}</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="9" class="text-center text-muted py-4">No bookings found for the selected period.</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
+                                @empty
+                                    <tr>
+                                        <td colspan="12" class="text-center text-muted">No bookings found for the selected period.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-primary btn-print" onclick="window.print()">

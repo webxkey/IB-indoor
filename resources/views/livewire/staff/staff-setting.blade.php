@@ -1127,6 +1127,238 @@
                         </div>
                         @endforeach
                     @endif
+
+                    <!-- Swimming Pools Section -->
+                    <div class="mt-4 pt-3 border-top">
+                        <h5 class="card-title fw-semibold mb-3 d-flex align-items-center">
+                            <i class="fas fa-swimming-pool text-info me-2"></i>
+                            Swimming Pool Settings
+                        </h5>
+                        <p class="text-muted small mb-4">Per-pool opening hours (override venue hours) and blocked time slots for swimming pools.</p>
+
+                        @if(empty($pools) || count($pools) === 0)
+                            <div class="text-center py-4 text-muted border rounded bg-light">
+                                <i class="fas fa-swimming-pool fa-2x mb-2 opacity-50 text-info"></i>
+                                <p class="mb-0 small">No swimming pools configured for this venue yet.</p>
+                            </div>
+                        @else
+                            @foreach($pools as $pool)
+                            <div class="card border mb-3">
+                                <div class="card-body">
+                                    {{-- Pool header --}}
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+                                        <div>
+                                            <h6 class="fw-semibold mb-1">
+                                                <i class="fas fa-swimming-pool text-info me-1"></i>
+                                                {{ $pool->name }}
+                                                <span class="badge bg-{{ strtolower((string)$pool->status) === 'active' ? 'success' : 'secondary' }} ms-2">
+                                                    {{ ucfirst((string)$pool->status) }}
+                                                </span>
+                                            </h6>
+                                            <div class="small text-muted">
+                                                <i class="fas fa-users me-1"></i> Capacity: {{ $pool->capacity ?? 'N/A' }} persons
+                                                &nbsp;•&nbsp;
+                                                <i class="fas fa-ticket-alt me-1"></i>
+                                                @if($pool->admissionTypes && count($pool->admissionTypes) > 0)
+                                                    @foreach($pool->admissionTypes as $adm)
+                                                        <span class="badge bg-light text-dark border me-1">{{ $adm->name }}: LKR {{ number_format($adm->price, 2) }}</span>
+                                                    @endforeach
+                                                @else
+                                                    <span>No admission types set</span>
+                                                @endif
+                                                &nbsp;•&nbsp;
+                                                <i class="fas fa-clock me-1"></i>
+                                                @if(!empty($pool->opening_hours))
+                                                    <span class="text-warning">Custom hours</span>
+                                                @else
+                                                    <span>Venue hours</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-info rounded-2"
+                                                wire:click="editPoolHours({{ $pool->id }})">
+                                            <i class="fas fa-clock me-1"></i> Edit Hours
+                                        </button>
+                                    </div>
+
+                                    {{-- Inline hours editor for Pool --}}
+                                    @if($editingPoolId === (int) $pool->id)
+                                    <div class="border-top pt-3 mt-2">
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox"
+                                                   id="override_pool_{{ $pool->id }}"
+                                                   wire:model.live="poolOverrideHours">
+                                            <label class="form-check-label small" for="override_pool_{{ $pool->id }}">
+                                                <strong>Override venue hours for this pool</strong>
+                                                <span class="text-muted">— when off, the venue's opening hours apply.</span>
+                                            </label>
+                                        </div>
+
+                                        @if($poolOverrideHours)
+                                            <table class="table table-borderless table-sm mb-3">
+                                                <tbody>
+                                                    @foreach($days as $day)
+                                                    <tr>
+                                                        <td class="w-25 fw-medium text-muted">{{ ucfirst($day) }}</td>
+                                                        <td>
+                                                            <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                                <input type="time"
+                                                                       class="form-control form-control-sm"
+                                                                       style="max-width:140px"
+                                                                       wire:model.live="poolOpeningHours.{{ $day }}.open"
+                                                                       @if($poolOpeningHours[$day]['closed'] ?? false) disabled @endif>
+                                                                <span class="text-muted">to</span>
+                                                                <input type="time"
+                                                                       class="form-control form-control-sm"
+                                                                       style="max-width:140px"
+                                                                       wire:model.live="poolOpeningHours.{{ $day }}.close"
+                                                                       @if($poolOpeningHours[$day]['closed'] ?? false) disabled @endif>
+                                                                <div class="form-check ms-2">
+                                                                    <input class="form-check-input" type="checkbox"
+                                                                           id="closed_pool_{{ $pool->id }}_{{ $day }}"
+                                                                           wire:model.live="poolOpeningHours.{{ $day }}.closed">
+                                                                    <label class="form-check-label small" for="closed_pool_{{ $pool->id }}_{{ $day }}">Closed</label>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        @endif
+
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-primary" type="button" wire:click="savePoolHours">
+                                                <i class="fas fa-save me-1"></i> Save Hours
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" type="button" wire:click="cancelPoolHoursEdit">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    {{-- Read-only view of opening hours when not editing --}}
+                                    @if($editingPoolId !== (int) $pool->id && !empty($pool->opening_hours))
+                                    <div class="border-top pt-3 mt-2">
+                                        <h6 class="small fw-semibold text-muted mb-2">Custom Opening Hours</h6>
+                                        <div class="row g-2 small">
+                                            @foreach($days as $day)
+                                                @php
+                                                    $h = is_array($pool->opening_hours) ? ($pool->opening_hours[$day] ?? null) : null;
+                                                @endphp
+                                                <div class="col-md-3 col-6">
+                                                    <span class="text-muted">{{ ucfirst((string)$day) }}:</span>
+                                                    @if(is_array($h) && ($h['closed'] ?? false))
+                                                        <span class="badge bg-danger bg-opacity-10 text-danger">Closed</span>
+                                                    @elseif(is_array($h))
+                                                        @php
+                                                            $openStr  = is_array($h['open'] ?? null) ? implode(', ', $h['open']) : ($h['open'] ?? '—');
+                                                            $closeStr = is_array($h['close'] ?? null) ? implode(', ', $h['close']) : ($h['close'] ?? '—');
+                                                        @endphp
+                                                        <span>{{ $openStr }} - {{ $closeStr }}</span>
+                                                    @else
+                                                        <span class="text-muted">—</span>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    {{-- Recurring (day-of-week) blocked slots for Pool --}}
+                                    @php
+                                        $rawPoolBlocks = is_array($pool->blocked_slots) ? $pool->blocked_slots : [];
+                                        $poolRecurring = [];
+                                        foreach ($days as $d) {
+                                            $entry = $rawPoolBlocks[$d] ?? [];
+                                            $poolRecurring[$d] = is_array($entry) ? $entry : [];
+                                        }
+                                        $hasPoolRecurring = false;
+                                        foreach ($poolRecurring as $list) { if (count($list) > 0) { $hasPoolRecurring = true; break; } }
+                                        $pHours = is_array($pool->opening_hours) ? $pool->opening_hours : [];
+                                    @endphp
+                                    <div class="border-top pt-3 mt-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                                            <h6 class="small fw-semibold text-muted mb-0">
+                                                <i class="fas fa-calendar-times me-1"></i>
+                                                Recurring Blocked Slots (every week)
+                                            </h6>
+                                            @if($hasPoolRecurring)
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        wire:click="clearPoolRecurringBlocks({{ $pool->id }})"
+                                                        wire:confirm="Remove ALL recurring blocks for {{ $pool->name }}?">
+                                                    <i class="fas fa-trash me-1"></i> Clear all recurring
+                                                </button>
+                                            @endif
+                                        </div>
+                                        <p class="small text-muted mb-2">Click any slot to toggle block / unblock for this pool.</p>
+
+                                        <div class="recurring-block-grid">
+                                            <table class="table table-sm align-middle mb-0">
+                                                <tbody>
+                                                    @foreach($days as $day)
+                                                        @php
+                                                            $dayHours = $pHours[$day] ?? ($opening_hours[$day] ?? null);
+                                                            $isClosed = isset($dayHours['closed']) && $dayHours['closed'];
+                                                            $dayList  = $poolRecurring[$day];
+                                                        @endphp
+                                                        <tr>
+                                                            @php
+                                                                $startHour = isset($dayHours['open']) ? (int) explode(':', $dayHours['open'])[0] : 6;
+                                                                $endHour   = isset($dayHours['close']) ? (int) explode(':', $dayHours['close'])[0] : 22;
+                                                                if ($endHour <= $startHour) $endHour = $startHour + 1;
+                                                                $hoursLabel = $isClosed ? null : sprintf('%02d:00 - %02d:00', $startHour, $endHour);
+                                                            @endphp
+                                                            <td class="fw-medium text-muted" style="width:160px;white-space:nowrap;">
+                                                                {{ ucfirst($day) }}
+                                                                @if($isClosed)
+                                                                    <span class="badge bg-secondary ms-1">Closed day</span>
+                                                                @elseif(empty($dayList))
+                                                                    <span class="badge bg-success bg-opacity-25 text-success ms-1">All open</span>
+                                                                @else
+                                                                    <span class="badge bg-danger bg-opacity-25 text-danger ms-1">{{ count($dayList) }} blocked</span>
+                                                                @endif
+                                                                @if($hoursLabel)
+                                                                    <div class="small text-muted mt-1">{{ $hoursLabel }}</div>
+                                                                @endif
+                                                            </td>
+                                                            <td>
+                                                                @if($isClosed)
+                                                                    <span class="text-muted small fst-italic">— no slots, day closed —</span>
+                                                                @else
+                                                                    <div class="d-flex flex-wrap gap-1">
+                                                                        @for($h = $startHour; $h < $endHour; $h++)
+                                                                            @php
+                                                                                $time      = sprintf('%02d:00:00', $h);
+                                                                                $label     = sprintf('%d%s-%d%s',
+                                                                                    ($h % 12) === 0 ? 12 : ($h % 12), $h < 12 ? 'AM' : 'PM',
+                                                                                    (($h+1) % 12) === 0 ? 12 : (($h+1) % 12), ($h+1) < 12 ? 'AM' : 'PM'
+                                                                                );
+                                                                                $isBlocked = in_array($time, $dayList, true);
+                                                                            @endphp
+                                                                            <button type="button"
+                                                                                    class="slot-pill {{ $isBlocked ? 'slot-blocked' : 'slot-open' }}"
+                                                                                    wire:click="togglePoolRecurringBlock({{ $pool->id }}, '{{ $day }}', '{{ $time }}')">
+                                                                                {{ $label }}
+                                                                            </button>
+                                                                        @endfor
+                                                                    </div>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        @endif
+                    </div>
                 </div>
             </div>
             @elseif($activeSection === 'payments')

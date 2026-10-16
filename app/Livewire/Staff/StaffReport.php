@@ -5,6 +5,8 @@ namespace App\Livewire\Staff;
 use App\Models\BookingBooking;
 use App\Models\BookingVenue;
 use App\Models\BookingSport;
+use App\Models\PoolsPool;
+use App\Models\PoolsPoolbooking;
 
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Layout;
@@ -70,16 +72,101 @@ class StaffReport extends Component
         $this->complexPhoto = $complex->cover_image ? asset('storage/' . $complex->cover_image) : asset('fd.jpg');
     }
 
+    private function getCombinedBookings()
+    {
+        // 1. Regular Bookings
+        $regularBookings = BookingBooking::with('sport')
+            ->where('complex_id_id', $this->complex_id)
+            ->whereBetween('booking_date', [$this->start_date, $this->end_date])
+            ->get();
+
+        $normalized = collect();
+
+        foreach ($regularBookings as $b) {
+            $sportName = $b->sport ? $b->sport->name : ($b->game_name ?? 'N/A');
+            $startTimeStr = $b->start_time ? (strlen($b->start_time) === 5 ? $b->start_time . ':00' : $b->start_time) : '00:00:00';
+            $endTimeStr = $b->end_time ? (strlen($b->end_time) === 5 ? $b->end_time . ':00' : $b->end_time) : '00:00:00';
+
+            $normalized->push((object)[
+                'id'             => $b->id,
+                'raw_id'         => $b->id,
+                'user_name'      => $b->user_name ?: 'N/A',
+                'user_number'    => $b->user_number ?: 'N/A',
+                'court_number'   => $b->court_number ?: 'Court N/A',
+                'game_name'      => $sportName,
+                'sport'          => (object)['name' => $sportName],
+                'booking_date'   => Carbon::parse($b->booking_date)->toDateString(),
+                'start_time'     => $startTimeStr,
+                'end_time'       => $endTimeStr,
+                'status'         => $b->status ?? 'Confirmed',
+                'payment_status' => $b->payment_status ?? ($b->financial_status ?? 'N/A'),
+                'price'          => (float)($b->price > 0 ? $b->price : $b->amount_paid),
+                'type'           => 'regular',
+            ]);
+        }
+
+        // 2. Pool Bookings
+        $poolBookings = PoolsPoolbooking::with(['pool', 'occurrence', 'user'])
+            ->whereHas('pool', function ($q) {
+                $q->where('venue_id', $this->complex_id);
+            })
+            ->where(function ($q) {
+                $q->whereHas('occurrence', function ($occQ) {
+                    $occQ->whereBetween('session_date', [$this->start_date, $this->end_date]);
+                })->orWhere(function ($createdQ) {
+                    $createdQ->whereNull('occurrence_id')
+                        ->whereBetween(\DB::raw('DATE(created_at)'), [$this->start_date, $this->end_date]);
+                });
+            })
+            ->get();
+
+        foreach ($poolBookings as $pb) {
+            $poolName = $pb->pool ? $pb->pool->name : 'Pool';
+            $userName = $pb->user_name ?: ($pb->user->name ?? 'Guest/Pool User');
+            $userPhone = $pb->user_number ?: ($pb->user->phone ?? 'N/A');
+
+            $bookingDate = $pb->occurrence
+                ? Carbon::parse($pb->occurrence->session_date)->toDateString()
+                : Carbon::parse($pb->created_at)->toDateString();
+
+            $startTimeStr = $pb->occurrence
+                ? (strlen($pb->occurrence->start_time) === 5 ? $pb->occurrence->start_time . ':00' : $pb->occurrence->start_time)
+                : Carbon::parse($pb->created_at)->format('H:i:s');
+
+            $endTimeStr = $pb->occurrence
+                ? (strlen($pb->occurrence->end_time) === 5 ? $pb->occurrence->end_time . ':00' : $pb->occurrence->end_time)
+                : Carbon::parse($pb->created_at)->addHour()->format('H:i:s');
+
+            $price = (float)($pb->booking_total > 0 ? $pb->booking_total : $pb->amount_paid);
+
+            $normalized->push((object)[
+                'id'             => $pb->booking_reference ?? ('PB-' . $pb->id),
+                'raw_id'         => $pb->id,
+                'user_name'      => $userName,
+                'user_number'    => $userPhone,
+                'court_number'   => $poolName,
+                'game_name'      => 'Pool (' . $poolName . ')',
+                'sport'          => (object)['name' => 'Pool (' . $poolName . ')'],
+                'booking_date'   => $bookingDate,
+                'start_time'     => $startTimeStr,
+                'end_time'       => $endTimeStr,
+                'status'         => $pb->status ?? 'Confirmed',
+                'payment_status' => $pb->financial_status ?: ($pb->payment_status ?? 'N/A'),
+                'price'          => $price,
+                'type'           => 'pool',
+            ]);
+        }
+
+        return $normalized->sortByDesc('booking_date')->values();
+    }
+
     private function loadReportData()
     {
         if ($this->activeReport === 'booking') {
-            $this->bookingDetail = BookingBooking::with('sport')
-                ->where('complex_id_id', $this->complex_id)
-                ->whereBetween('booking_date', [$this->start_date, $this->end_date])
-                ->orderBy('booking_date', 'desc')
-                ->get();
+            $this->bookingDetail = $this->getCombinedBookings();
         }
     }
+
     public function generateReport()
     {
         $this->validate();
@@ -98,90 +185,118 @@ class StaffReport extends Component
         }
         $this->end_date = $end->toDateString();
 
-        // Filter by current venue/complex
-        $query = BookingBooking::query()
-            ->where('complex_id_id', $this->complex_id)
-            ->whereBetween('booking_date', [$this->start_date, $this->end_date]);
+        $allBookings = $this->getCombinedBookings();
 
-        $this->reportData = $query->get();
+        $this->reportData = $allBookings;
+        $this->bookingDetails = $allBookings;
+        $this->bookingDetailModel = $allBookings;
+        $this->bookingDetail = $allBookings;
 
-        $this->bookingDetails = BookingBooking::where('complex_id_id', $this->complex_id)->get();
-        $this->bookingDetailModel = $query->clone()->with('sport')->get();
-        $this->upcomingBooked = $query->clone()->whereIn('status', ['Confirmed'])->get();
+        $this->upcomingBooked = $allBookings->filter(function ($b) {
+            return in_array(strtolower($b->status), ['confirmed', 'booked', 'upcoming']);
+        });
 
         $this->totalUpcomingBookings = $this->upcomingBooked->count();
-        $this->totalBookings = $this->bookingDetails->count();
-        $this->totalRevenue = BookingBooking::where('complex_id_id', $this->complex_id)
-            ->where('status', 'Completed')->sum('price');
-        $this->cancelledBookings = BookingBooking::where('complex_id_id', $this->complex_id)
-            ->where('status', 'Cancelled')->count();
+        $this->totalBookings = $allBookings->count();
+
+        $this->totalRevenue = $allBookings->filter(function ($b) {
+            return in_array(strtolower($b->status), ['completed', 'confirmed', 'played', 'booked']);
+        })->sum('price');
+
+        $this->cancelledBookings = $allBookings->filter(function ($b) {
+            return strtolower($b->status) === 'cancelled';
+        })->count();
 
         // Occupancy rate calculation
         $sports = BookingSport::where('venue_id', $this->complex_id)->get();
+        $pools = PoolsPool::where('venue_id', $this->complex_id)->get();
         $days = Carbon::parse($this->end_date)->diffInDays(Carbon::parse($this->start_date)) + 1;
         $totalHours = 0;
         $bookedHours = 0;
 
         foreach ($sports as $sport) {
-            $totalHours += $sport->maximum_court * $days * 17; // Assuming 17 hours per day
+            $totalHours += ($sport->maximum_court ?? 1) * $days * 17; // Assuming 17 hours per day
+        }
+        foreach ($pools as $pool) {
+            $totalHours += 1 * $days * 17; // 1 pool operating 17 hours per day
         }
 
-        foreach ($this->reportData as $booking) {
-            $start = Carbon::parse($booking->start_time);
-            $end = Carbon::parse($booking->end_time);
-            $bookedHours += $end->diffInHours($start);
+        foreach ($allBookings as $booking) {
+            if (strtolower($booking->status) !== 'cancelled' && $booking->start_time && $booking->end_time) {
+                try {
+                    $start = Carbon::parse($booking->start_time);
+                    $end = Carbon::parse($booking->end_time);
+                    $diff = $end->diffInMinutes($start) / 60;
+                    $bookedHours += max(0, $diff);
+                } catch (\Exception $e) {
+                }
+            }
         }
 
         $this->occupancyRate = $totalHours > 0 ? ($bookedHours / $totalHours) * 100 : 0;
 
-        $this->prepareChartData($aggregation);
+        $this->prepareChartData($aggregation, $allBookings);
 
         $this->loadReportData();
-        $this->loadRevenueReport();
+        $this->loadRevenueReport($allBookings);
     }
 
-    public function prepareChartData($aggregation)
+    public function prepareChartData($aggregation, $allBookings = null)
     {
+        if (!$allBookings) {
+            $allBookings = $this->getCombinedBookings();
+        }
+
         $start = Carbon::parse($this->start_date);
         $end = Carbon::parse($this->end_date);
         $labels = [];
         $revenueData = [];
         $bookingsData = [];
 
-        $query = BookingBooking::query()
-            ->selectRaw("CASE 
-                    WHEN ? = 'day' THEN to_char(booking_date::date, 'YYYY-MM-DD')
-                    WHEN ? = 'week' THEN to_char(date_trunc('week', booking_date), 'IYYYIW')
-                    ELSE to_char(booking_date, 'YYYY-MM')
-                END as period,
-                SUM(price) as total_revenue,
-                COUNT(*) as total_bookings", [$aggregation, $aggregation])
-            ->where('complex_id_id', $this->complex_id)
-            ->whereBetween('booking_date', [$start, $end])
-            ->groupBy('period');
+        $bucketRevenue = [];
+        $bucketBookings = [];
 
-        $results = $query->get()->keyBy('period');
+        foreach ($allBookings as $b) {
+            if (strtolower($b->status) === 'cancelled') {
+                continue;
+            }
+            $bDate = Carbon::parse($b->booking_date);
+            if ($bDate < $start || $bDate > $end) {
+                continue;
+            }
+
+            if ($aggregation === 'day') {
+                $periodKey = $bDate->format('Y-m-d');
+            } elseif ($aggregation === 'week') {
+                $periodKey = $bDate->format('oW');
+            } else {
+                $periodKey = $bDate->format('Y-m');
+            }
+
+            $bucketRevenue[$periodKey] = ($bucketRevenue[$periodKey] ?? 0) + (float)$b->price;
+            $bucketBookings[$periodKey] = ($bucketBookings[$periodKey] ?? 0) + 1;
+        }
 
         if ($aggregation === 'day') {
             for ($date = $start->copy(); $date <= $end; $date->addDay()) {
                 $periodStr = $date->format('Y-m-d');
                 $labels[] = $date->format('M d');
-                $revenueData[] = isset($results[$periodStr]) ? (float)$results[$periodStr]->total_revenue : 0;
-                $bookingsData[] = isset($results[$periodStr]) ? (int)$results[$periodStr]->total_bookings : 0;
+                $revenueData[] = isset($bucketRevenue[$periodStr]) ? (float)$bucketRevenue[$periodStr] : 0;
+                $bookingsData[] = isset($bucketBookings[$periodStr]) ? (int)$bucketBookings[$periodStr] : 0;
             }
         } elseif ($aggregation === 'week') {
             for ($date = $start->copy(); $date <= $end; $date->addWeek()) {
                 $periodStr = $date->format('oW');
                 $labels[] = $date->format('M d') . ' - ' . $date->copy()->endOfWeek()->format('M d');
-                $revenueData[] = isset($results[$periodStr]) ? (float)$results[$periodStr]->total_revenue : 0;
-                $bookingsData[] = isset($results[$periodStr]) ? (int)$results[$periodStr]->total_bookings : 0;
+                $revenueData[] = isset($bucketRevenue[$periodStr]) ? (float)$bucketRevenue[$periodStr] : 0;
+                $bookingsData[] = isset($bucketBookings[$periodStr]) ? (int)$bucketBookings[$periodStr] : 0;
             }
         } else {
             for ($date = $start->copy(); $date <= $end; $date->addMonth()) {
                 $periodStr = $date->format('Y-m');
                 $labels[] = $date->format('M Y');
-                $revenueData[] = isset($results[$periodStr]) ? (float)$results[$periodStr]->total_revenue : 0;
-                $bookingsData[] = isset($results[$periodStr]) ? (int)$results[$periodStr]->total_bookings : 0;
+                $revenueData[] = isset($bucketRevenue[$periodStr]) ? (float)$bucketRevenue[$periodStr] : 0;
+                $bookingsData[] = isset($bucketBookings[$periodStr]) ? (int)$bucketBookings[$periodStr] : 0;
             }
         }
 
@@ -194,63 +309,68 @@ class StaffReport extends Component
         $this->dispatch('update-chart', data: $this->chartData);
     }
 
-    public function loadRevenueReport()
+    public function loadRevenueReport($allBookings = null)
     {
-        $startDate = \Carbon\Carbon::parse($this->start_date)->startOfDay()->toDateTimeString();
-        $endDate = \Carbon\Carbon::parse($this->end_date)->endOfDay()->toDateTimeString();
+        if (!$allBookings) {
+            $allBookings = $this->getCombinedBookings();
+        }
 
-        $this->revenueReportData = BookingBooking::where('complex_id_id', $this->complex_id)
-            ->whereBetween('booking_date', [$startDate, $endDate])
-            ->with('sport')
-            ->selectRaw("
-                game_id_id,
-                court_number,
-                COUNT(*) as total_bookings,
-                SUM(price) as total_revenue,
-                AVG(price) as average_revenue,
-                SUM((EXTRACT(EPOCH FROM end_time) - EXTRACT(EPOCH FROM start_time)) / 3600) as total_hours
-            ")
-            ->groupBy('game_id_id', 'court_number')
-            ->get()
-            ->map(function ($revenue) {
-                return [
-                    'sport_name'     => $revenue->sport ? $revenue->sport->name : 'N/A',
-                    'court_number'   => $revenue->court_number ?? 'N/A',
-                    'total_bookings' => $revenue->total_bookings,
-                    'total_hours'    => round($revenue->total_hours, 2) ?? 0,
-                    'total_revenue'  => $revenue->total_revenue ?? 0,
-                    'average_revenue' => $revenue->average_revenue ?? 0,
-                ];
-            })
-            ->values()
-            ->all();
+        $groups = collect($allBookings)->groupBy(function ($item) {
+            return $item->game_name . '|' . $item->court_number;
+        });
+
+        $this->revenueReportData = $groups->map(function ($items, $key) {
+            $first = $items->first();
+            $totalBookings = $items->count();
+
+            $validItems = $items->filter(function ($b) {
+                return strtolower($b->status) !== 'cancelled';
+            });
+
+            $totalRevenue = $validItems->sum('price');
+            $totalHours = 0;
+
+            foreach ($items as $b) {
+                if ($b->start_time && $b->end_time) {
+                    try {
+                        $s = Carbon::parse($b->start_time);
+                        $e = Carbon::parse($b->end_time);
+                        $totalHours += max(0, $e->diffInMinutes($s) / 60);
+                    } catch (\Exception $ex) {
+                    }
+                }
+            }
+
+            return [
+                'sport_name'     => $first->game_name ?? 'N/A',
+                'court_number'   => $first->court_number ?? 'N/A',
+                'total_bookings' => $totalBookings,
+                'total_hours'    => round($totalHours, 2),
+                'total_revenue'  => $totalRevenue,
+                'average_revenue' => $totalBookings > 0 ? round($totalRevenue / $totalBookings, 2) : 0,
+            ];
+        })->values()->all();
 
         $this->dispatch('openRevenueModal');
     }
 
-
-
-
     public function exportReport()
     {
         try {
-            $data = BookingBooking::where('complex_id_id', $this->complex_id)
-                ->whereBetween('booking_date', [$this->start_date, $this->end_date])
-                ->with('sport')
-                ->get();
+            $allBookings = $this->getCombinedBookings();
 
             $csvContent = "Booking ID,Player Name,Court,Sport,Date,Start Time,End Time,Status,Payment Status,Revenue\n";
-            foreach ($data as $booking) {
+            foreach ($allBookings as $booking) {
                 $csvContent .= implode(',', [
                     $booking->id,
-                    '"' . ($booking->user_name ?? 'N/A') . '"',
-                    '"' . ($booking->court_number ?? 'N/A') . '"',
-                    '"' . ($booking->sport->name ?? $booking->game_name ?? 'N/A') . '"',
+                    '"' . str_replace('"', '""', $booking->user_name ?? 'N/A') . '"',
+                    '"' . str_replace('"', '""', $booking->court_number ?? 'N/A') . '"',
+                    '"' . str_replace('"', '""', $booking->game_name ?? 'N/A') . '"',
                     $booking->booking_date,
                     $booking->start_time,
                     $booking->end_time,
                     $booking->status,
-                    $booking->payment_status,
+                    $booking->payment_status ?? 'N/A',
                     $booking->price ?? 0,
                 ]) . "\n";
             }
@@ -276,3 +396,4 @@ class StaffReport extends Component
         return view('livewire.staff.staff-report');
     }
 }
+

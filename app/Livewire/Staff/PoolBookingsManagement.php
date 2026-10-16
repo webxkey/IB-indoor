@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Carbon\Carbon;
+use App\Models\BookingVenue;
 use App\Models\PoolsPool;
 use App\Models\PoolsPooladmissiontype;
 use App\Models\PoolsPoolbooking;
@@ -82,10 +83,94 @@ class PoolBookingsManagement extends Component
         $this->loadData();
     }
 
+    private function getEffectiveOpeningHoursForDate($dateStr)
+    {
+        $dayName = strtolower(Carbon::parse($dateStr)->format('l'));
+        $venueId = Auth::user()?->complex_id;
+
+        $pool = $this->pool ?: ($venueId ? PoolsPool::where('venue_id', $venueId)->first() : null);
+        $venue = $venueId ? BookingVenue::find($venueId) : null;
+
+        $poolHoursRaw = $pool ? (is_string($pool->opening_hours) ? json_decode($pool->opening_hours, true) : ($pool->opening_hours ?? [])) : [];
+        $venueHoursRaw = $venue ? (is_string($venue->opening_hours) ? json_decode($venue->opening_hours, true) : ($venue->opening_hours ?? [])) : [];
+
+        $dayData = null;
+        if (!empty($poolHoursRaw)) {
+            foreach ($poolHoursRaw as $k => $v) {
+                if (strtolower((string)$k) === $dayName) {
+                    $dayData = $v;
+                    break;
+                }
+            }
+        }
+
+        if (empty($dayData) && !empty($venueHoursRaw)) {
+            foreach ($venueHoursRaw as $k => $v) {
+                if (strtolower((string)$k) === $dayName) {
+                    $dayData = $v;
+                    break;
+                }
+            }
+        }
+
+        $openTime = null;
+        $closeTime = null;
+        $isClosed = false;
+
+        if (is_array($dayData)) {
+            $isClosed = !empty($dayData['closed']);
+            $openTime = $dayData['open'] ?? ($dayData[0] ?? null);
+            $closeTime = $dayData['close'] ?? ($dayData[1] ?? null);
+        } elseif (is_string($dayData)) {
+            if (strtolower($dayData) === 'closed') {
+                $isClosed = true;
+            } elseif (strpos($dayData, '-') !== false) {
+                [$openTime, $closeTime] = array_map('trim', explode('-', $dayData, 2));
+            } else {
+                $openTime = $dayData;
+            }
+        }
+
+        if ($isClosed) {
+            return ['start_hour' => 0, 'end_hour' => 0, 'is_closed' => true];
+        }
+
+        $startHour = 6;
+        $endHour = 23;
+
+        if (!empty($openTime)) {
+            $parts = explode(':', $openTime);
+            $startHour = (int) $parts[0];
+        }
+
+        if (!empty($closeTime)) {
+            $parts = explode(':', $closeTime);
+            $endHour = (int) $parts[0];
+            if (isset($parts[1]) && (int)$parts[1] > 0) {
+                $endHour += 1;
+            }
+        }
+
+        if ($endHour <= $startHour) {
+            $endHour = min(24, $startHour + 1);
+        }
+
+        return [
+            'start_hour' => $startHour,
+            'end_hour'   => $endHour,
+            'is_closed'  => false,
+        ];
+    }
+
     public function getTimeSlotsProperty()
     {
+        $hoursInfo = $this->getEffectiveOpeningHoursForDate($this->selectedDate);
+        if ($hoursInfo['is_closed']) {
+            return [];
+        }
+
         $slots = [];
-        for ($h = 6; $h < 23; $h++) {
+        for ($h = $hoursInfo['start_hour']; $h < $hoursInfo['end_hour']; $h++) {
             $start = sprintf('%02d:00:00', $h);
             $end = sprintf('%02d:00:00', $h + 1);
 
@@ -193,21 +278,25 @@ class PoolBookingsManagement extends Component
             ->exists();
 
         if (!$exists) {
-            $defaultSessions = [
-                ['name' => 'Morning Swim (Session 1)', 'start' => '06:00:00', 'end' => '08:00:00'],
-                ['name' => 'Morning Swim (Session 2)', 'start' => '08:30:00', 'end' => '10:30:00'],
-                ['name' => 'Afternoon Swim',           'start' => '14:00:00', 'end' => '16:00:00'],
-                ['name' => 'Evening Swim (Session 1)', 'start' => '16:00:00', 'end' => '18:00:00'],
-                ['name' => 'Evening Swim (Session 2)', 'start' => '18:30:00', 'end' => '20:30:00'],
-            ];
+            $hoursInfo = $this->getEffectiveOpeningHoursForDate($dateStr);
+            if ($hoursInfo['is_closed']) {
+                return;
+            }
 
-            foreach ($defaultSessions as $sess) {
+            for ($h = $hoursInfo['start_hour']; $h < $hoursInfo['end_hour']; $h += 2) {
+                $sessEndHour = min($hoursInfo['end_hour'], $h + 2);
+                $start = sprintf('%02d:00:00', $h);
+                $end = sprintf('%02d:00:00', $sessEndHour);
+
+                $startFormatted = Carbon::parse($start)->format('g:i A');
+                $endFormatted = Carbon::parse($end)->format('g:i A');
+
                 PoolsPoolsessionoccurrence::create([
                     'pool_id' => $pool->id,
                     'session_date' => $dateStr,
-                    'start_time' => $sess['start'],
-                    'end_time' => $sess['end'],
-                    'name' => $sess['name'],
+                    'start_time' => $start,
+                    'end_time' => $end,
+                    'name' => "Session ({$startFormatted} - {$endFormatted})",
                     'capacity' => $pool->capacity ?: 50,
                     'status' => 'open',
                 ]);
@@ -350,10 +439,11 @@ class PoolBookingsManagement extends Component
             return;
         }
 
+        $hoursInfo = $this->getEffectiveOpeningHoursForDate($this->selectedDate);
+        $closeHour = $hoursInfo['is_closed'] ? 24 : $hoursInfo['end_hour'];
+
         $startTimeStr = strlen($this->slotStartTime) === 5 ? $this->slotStartTime . ':00' : $this->slotStartTime;
         $startHour = (int) Carbon::parse($startTimeStr)->format('H');
-
-        $closeHour = 24;
 
         $options = [];
         for ($h = $startHour + 1; $h <= $closeHour; $h++) {
@@ -388,9 +478,13 @@ class PoolBookingsManagement extends Component
 
     public function resetBookingForm()
     {
+        $hoursInfo = $this->getEffectiveOpeningHoursForDate($this->selectedDate ?? now()->format('Y-m-d'));
+        $defaultStartHour = $hoursInfo['is_closed'] ? 9 : $hoursInfo['start_hour'];
+        $defaultEndHour = $defaultStartHour + 1;
+
         $this->selectedOccurrenceId = null;
-        $this->slotStartTime = '16:00:00';
-        $this->selectedEndTime = '17:00:00';
+        $this->slotStartTime = sprintf('%02d:00:00', $defaultStartHour);
+        $this->selectedEndTime = sprintf('%02d:00:00', $defaultEndHour);
         $this->endTimeOptions = [];
         $this->userName = '';
         $this->userNumber = '';
